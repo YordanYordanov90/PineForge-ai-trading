@@ -1,14 +1,10 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
-import { z } from 'zod';
-import { DEFAULT_MODEL, GROK_MODELS } from '@/lib/constants';
+import { generateSchema } from '@/lib/validation';
+import { DEFAULT_MODEL } from '@/lib/constants';
 
-const validModelIds = GROK_MODELS.map(m => m.id);
-
-const schema = z.object({
-  prompt: z.string().min(1, 'Strategy description is required'),
-  balance: z.string().min(1, 'Account balance is required'),
-  model: z.enum(validModelIds as [string, ...string[]]).default(DEFAULT_MODEL),
+const schema = generateSchema.extend({
+  model: generateSchema.shape.model.default(DEFAULT_MODEL),
 });
 
 const SYSTEM_PROMPT = `You are an expert TradingView Pine Script v5 developer.
@@ -38,22 +34,39 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json(
-      { error: parsed.error.issues },
-      { status: 400 },
-    );
+    return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
 
-  const { prompt: strategy, balance, model } = parsed.data;
+  const {
+    prompt: strategy,
+    balance,
+    model,
+    market,
+    timeframe,
+    direction,
+    indicators,
+    rr,
+  } = parsed.data;
+
+  const contextParts: string[] = [];
+  if (market) contextParts.push(`Market: ${market}`);
+  if (timeframe) contextParts.push(`Timeframe: ${timeframe}`);
+  if (direction) contextParts.push(`Direction: ${direction}`);
+  if (indicators?.length)
+    contextParts.push(`Preferred indicators: ${indicators.join(', ')}`);
+  if (rr) contextParts.push(`Risk-Reward ratio: ${rr}:1`);
+
+  const contextBlock = contextParts.length
+    ? `\n\nAdditional context: ${contextParts.join('; ')}`
+    : '';
 
   const result = streamText({
     model: xai(model),
     system: SYSTEM_PROMPT,
-    prompt: `Strategy description: ${strategy}\nAccount balance: ${balance}`,
+    prompt: `Strategy description: ${strategy}\nAccount balance: ${balance}${contextBlock}`,
     temperature: 0.1,
     maxOutputTokens: 900,
   });
 
   return result.toTextStreamResponse();
 }
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Card,
@@ -15,7 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { PromptTemplates } from '@/components/strategy/PromptTemplates';
-import { ScriptOutput } from '@/components/strategy/ScriptOutput';
+import { ScriptOutput, validateScript } from '@/components/strategy/ScriptOutput';
+import type { ValidationResult } from '@/components/strategy/ScriptOutput';
+import { StructuredInputs } from '@/components/strategy/StructuredInputs';
+import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import {
   Copy,
   Check,
@@ -23,6 +26,9 @@ import {
   ShieldCheck,
   BarChart3,
   Loader2,
+  Download,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import {
   MAX_PROMPT_LENGTH,
@@ -43,6 +49,9 @@ export function StrategyForm() {
   const [copied, setCopied] = useState(false);
   const [genStartTime, setGenStartTime] = useState<number | null>(null);
   const [genElapsed, setGenElapsed] = useState<number | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [structuredInputs, setStructuredInputs] = useState<StructuredInputsValue>({});
+  const [isImproving, setIsImproving] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +69,14 @@ export function StrategyForm() {
     !isGenerating &&
     charCount <= MAX_PROMPT_LENGTH;
 
+  useEffect(() => {
+    if (!isGenerating && generatedScript) {
+      setValidationResult(validateScript(generatedScript));
+    } else {
+      setValidationResult(null);
+    }
+  }, [isGenerating, generatedScript]);
+
   const handlePresetSelect = (prompt: string, presetId: string) => {
     setStrategy(prompt);
     setActivePreset(presetId);
@@ -74,6 +91,7 @@ export function StrategyForm() {
 
     setGeneratedScript('');
     setIsGenerating(true);
+    setValidationResult(null);
     const startTime = Date.now();
     setGenStartTime(startTime);
     setGenElapsed(null);
@@ -86,7 +104,12 @@ export function StrategyForm() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt: strategy, balance, model: selectedModel }),
+        body: JSON.stringify({
+          prompt: strategy,
+          balance,
+          model: selectedModel,
+          ...structuredInputs,
+        }),
         signal: controller.signal,
       });
 
@@ -135,7 +158,7 @@ export function StrategyForm() {
       setIsGenerating(false);
       abortRef.current = null;
     }
-  }, [canGenerate, strategy, balance, selectedModel, genStartTime]);
+  }, [canGenerate, strategy, balance, selectedModel, structuredInputs, genStartTime]);
 
   const handleCopy = async () => {
     try {
@@ -145,6 +168,47 @@ export function StrategyForm() {
       setTimeout(() => setCopied(false), 1400);
     } catch {
       toast.error('Copy failed. Please copy manually from the output.');
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([generatedScript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `strategy-${Date.now()}.pine`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Script downloaded.');
+  };
+
+  const handleImprovePrompt = async () => {
+    if (!strategy.trim()) return;
+    setIsImproving(true);
+    try {
+      const res = await fetch('/api/improve-prompt', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          prompt: strategy,
+          ...structuredInputs,
+        }),
+      });
+      if (!res.ok) {
+        toast.error('Could not improve prompt. Try again.');
+        return;
+      }
+      const data: unknown = await res.json();
+      if (typeof data === 'object' && data && 'improvedPrompt' in data) {
+        setStrategy((data as { improvedPrompt: string }).improvedPrompt.slice(0, 1500));
+        toast.success('Prompt improved!');
+      } else {
+        toast.error('Unexpected response. Please try again.');
+      }
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsImproving(false);
     }
   };
 
@@ -207,6 +271,8 @@ export function StrategyForm() {
 
           <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
 
+          <StructuredInputs value={structuredInputs} onChange={setStructuredInputs} />
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="balance">Account balance</Label>
@@ -246,6 +312,29 @@ export function StrategyForm() {
               </Button>
             </div>
           </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleImprovePrompt}
+              disabled={!strategy.trim() || isImproving || isGenerating}
+              className="text-zinc-400 hover:text-emerald-300"
+            >
+              {isImproving ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Improving…
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Improve My Prompt
+                </span>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -253,14 +342,27 @@ export function StrategyForm() {
       <Card
         className={`border-zinc-800/70 backdrop-blur transition-all duration-500 ${
           isGenerating
-            ? 'border-emerald-500/40 shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)] bg-zinc-950/40'
+            ? 'border-emerald-500/40 shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)] animate-border-glow bg-zinc-950/40'
             : 'bg-zinc-950/35'
         }`}
       >
         <CardHeader className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               <CardTitle className="text-xl">Output</CardTitle>
+              {validationResult && !isGenerating && (
+                validationResult.isValid ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 animate-fade-in">
+                    <ShieldCheck className="h-3 w-3" />
+                    Valid Pine Script v5 ✓
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 animate-fade-in">
+                    <AlertTriangle className="h-3 w-3" />
+                    Review needed
+                  </span>
+                )
+              )}
               {isGenerating && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400 border border-emerald-500/20">
                   <span className="relative flex h-1.5 w-1.5">
@@ -272,7 +374,7 @@ export function StrategyForm() {
               )}
               {genElapsed !== null && !isGenerating && generatedScript && (
                 <span className="text-xs text-zinc-500 tabular-nums">
-                  {genElapsed}s &middot; ~{generatedScript.split(/\s+/).length} tokens
+                  Generated in {genElapsed}s · ~{Math.round(generatedScript.length / 4)} tokens
                 </span>
               )}
             </div>
@@ -286,6 +388,20 @@ export function StrategyForm() {
                   onClick={() => stop()}
                 >
                   Stop
+                </Button>
+              )}
+              {generatedScript && !isGenerating && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="border border-zinc-800 text-white hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Download className="h-3.5 w-3.5" />
+                    Download .pine
+                  </span>
                 </Button>
               )}
               {generatedScript && !isGenerating && (

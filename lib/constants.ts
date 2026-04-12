@@ -32,6 +32,8 @@ export const CHAR_WARNING_THRESHOLD = 1200;
 
 export const CHAR_DANGER_THRESHOLD = 1400;
 
+export const DEFAULT_RR_RATIO = 2;
+
 export type StrategyPreset = {
   id: string;
   label: string;

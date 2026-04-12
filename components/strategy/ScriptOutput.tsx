@@ -5,6 +5,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Terminal, MousePointerClick } from 'lucide-react';
 import { highlightPineScript } from '@/lib/highlight';
 
+export type ValidationResult = {
+  hasVersion: boolean;
+  hasDeclaration: boolean;
+  hasAlert: boolean;
+  bracketsMatch: boolean;
+  isValid: boolean;
+};
+
+export function validateScript(script: string): ValidationResult {
+  const hasVersion = script.includes('//@version=5');
+  const hasDeclaration = /indicator\(|strategy\(/.test(script);
+  const hasAlert = script.includes('alertcondition(') || script.includes('alert(');
+  const openBrackets = (script.match(/\(/g) ?? []).length;
+  const closeBrackets = (script.match(/\)/g) ?? []).length;
+  const bracketsMatch = openBrackets === closeBrackets;
+  return {
+    hasVersion,
+    hasDeclaration,
+    hasAlert,
+    bracketsMatch,
+    isValid: hasVersion && hasDeclaration && hasAlert && bracketsMatch,
+  };
+}
+
 type ScriptOutputProps = {
   script: string;
   isGenerating: boolean;
