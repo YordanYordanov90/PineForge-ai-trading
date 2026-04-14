@@ -3,36 +3,55 @@ export const MAX_PROMPT_LENGTH = 1500;
 export type GrokModel = {
   id: 'grok-4-1-fast-reasoning' | 'grok-4-1-fast-non-reasoning' | 'grok-4';
   label: string;
-  description: string;
+  speedHint: string;
+  tooltip: string;
+  recommended?: boolean;
 };
 
 export const GROK_MODELS: GrokModel[] = [
   {
-    id: 'grok-4-1-fast-reasoning',
-    label: 'Reasoning',
-    description: 'Best quality, slower',
+    id: 'grok-4-1-fast-non-reasoning',
+    label: 'Fast (Recommended)',
+    speedHint: '≈ 8–12 seconds',
+    tooltip: 'Quickest responses, excellent for most strategies',
+    recommended: true,
   },
   {
-    id: 'grok-4-1-fast-non-reasoning',
-    label: 'Fast',
-    description: 'Quick responses',
+    id: 'grok-4-1-fast-reasoning',
+    label: 'Balanced',
+    speedHint: '≈ 20–30 seconds',
+    tooltip: 'Better logic and fewer mistakes on complex rules',
   },
   {
     id: 'grok-4',
-    label: 'Grok-4',
-    description: 'Most capable',
+    label: 'Maximum Quality (Slowest)',
+    speedHint: '≈ 40+ seconds',
+    tooltip: 'Most powerful, best for very advanced strategies',
   },
-] as const;
+];
 
-export const DEFAULT_MODEL = 'grok-4-1-fast-reasoning' as const;
+export const DEFAULT_MODEL = 'grok-4-1-fast-non-reasoning' as const;
 
 export const MAX_HISTORY_ENTRIES = 50;
+
+/** Full-script refinements need a higher ceiling than initial generate (900). */
+export const REFINE_MAX_OUTPUT_TOKENS = 2000;
+
+/** Plain-English breakdown and TradingView checklist from /api/explain-script. */
+export const EXPLAIN_MAX_OUTPUT_TOKENS = 1800;
 
 export const CHAR_WARNING_THRESHOLD = 1200;
 
 export const CHAR_DANGER_THRESHOLD = 1400;
 
 export const DEFAULT_RR_RATIO = 2;
+
+/** Pine alert() message strings — keep in sync with `pine-generate-system.ts` and webhook export. */
+export const PINE_WEBHOOK_ALERT_MESSAGES = [
+  'Buy Getting Ready',
+  'Average Buy Trigger',
+  'Strong Buy Trigger',
+] as const;
 
 export type StrategyPreset = {
   id: string;

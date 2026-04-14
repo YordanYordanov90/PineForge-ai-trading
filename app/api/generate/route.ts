@@ -2,32 +2,11 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { generateSchema } from '@/lib/validation';
 import { DEFAULT_MODEL } from '@/lib/constants';
+import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/prompts/pine-generate-system';
 
 const schema = generateSchema.extend({
   model: generateSchema.shape.model.default(DEFAULT_MODEL),
 });
-
-const SYSTEM_PROMPT = `You are an expert TradingView Pine Script v5 developer.
-
-Return ONLY a complete, clean, ready-to-paste //@version=5 indicator() script.
-No explanations, no markdown, no extra text, no code blocks.
-
-Strict requirements:
-- Use indicator() title="Grok Strategy", overlay=true
-- Three alerts using alert() function:
-  1. "Buy Getting Ready"
-  2. "Average Buy Trigger"
-  3. "Strong Buy Trigger"
-- When any alert fires: draw dynamic SL and TP lines using line.new + label.new with clear text labels
-- Add these inputs at the top:
-  • riskPercent = input.float(1.0, "Risk % per Trade")
-  • tpMultiplier = input.float(2.0, "Take Profit R-Multiplier")
-- Calculate and show suggested position size in comments using the account balance provided
-- Use plotshape() for clear buy signals
-- Minimal comments only (screener settings + risk note)
-- Keep the entire script compact and production-ready
-
-Always start with //@version=5`;
 
 export async function POST(req: Request) {
   const body: unknown = await req.json().catch(() => null);
@@ -60,13 +39,20 @@ export async function POST(req: Request) {
     ? `\n\nAdditional context: ${contextParts.join('; ')}`
     : '';
 
-  const result = streamText({
-    model: xai(model),
-    system: SYSTEM_PROMPT,
-    prompt: `Strategy description: ${strategy}\nAccount balance: ${balance}${contextBlock}`,
-    temperature: 0.1,
-    maxOutputTokens: 900,
-  });
+  try {
+    const result = streamText({
+      model: xai(model),
+      system: PINE_GENERATE_SYSTEM_PROMPT,
+      prompt: `Strategy description: ${strategy}\nAccount balance: ${balance}${contextBlock}`,
+      temperature: 0.1,
+      maxOutputTokens: 900,
+    });
 
-  return result.toTextStreamResponse();
+    return result.toTextStreamResponse();
+  } catch {
+    return Response.json(
+      { error: 'Failed to generate script. Please try again.' },
+      { status: 500 },
+    );
+  }
 }

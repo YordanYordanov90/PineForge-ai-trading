@@ -1,6 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { improvePromptSchema } from '@/lib/validation';
+import { DEFAULT_MODEL } from '@/lib/constants';
 
 const MAX_IMPROVED_PROMPT_LENGTH = 1500;
 
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await generateText({
-      model: xai('grok-4-1-fast-non-reasoning'),
+      model: xai(DEFAULT_MODEL),
       system: IMPROVE_SYSTEM_PROMPT,
       prompt: userPrompt,
       maxOutputTokens: 500,
