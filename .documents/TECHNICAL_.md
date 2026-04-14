@@ -1,6 +1,6 @@
 # GrokTS — Technical Reference
 
-**Version**: 1.1
+**Version**: 1.2
 **Date**: April 2026
 **Companion to**: `PRD_.md`
 
@@ -21,8 +21,10 @@ app/
 │   │   └── route.ts                    ✅ exists
 │   ├── improve-prompt/
 │   │   └── route.ts                    ✅ exists — Phase 1
+│   ├── refine-script/
+│   │   └── route.ts                    ✅ exists — Refine Chat
 │   └── explain-script/
-│       └── route.ts                    ⬜ Phase 2 — task 11
+│       └── route.ts                    ✅ exists — Phase 2
 └── layout.tsx                          ✅ exists
 
 components/
@@ -41,19 +43,21 @@ components/
 │   ├── PromptTemplates.tsx             ✅ exists — task 4
 │   ├── ScriptOutput.tsx                ✅ exists — task 5
 │   ├── StructuredInputs.tsx            ✅ exists — Phase 1
-│   ├── ScriptHistory.tsx               ⬜ Phase 2 — task 8
-│   └── RefineChat.tsx                  ⬜ Phase 2 — task 10
+│   ├── ScriptHistory.tsx               ✅ exists — Phase 2
+│   └── RefineChat.tsx                  ✅ exists — Refine Chat
 └── ui/
     └── sonner.tsx                      ✅ exists
 
 hooks/
-└── useScriptHistory.ts                 ⬜ Phase 2 — task 8
+└── useScriptHistory.ts                 ✅ exists — history + buildSavedScriptFromGeneration / Refinement
 
 lib/
 ├── utils.ts                            ✅ exists
-├── constants.ts                        ✅ exists (incl. DEFAULT_RR_RATIO)
-├── validation.ts                     ✅ exists — generateSchema, improvePromptSchema
-└── types.ts                            ⬜ Phase 2 — task 8
+├── constants.ts                        ✅ exists (incl. DEFAULT_RR_RATIO, REFINE_MAX_OUTPUT_TOKENS)
+├── prompts/
+│   └── pine-generate-system.ts         ✅ shared system prompt (generate + refine-script)
+├── validation.ts                       ✅ exists — generateSchema, refineScriptSchema, improvePromptSchema
+└── types.ts                            ✅ exists — SavedScript, etc.
 ```
 
 ---
@@ -136,6 +140,8 @@ export const GROK_MODELS: GrokModel[] = [
 export const DEFAULT_MODEL: GrokModelId = 'grok-4-1-fast-reasoning';
 
 export const DEFAULT_RR_RATIO = 2; // default for StructuredInputs R:R slider (stringified in UI)
+
+export const REFINE_MAX_OUTPUT_TOKENS = 2000; // full-script refinements (generate uses 900)
 ```
 
 ---
@@ -211,8 +217,20 @@ export const improvePromptSchema = z.object({
   rr: z.string().optional(),
 });
 
+export const refineScriptSchema = z.object({
+  script: z.string().min(10).max(20000),
+  instruction: z.string().min(3).max(1000),
+  model: z
+    .enum([
+      'grok-4-1-fast-reasoning',
+      'grok-4-1-fast-non-reasoning',
+      'grok-4',
+    ])
+    .optional(),
+});
+
 export const explainScriptSchema = z.object({
-  script: z.string().min(10).max(10000),
+  script: z.string().min(10).max(20000),
   mode: z.enum(['breakdown', 'checklist']),
 });
 ```
@@ -264,7 +282,27 @@ type ImprovePromptResponse = {
 // Error 500: { error: string } — sanitized message only
 ```
 
-### `POST /api/explain-script` ⬜ Phase 2
+### `POST /api/refine-script` ✅ Exists (Refine Chat)
+
+```typescript
+// Request — stateless MVP (script + instruction + model)
+type RefineScriptRequest = {
+  script: string;       // min 10, max 20_000 chars
+  instruction: string; // min 3, max 1000 chars
+  model?: GrokModelId;  // defaults to DEFAULT_MODEL (server)
+};
+
+// Response
+// Success: text/event-stream (Vercel AI SDK streamText)
+// Error 400: application/json { error: ZodIssue[] }
+// Error 500: application/json { error: string } — sanitized message only
+
+// Implementation notes
+// - system: PINE_GENERATE_SYSTEM_PROMPT from lib/prompts/pine-generate-system.ts (same as /api/generate)
+// - maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS (2000)
+```
+
+### `POST /api/explain-script` ✅ Exists (Phase 2)
 
 ```typescript
 // Request
@@ -480,7 +518,7 @@ Behavior:  Generate button disabled when count >= MAX_PROMPT_LENGTH (1500)
 
 ---
 
-### ScriptHistory Drawer ⬜ Phase 2
+### ScriptHistory Drawer ✅ Phase 2
 
 ```
 Component:   shadcn Sheet (slides in from left)
@@ -494,19 +532,14 @@ Max entries: 50 (FIFO — oldest removed when limit exceeded)
 
 ---
 
-### RefineChat ⬜ Phase 2
+### RefineChat ✅ Phase 2
 
 ```
-Position:    below output card — appears only after first generation completes
-Behavior:    streams next script version using full conversation context array
-Versioning:  each refinement saves as new SavedScript:
-               version: prev.version + 1
-               parentId: original script id
-Examples of valid refinements:
-  "Add trailing stop after 1R"
-  "Switch to strategy() instead of indicator()"
-  "Add short signals too"
-  "Change timeframe to 1h"
+Position:    directly below output code area (above Separator + three chips); hidden during Generate streaming
+Title:       "Refine this script with Grok"
+Behavior:    POST /api/refine-script — stateless script + instruction + model; streams full replacement script
+Versioning:  each successful refinement saves new SavedScript: version = lastVersion + 1, parentId = root id (v1 entry)
+Examples:    "Add trailing stop after 1R", "Switch to strategy()", "Add short signals", "Change timeframe to 1h"
 ```
 
 ---
@@ -533,9 +566,9 @@ Right panel elements (top → bottom):
   1. Output card header (title, validator/streaming/stats, Stop, Download .pine, Copy)
   2. Subheader description text
   3. Code area (max-h-[640px] desktop / max-h-[400px] mobile, overflow-auto)
-  4. Separator
-  5. 3 info chips (Alert tiers · Auto lines · Risk rules)
-  6. RefineChat (after first generation — Phase 2)
+  4. RefineChat (when script present or refine in progress; not during Generate stream)
+  5. Separator
+  6. 3 info chips (Alert tiers · Auto lines · Risk rules)
 ```
 
 ---

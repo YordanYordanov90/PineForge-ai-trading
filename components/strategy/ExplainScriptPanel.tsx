@@ -1,0 +1,219 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export type ExplainScriptMode = 'breakdown' | 'checklist';
+
+type ExplainScriptPanelProps = {
+  mode: ExplainScriptMode;
+  script: string;
+  isTabActive: boolean;
+  isScriptFinal: boolean;
+  cancelKey: number;
+};
+
+type Phase = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
+
+function fingerprintScript(script: string): string {
+  const trimmed = script.trim();
+  const head = trimmed.slice(0, 64);
+  const tail = trimmed.slice(-64);
+  let hash = 0;
+  for (let i = 0; i < trimmed.length; i += 1) {
+    hash = (hash * 31 + trimmed.charCodeAt(i)) >>> 0;
+  }
+  return `${trimmed.length}:${hash.toString(36)}:${head}:${tail}`;
+}
+
+function cacheKeyFor(mode: ExplainScriptMode, script: string) {
+  return `${mode}::${fingerprintScript(script)}`;
+}
+
+export function ExplainScriptPanel({
+  mode,
+  script,
+  isTabActive,
+  isScriptFinal,
+  cancelKey,
+}: ExplainScriptPanelProps) {
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [retryTick, setRetryTick] = useState(0);
+  const cacheRef = useRef<Map<string, string>>(new Map());
+  const inFlightRef = useRef<AbortController | null>(null);
+  const startedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    inFlightRef.current?.abort();
+    inFlightRef.current = null;
+    startedRef.current.clear();
+  }, [cancelKey]);
+
+  useEffect(() => {
+    const trimmed = script.trim();
+    if (!trimmed) {
+      setText('');
+      setPhase('idle');
+      return;
+    }
+
+    const key = cacheKeyFor(mode, script);
+    const cached = cacheRef.current.get(key);
+    if (cached !== undefined) {
+      setText(cached);
+      setPhase('done');
+      return;
+    }
+
+    if (!isScriptFinal) {
+      setText('');
+      setPhase('idle');
+      return;
+    }
+
+    if (!isTabActive) {
+      return;
+    }
+
+    if (startedRef.current.has(key)) {
+      return;
+    }
+
+    startedRef.current.add(key);
+    const ac = new AbortController();
+    inFlightRef.current = ac;
+
+    let accumulated = '';
+
+    (async () => {
+      try {
+        setPhase('loading');
+        setText('');
+        const res = await fetch('/api/explain-script', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ script, mode }),
+          signal: ac.signal,
+        });
+
+        if (!res.ok) {
+          const maybeJson: unknown = await res.json().catch(() => null);
+          const message =
+            typeof maybeJson === 'object' && maybeJson && 'error' in maybeJson
+              ? 'Invalid input. Please try again.'
+              : 'Request failed. Please try again.';
+          toast.error(message);
+          startedRef.current.delete(key);
+          setPhase('error');
+          return;
+        }
+
+        if (!res.body) {
+          accumulated = await res.text();
+          cacheRef.current.set(key, accumulated);
+          setText(accumulated);
+          setPhase('done');
+          return;
+        }
+
+        setPhase('streaming');
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            accumulated += decoder.decode(value, { stream: true });
+            setText(accumulated);
+          }
+        }
+
+        cacheRef.current.set(key, accumulated);
+        setPhase('done');
+      } catch (e: unknown) {
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          startedRef.current.delete(key);
+          return;
+        }
+        toast.error('Something went wrong. Please try again.');
+        startedRef.current.delete(key);
+        setPhase('error');
+      }
+    })();
+  }, [isTabActive, isScriptFinal, script, mode, cancelKey, retryTick]);
+
+  if (!script.trim()) {
+    return (
+      <p className="px-6 py-6 text-sm text-zinc-500">
+        Generate or load a script to see this tab.
+      </p>
+    );
+  }
+
+  if (!isScriptFinal) {
+    return (
+      <p className="px-6 py-6 text-sm text-zinc-500">
+        Finish generating or refining to load this explanation.
+      </p>
+    );
+  }
+
+  if (phase === 'idle' && !isTabActive) {
+    return (
+      <p className="px-6 py-6 text-sm text-zinc-500">
+        Open this tab to load the explanation.
+      </p>
+    );
+  }
+
+  if (phase === 'loading') {
+    return (
+      <div className="space-y-3 px-6 py-6">
+        <Skeleton className="h-4 w-[88%] rounded-md bg-zinc-800/50" />
+        <Skeleton className="h-4 w-[76%] rounded-md bg-zinc-800/45" />
+        <Skeleton className="h-4 w-[82%] rounded-md bg-zinc-800/50" />
+        <div className="flex items-center gap-2 pt-2 text-xs text-zinc-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'error') {
+    return (
+      <div className="px-6 py-6">
+        <p className="text-sm text-zinc-400">Could not load this explanation.</p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3 border-zinc-700"
+          onClick={() => {
+            const key = cacheKeyFor(mode, script);
+            startedRef.current.delete(key);
+            setPhase('idle');
+            setText('');
+            setRetryTick((t) => t + 1);
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[640px] overflow-auto px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap text-zinc-300">
+      {text}
+      {phase === 'streaming' && (
+        <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-emerald-400/80 align-middle" />
+      )}
+    </div>
+  );
+}

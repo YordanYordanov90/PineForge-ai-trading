@@ -219,14 +219,14 @@ Calls `/api/improve-prompt` to rewrite the user's raw strategy description into 
 | Move generation stats into output card header | ★★★★ | ✅ Done |
 | Strengthen streaming glass effect | ★★★ | ✅ Done |
 
-### Phase 2 — Daily Driver Features ⬜ Upcoming
+### Phase 2 — Daily Driver Features ✅ Complete
 
 | Task | Priority | Status |
 |---|---|---|
-| Script History (localStorage + Sheet drawer) | ★★★★★ | ⬜ Pending |
-| Refine Chat (conversational iteration) | ★★★★★ | ⬜ Pending |
-| Multi-tab output (Script + Breakdown + Checklist) | ★★★★ | ⬜ Pending |
-| TradingView Webhook JSON export | ★★★★ | ⬜ Pending |
+| Script History (localStorage + Sheet drawer) | ★★★★★ | ✅ Done  |
+| Refine Chat (conversational iteration) | ★★★★★ | ✅ Done  |
+| Multi-tab output (Script + Breakdown + Checklist) | ★★★★ | ✅ Done |
+| TradingView Webhook JSON export | ★★★★ | ✅ Done |
 
 ### Phase 3 — Polish & Trust ⬜ Future
 

@@ -1,4 +1,4 @@
-import { StrategyForm } from '@/components/strategy/StrategyForm';
+import { GenerateExperience } from '@/components/generate/GenerateExperience';
 
 export default function GeneratePage() {
   return (
@@ -10,20 +10,7 @@ export default function GeneratePage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
-        <header className="mb-10 sm:mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800/70 bg-zinc-950/50 px-3 py-1 text-xs text-zinc-300 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-            Pine Script v5 · Alerts + SL/TP · Copy‑ready output
-          </div>
-          <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-            Grok Trading Strategy Generator
-          </h1>
-          <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-zinc-300 sm:text-base">
-            Describe entries, filters, and risk rules. Get Pine Script with 3 alert tiers and automatic Stop‑Loss / Take‑Profit lines.
-          </p>
-        </header>
-
-        <StrategyForm />
+        <GenerateExperience />
       </div>
     </div>
   );
