@@ -1,8 +1,21 @@
+'use client';
+
 import { Copy, Terminal } from "lucide-react";
 import { LANDING_CODE_LINES } from "./landing-code-sample";
 import { RevealOnScroll } from "./RevealOnScroll";
+import { toast } from "sonner";
 
 export function LandingCodePreview() {
+  const handleCopy = async () => {
+    try {
+      const code = LANDING_CODE_LINES.join("\n");
+      await navigator.clipboard.writeText(code);
+      toast.success("Code copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy code.");
+    }
+  };
+
   return (
     <section className="relative z-10 mx-auto mb-20 max-w-5xl sm:mb-32 lg:mb-40">
       <RevealOnScroll>
@@ -26,10 +39,14 @@ export function LandingCodePreview() {
               <Terminal className="size-2.5 sm:size-3" />
               Pine Editor — TradingView
             </div>
-            <div className="flex cursor-pointer items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 transition-colors hover:bg-emerald-500/20 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
+            <button 
+              onClick={handleCopy}
+              className="flex cursor-pointer items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/30 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
+              aria-label="Copy sample Pine Script"
+            >
               <Copy className="size-2.5 sm:size-3" />
               Copy
-            </div>
+            </button>
           </div>
 
           <div className="relative">

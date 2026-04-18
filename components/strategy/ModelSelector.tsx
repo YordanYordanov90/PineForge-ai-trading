@@ -15,11 +15,19 @@ type ModelSelectorProps = {
 };
 
 export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
+  const modelLabelId = 'model-selector-label';
+
   return (
     <div className="space-y-2">
-      <p className="text-xs text-zinc-400">Model</p>
+      <p id={modelLabelId} className="text-xs text-zinc-400">
+        Model
+      </p>
       <TooltipProvider>
-        <div className="flex rounded-lg border border-zinc-800/70 bg-zinc-950/60 p-1">
+        <div 
+          className="flex rounded-lg border border-zinc-800/70 bg-zinc-950/60 p-1"
+          role="radiogroup"
+          aria-labelledby={modelLabelId}
+        >
           {GROK_MODELS.map((model, index) => {
             const isSelected = selectedModel === model.id;
             const isFirst = index === 0;
@@ -31,6 +39,9 @@ export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    tabIndex={isSelected ? 0 : -1}
                     onClick={() => onSelect(model.id)}
                     className={cn(
                       'relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 py-2 text-center transition-all duration-200',

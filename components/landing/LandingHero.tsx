@@ -10,7 +10,7 @@ export function LandingHero() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
           </span>
-          v1.1 Live · Grok-3 Powered
+          v1.1 Live · Grok-4 Powered
         </div>
 
         <h1 className="font-heading text-balance text-4xl font-extrabold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
