@@ -67,13 +67,13 @@ export function StrategyInputsCard({
 
   return (
     <Card className="border-zinc-800/70 bg-zinc-950/35 backdrop-blur">
-      <CardHeader>
+      <CardHeader className="p-4 sm:p-5">
         <CardTitle className="text-xl">Inputs</CardTitle>
         <CardDescription className="text-zinc-400">
           Tight prompt in, clean script out. Include timeframe, market, triggers, and invalidation.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
         <PromptTemplates activePreset={activePreset} onSelect={onPresetSelect} />
 
         <div className="space-y-2">
@@ -92,17 +92,40 @@ export function StrategyInputsCard({
             className="resize-none border-zinc-700/70 bg-zinc-950/60 leading-relaxed placeholder:text-zinc-500 focus-visible:ring-emerald-400/30 text-white"
           />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-            <p className="text-xs text-zinc-400 sm:min-w-0 sm:flex-1">
-              Tip: mention exact alert conditions (e.g. &ldquo;Average&rdquo; vs &ldquo;Strong&rdquo; trigger).{' '}
-              <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                Ctrl
-              </kbd>{' '}
-              +{' '}
-              <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                Enter
-              </kbd>{' '}
-              to generate
-            </p>
+            <div className="flex flex-col gap-1 sm:min-w-0 sm:flex-1">
+              {charCount > MAX_PROMPT_LENGTH && (
+                <p className="text-xs text-rose-400 font-medium animate-fade-in">
+                  Prompt is too long. Please reduce it to under {MAX_PROMPT_LENGTH} characters.
+                </p>
+              )}
+              <p className="text-xs text-zinc-400">
+                Tip: mention exact alert conditions (e.g. &ldquo;Average&rdquo; vs &ldquo;Strong&rdquo; trigger).{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  Ctrl
+                </kbd>{' '}
+                /{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  ⌘
+                </kbd>
+                +{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  Enter
+                </kbd>{' '}
+                to generate ·{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  Ctrl
+                </kbd>{' '}
+                /{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  ⌘
+                </kbd>
+                +{' '}
+                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
+                  K
+                </kbd>{' '}
+                for commands
+              </p>
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -150,7 +173,7 @@ export function StrategyInputsCard({
                 placeholder="12,450"
                 value={balance}
                 onChange={(e) => onBalanceChange(e.target.value)}
-                className="border-zinc-700/70 bg-zinc-950/60 pl-7 placeholder:text-zinc-500 focus-visible:ring-emerald-400/30 text-white"
+                className="border-zinc-700/70 bg-zinc-950/60 pl-7 placeholder:text-zinc-500 focus-visible:ring-emerald-400/30 text-white font-mono"
               />
             </div>
             <p className="text-xs text-zinc-400">Numbers only. Used for position sizing.</p>

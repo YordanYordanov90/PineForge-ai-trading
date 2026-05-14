@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import { generateSchema } from '@/lib/validation';
 import { DEFAULT_MODEL } from '@/lib/constants';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/prompts/pine-generate-system';
+import { responseIfMissingXaiApiKey } from '@/lib/xai-env';
 
 const schema = generateSchema.extend({
   model: generateSchema.shape.model.default(DEFAULT_MODEL),
@@ -15,6 +16,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
+
+  const missingKey = responseIfMissingXaiApiKey();
+  if (missingKey) return missingKey;
 
   const {
     prompt: strategy,

@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 
 type ScriptHistoryProps = {
   onLoad: (entry: SavedScript) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 function previewPrompt(prompt: string, max = 60) {
@@ -40,9 +42,8 @@ function formatSavedAt(iso: string) {
   }
 }
 
-export function ScriptHistory({ onLoad }: ScriptHistoryProps) {
+export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps) {
   const { entries, renameEntry, deleteEntry } = useScriptHistory();
-  const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -58,7 +59,7 @@ export function ScriptHistory({ onLoad }: ScriptHistoryProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -144,7 +145,7 @@ export function ScriptHistory({ onLoad }: ScriptHistoryProps) {
                       className="h-8 border border-zinc-800 text-zinc-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300"
                       onClick={() => {
                         onLoad(entry);
-                        setOpen(false);
+                        onOpenChange(false);
                       }}
                       aria-label={`Load script ${entry.name}`}
                     >

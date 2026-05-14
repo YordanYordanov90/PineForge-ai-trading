@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import { refineScriptSchema } from '@/lib/validation';
 import { DEFAULT_MODEL, REFINE_MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/prompts/pine-generate-system';
+import { responseIfMissingXaiApiKey } from '@/lib/xai-env';
 
 const schema = refineScriptSchema.extend({
   model: refineScriptSchema.shape.model.default(DEFAULT_MODEL),
@@ -15,6 +16,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
+
+  const missingKey = responseIfMissingXaiApiKey();
+  if (missingKey) return missingKey;
 
   const { script, instruction, model } = parsed.data;
 

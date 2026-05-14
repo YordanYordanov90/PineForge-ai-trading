@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { messageFromApiErrorJson } from '@/lib/message-from-api-error';
 
 export type ExplainScriptMode = 'breakdown' | 'checklist';
 
@@ -102,11 +103,13 @@ export function ExplainScriptPanel({
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
-          const message =
-            typeof maybeJson === 'object' && maybeJson && 'error' in maybeJson
-              ? 'Invalid input. Please try again.'
-              : 'Request failed. Please try again.';
-          toast.error(message);
+          toast.error(
+            messageFromApiErrorJson(
+              maybeJson,
+              'Invalid input. Please try again.',
+              'Request failed. Please try again.',
+            ),
+          );
           startedRef.current.delete(key);
           setPhase('error');
           return;

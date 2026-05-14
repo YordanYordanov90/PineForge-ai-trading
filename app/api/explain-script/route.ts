@@ -6,6 +6,7 @@ import {
   EXPLAIN_BREAKDOWN_SYSTEM,
   EXPLAIN_CHECKLIST_SYSTEM,
 } from '@/lib/prompts/explain-script';
+import { responseIfMissingXaiApiKey } from '@/lib/xai-env';
 
 export async function POST(req: Request) {
   const body: unknown = await req.json().catch(() => null);
@@ -14,6 +15,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
+
+  const missingKey = responseIfMissingXaiApiKey();
+  if (missingKey) return missingKey;
 
   const { script, mode } = parsed.data;
   const system =

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
+import { messageFromApiErrorJson } from '@/lib/message-from-api-error';
 
 type UsePromptImproverOptions = {
   onSuccess: (improvedPrompt: string) => void;
@@ -29,7 +30,14 @@ export function usePromptImprover(options: UsePromptImproverOptions) {
         });
 
         if (!res.ok) {
-          toast.error('Could not improve prompt. Try again.');
+          const maybeJson: unknown = await res.json().catch(() => null);
+          toast.error(
+            messageFromApiErrorJson(
+              maybeJson,
+              'Invalid input. Try again.',
+              'Could not improve prompt. Try again.',
+            ),
+          );
           return;
         }
 

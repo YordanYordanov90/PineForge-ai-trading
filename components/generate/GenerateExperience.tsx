@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
+import { ScriptHistorySidebar } from '@/components/strategy/ScriptHistorySidebar';
 import type { SavedScript } from '@/lib/types';
 
 export function GenerateExperience() {
   const formRef = useRef<StrategyFormHandle>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleLoad = useCallback((entry: SavedScript) => {
     formRef.current?.loadSavedScript(entry);
@@ -29,13 +31,27 @@ export function GenerateExperience() {
               Stop‑Loss / Take‑Profit lines.
             </p>
           </div>
-          <div className="shrink-0 sm:pt-1">
-            <ScriptHistory onLoad={handleLoad} />
+          <div className="shrink-0 sm:pt-1 xl:hidden">
+            <ScriptHistory
+              onLoad={handleLoad}
+              open={historyOpen}
+              onOpenChange={setHistoryOpen}
+            />
           </div>
         </div>
       </header>
 
-      <StrategyForm ref={formRef} />
+      <div className="grid items-start xl:grid-cols-[280px_1fr] xl:gap-8">
+        <div className="sticky top-8 hidden h-[calc(100vh-4rem)] xl:block">
+          <ScriptHistorySidebar onLoad={handleLoad} />
+        </div>
+        <div className="min-w-0">
+          <StrategyForm
+            ref={formRef}
+            onRequestOpenHistory={() => setHistoryOpen(true)}
+          />
+        </div>
+      </div>
     </>
   );
 }

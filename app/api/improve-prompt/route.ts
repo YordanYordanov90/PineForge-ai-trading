@@ -2,6 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { improvePromptSchema } from '@/lib/validation';
 import { DEFAULT_MODEL } from '@/lib/constants';
+import { responseIfMissingXaiApiKey } from '@/lib/xai-env';
 
 const MAX_IMPROVED_PROMPT_LENGTH = 1500;
 
@@ -25,6 +26,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
+
+  const missingKey = responseIfMissingXaiApiKey();
+  if (missingKey) return missingKey;
 
   const { prompt, market, timeframe, direction, indicators, rr } = parsed.data;
 

@@ -9,7 +9,7 @@ export default function GeneratePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-size-[16px_16px] opacity-[0.08]" />
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
+      <div className="mx-auto max-w-[1500px] px-6 py-10 sm:py-14">
         <GenerateExperience />
       </div>
     </div>

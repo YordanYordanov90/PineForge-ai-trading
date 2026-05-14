@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { messageFromApiErrorJson } from '@/lib/message-from-api-error';
 import type { GrokModelId } from '@/lib/types';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 
@@ -61,11 +62,13 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
-          const message =
-            typeof maybeJson === 'object' && maybeJson && 'error' in maybeJson
-              ? 'Invalid input. Please check your fields.'
-              : 'Request failed. Please try again.';
-          toast.error(message);
+          toast.error(
+            messageFromApiErrorJson(
+              maybeJson,
+              'Invalid input. Please check your fields.',
+              'Request failed. Please try again.',
+            ),
+          );
           return;
         }
 
@@ -142,11 +145,13 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
-          const message =
-            typeof maybeJson === 'object' && maybeJson && 'error' in maybeJson
-              ? 'Invalid input. Please check your refinement.'
-              : 'Request failed. Please try again.';
-          toast.error(message);
+          toast.error(
+            messageFromApiErrorJson(
+              maybeJson,
+              'Invalid input. Please check your refinement.',
+              'Request failed. Please try again.',
+            ),
+          );
           setGeneratedScript(previousScript);
           return;
         }

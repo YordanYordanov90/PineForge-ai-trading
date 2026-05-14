@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -26,6 +27,7 @@ import {
 import type { SavedScript } from '@/lib/types';
 import { usePromptImprover } from '@/hooks/usePromptImprover';
 import { useScriptGeneration } from '@/hooks/useScriptGeneration';
+import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';
 
@@ -35,7 +37,12 @@ export type StrategyFormHandle = {
   loadSavedScript: (entry: SavedScript) => void;
 };
 
-export const StrategyForm = forwardRef<StrategyFormHandle>(function StrategyForm(_props, ref) {
+export type StrategyFormProps = {
+  onRequestOpenHistory?: () => void;
+};
+
+export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
+  function StrategyForm({ onRequestOpenHistory }, ref) {
   const { addEntry } = useScriptHistory();
   const [strategy, setStrategy] = useState('');
   const [balance, setBalance] = useState('');
@@ -49,6 +56,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle>(function StrategyForm
   const [explainCancelKey, setExplainCancelKey] = useState(0);
   const [webhookPanelOpen, setWebhookPanelOpen] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
+  const [commandOpen, setCommandOpen] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
   const lineageRef = useRef<{ rootId: string; lastVersion: number } | null>(null);
   const sessionHistoryNameRef = useRef('');
@@ -157,6 +165,11 @@ export const StrategyForm = forwardRef<StrategyFormHandle>(function StrategyForm
     !isOutputBusy &&
     strategy.length <= MAX_PROMPT_LENGTH;
 
+  const canImprove = useMemo(
+    () => Boolean(strategy.trim()) && !isOutputBusy && !isImproving,
+    [strategy, isOutputBusy, isImproving],
+  );
+
   const validationResult: ValidationResult | null = useMemo(
     () => (!isOutputBusy && generatedScript ? validateScript(generatedScript) : null),
     [isOutputBusy, generatedScript],
@@ -235,19 +248,56 @@ export const StrategyForm = forwardRef<StrategyFormHandle>(function StrategyForm
     void handleImprovePrompt(strategy, structuredInputs);
   }, [handleImprovePrompt, strategy, structuredInputs]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      void handleGenerate();
-    }
-  };
+  const handleGenerateRef = useRef(handleGenerate);
+  const commandOpenRef = useRef(commandOpen);
+
+  useEffect(() => {
+    handleGenerateRef.current = handleGenerate;
+    commandOpenRef.current = commandOpen;
+  });
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandOpen((open) => !open);
+        return;
+      }
+      if (mod && e.key === 'Enter') {
+        if (commandOpenRef.current) return;
+        e.preventDefault();
+        void handleGenerateRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const isStreaming = isOutputBusy && Boolean(generatedScript);
   const isIdle = !isOutputBusy && !generatedScript;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8" onKeyDown={handleKeyDown}>
-      <StrategyInputsCard
+    <>
+      <GeneratorCommandMenu
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        canGenerate={canGenerate}
+        onGenerate={() => void handleGenerate()}
+        canImprove={canImprove}
+        onImprovePrompt={onImprovePrompt}
+        onOpenHistory={() => onRequestOpenHistory?.()}
+        hasScript={Boolean(generatedScript.trim())}
+        isOutputBusy={isOutputBusy}
+        onCopy={handleCopy}
+        onDownload={handleDownload}
+        onStop={stop}
+        outputTab={outputTab}
+        onOutputTabChange={setOutputTab}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
+        <StrategyInputsCard
         strategy={strategy}
         onStrategyChange={handleStrategyChange}
         balance={balance}
@@ -291,8 +341,10 @@ export const StrategyForm = forwardRef<StrategyFormHandle>(function StrategyForm
         onRefine={handleRefine}
         refineResetKey={refineResetKey}
       />
-    </div>
+      </div>
+    </>
   );
-});
+  },
+);
 
 StrategyForm.displayName = 'StrategyForm';
