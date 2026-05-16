@@ -1,6 +1,7 @@
 'use client';
 
 import type { RefObject } from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   BarChart3,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   Webhook,
 } from 'lucide-react';
+import type { GenerationRateLimitError } from '@/hooks/useScriptGeneration';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -31,6 +33,7 @@ type StrategyOutputCardProps = {
   isOutputBusy: boolean;
   genElapsed: number | null;
   generatedScript: string;
+  generationError: GenerationRateLimitError | null;
   webhookPanelOpen: boolean;
   onToggleWebhookPanel: () => void;
   onStop: () => void;
@@ -63,6 +66,7 @@ export function StrategyOutputCard({
   isOutputBusy,
   genElapsed,
   generatedScript,
+  generationError,
   webhookPanelOpen,
   onToggleWebhookPanel,
   onStop,
@@ -204,6 +208,24 @@ export function StrategyOutputCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        {generationError && !isOutputBusy ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          >
+            <p>{generationError.message}</p>
+            {generationError.showUpgradeCta ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="mt-3 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+              >
+                <Link href="/pricing">Upgrade to Pro</Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <div
           ref={outputRef}
           className="relative overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/55 min-h-[280px]"

@@ -19,9 +19,16 @@ type UseScriptGenerationOptions = {
   onChunk?: () => void;
 };
 
+export type GenerationRateLimitError = {
+  message: string;
+  showUpgradeCta: boolean;
+};
+
 export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   const abortRef = useRef<AbortController | null>(null);
   const [generatedScript, setGeneratedScript] = useState('');
+  const [generationError, setGenerationError] =
+    useState<GenerationRateLimitError | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [genStartTime, setGenStartTime] = useState<number | null>(null);
@@ -36,6 +43,7 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   const generate = useCallback(
     async (payload: GeneratePayload) => {
       setGeneratedScript('');
+      setGenerationError(null);
       setIsGenerating(true);
       const startTime = Date.now();
       setGenStartTime(startTime);
@@ -62,6 +70,38 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
+          if (res.status === 429) {
+            const message = messageFromApiErrorJson(
+              maybeJson,
+              'Too many requests. Please try again in a moment.',
+              'Too many requests. Please try again in a moment.',
+            );
+            setGenerationError({
+              message,
+              showUpgradeCta: message.includes('Upgrade to Pro'),
+            });
+            return;
+          }
+          if (res.status === 403) {
+            toast.error(
+              messageFromApiErrorJson(
+                maybeJson,
+                'This model requires a Pro plan.',
+                'This model requires a Pro plan.',
+              ),
+            );
+            return;
+          }
+          if (res.status === 409) {
+            toast.error(
+              messageFromApiErrorJson(
+                maybeJson,
+                'A generation is already in progress.',
+                'A generation is already in progress.',
+              ),
+            );
+            return;
+          }
           toast.error(
             messageFromApiErrorJson(
               maybeJson,
@@ -145,11 +185,19 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
+          const fallback =
+            res.status === 403
+              ? 'This model requires a Pro plan.'
+              : res.status === 409
+                ? 'A generation is already in progress.'
+                : res.status === 429
+                  ? 'Too many requests. Please try again in a moment.'
+                  : 'Request failed. Please try again.';
           toast.error(
             messageFromApiErrorJson(
               maybeJson,
               'Invalid input. Please check your refinement.',
-              'Request failed. Please try again.',
+              fallback,
             ),
           );
           setGeneratedScript(previousScript);
@@ -204,6 +252,7 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   return {
     generatedScript,
     setGeneratedScript,
+    generationError,
     isGenerating,
     isRefining,
     isOutputBusy,

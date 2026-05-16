@@ -1,17 +1,18 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { explainScriptSchema } from '@/lib/api/validation';
+import { jsonApiError, protectAiRoute } from '@/lib/api/protected-ai-route';
 import { DEFAULT_MODEL, EXPLAIN_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import {
   EXPLAIN_BREAKDOWN_SYSTEM,
   EXPLAIN_CHECKLIST_SYSTEM,
 } from '@/lib/ai/prompts/explain-script';
-import { requireClerkSession } from '@/lib/auth/require-clerk-session';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
+import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
 
 export async function POST(req: Request) {
-  const session = await requireClerkSession();
-  if (!session.ok) return session.response;
+  const guard = await protectAiRoute(req);
+  if (!guard.ok) return guard.response;
 
   const body: unknown = await req.json().catch(() => null);
   const parsed = explainScriptSchema.safeParse(body);
@@ -20,8 +21,16 @@ export async function POST(req: Request) {
     return Response.json({ error: parsed.error.issues }, { status: 400 });
   }
 
+  const lock = await acquireStreamLock(guard.ctx.userId);
+  if (!lock.acquired) {
+    return jsonApiError(409, 'A generation is already in progress.');
+  }
+
   const missingKey = responseIfMissingXaiApiKey();
-  if (missingKey) return missingKey;
+  if (missingKey) {
+    await lock.release();
+    return missingKey;
+  }
 
   const { script, mode } = parsed.data;
   const system =
@@ -35,10 +44,15 @@ export async function POST(req: Request) {
       prompt,
       temperature: 0.15,
       maxOutputTokens: EXPLAIN_MAX_OUTPUT_TOKENS,
+      abortSignal: guard.ctx.req.signal,
+      onFinish: () => {
+        void lock.release();
+      },
     });
 
     return result.toTextStreamResponse();
   } catch {
+    await lock.release();
     return Response.json(
       { error: 'Failed to explain script. Please try again.' },
       { status: 500 },

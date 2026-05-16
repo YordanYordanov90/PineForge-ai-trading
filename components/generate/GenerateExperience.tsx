@@ -6,13 +6,18 @@ import { clerkAppearance } from '@/lib/auth/clerk-appearance';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
 import { ScriptHistorySidebar } from '@/components/strategy/ScriptHistorySidebar';
+import { UserPlanProvider } from '@/context/UserPlanContext';
 import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
 
 const USER_SYNC_SESSION_KEY = 'pineforge_user_synced';
 const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
 
-export function GenerateExperience() {
+type GenerateExperienceProps = {
+  initialPlan: string;
+};
+
+export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
   const formRef = useRef<StrategyFormHandle>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { isSignedIn, isLoaded } = useAuth();
@@ -43,7 +48,7 @@ export function GenerateExperience() {
   }, []);
 
   return (
-    <>
+    <UserPlanProvider plan={initialPlan}>
       <header className="mb-10 sm:mb-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -85,6 +90,6 @@ export function GenerateExperience() {
           />
         </div>
       </div>
-    </>
+    </UserPlanProvider>
   );
 }

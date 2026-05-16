@@ -103,11 +103,17 @@ export function ExplainScriptPanel({
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
+          const fallback =
+            res.status === 409
+              ? 'A generation is already in progress.'
+              : res.status === 429
+                ? 'Too many requests. Please try again in a moment.'
+                : 'Request failed. Please try again.';
           toast.error(
             messageFromApiErrorJson(
               maybeJson,
               'Invalid input. Please try again.',
-              'Request failed. Please try again.',
+              fallback,
             ),
           );
           startedRef.current.delete(key);

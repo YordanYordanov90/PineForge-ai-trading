@@ -1,8 +1,8 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { improvePromptSchema } from '@/lib/api/validation';
+import { protectAiRoute } from '@/lib/api/protected-ai-route';
 import { DEFAULT_MODEL } from '@/lib/config/constants';
-import { requireClerkSession } from '@/lib/auth/require-clerk-session';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 
 const MAX_IMPROVED_PROMPT_LENGTH = 1500;
@@ -21,8 +21,8 @@ Rewrite the prompt to include:
 Return ONLY the improved prompt text. No explanations, no markdown, no preamble.`;
 
 export async function POST(req: Request) {
-  const session = await requireClerkSession();
-  if (!session.ok) return session.response;
+  const guard = await protectAiRoute(req);
+  if (!guard.ok) return guard.response;
 
   const body: unknown = await req.json().catch(() => null);
   const parsed = improvePromptSchema.safeParse(body);
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
       system: IMPROVE_SYSTEM_PROMPT,
       prompt: userPrompt,
       maxOutputTokens: 500,
+      abortSignal: guard.ctx.req.signal,
     });
 
     const improvedPrompt = result.text.slice(0, MAX_IMPROVED_PROMPT_LENGTH);

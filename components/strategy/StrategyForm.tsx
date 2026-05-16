@@ -27,6 +27,7 @@ import {
 import type { SavedScript } from '@/lib/types';
 import { usePromptImprover } from '@/hooks/usePromptImprover';
 import { useScriptGeneration } from '@/hooks/useScriptGeneration';
+import { useUserPlan } from '@/context/UserPlanContext';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';
@@ -46,6 +47,7 @@ export type StrategyFormProps = {
 
 export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   function StrategyForm({ onRequestOpenHistory }, ref) {
+  const plan = useUserPlan();
   const { entries, addEntry } = useScriptHistory();
   const [strategy, setStrategy] = useState('');
   const [balance, setBalance] = useState('');
@@ -74,6 +76,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   const {
     generatedScript,
     setGeneratedScript,
+    generationError,
     isGenerating,
     isRefining,
     isOutputBusy,
@@ -155,9 +158,12 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     loadSavedScript(entry: SavedScript) {
       setStrategy(entry.prompt);
       setBalance(entry.balance);
-      setSelectedModel(
-        entry.model && MODEL_IDS.has(entry.model) ? entry.model : DEFAULT_MODEL,
-      );
+      let model =
+        entry.model && MODEL_IDS.has(entry.model) ? entry.model : DEFAULT_MODEL;
+      if (plan !== 'pro' && model !== DEFAULT_MODEL) {
+        model = DEFAULT_MODEL;
+      }
+      setSelectedModel(model);
       setStructuredInputs({
         market: entry.market,
         timeframe: entry.timeframe,
@@ -182,7 +188,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
     },
-  }));
+  }), [plan]);
 
   const canGenerate =
     Boolean(strategy.trim()) &&
@@ -444,6 +450,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         isOutputBusy={isOutputBusy}
         genElapsed={genElapsed}
         generatedScript={generatedScript}
+        generationError={generationError}
         webhookPanelOpen={webhookPanelOpen}
         onToggleWebhookPanel={() => setWebhookPanelOpen((open) => !open)}
         onStop={stop}

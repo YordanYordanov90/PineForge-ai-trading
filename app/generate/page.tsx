@@ -1,6 +1,22 @@
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { users } from '@/drizzle/schema';
 import { GenerateExperience } from '@/components/generate/GenerateExperience';
+import { db } from '@/lib/db';
 
-export default function GeneratePage() {
+export default async function GeneratePage() {
+  const { userId } = await auth();
+  let initialPlan = 'free';
+
+  if (userId) {
+    const [user] = await db
+      .select({ plan: users.plan })
+      .from(users)
+      .where(eq(users.clerkId, userId))
+      .limit(1);
+    initialPlan = user?.plan ?? 'free';
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -10,7 +26,7 @@ export default function GeneratePage() {
       </div>
 
       <div className="mx-auto max-w-[1500px] px-6 py-10 sm:py-14">
-        <GenerateExperience />
+        <GenerateExperience initialPlan={initialPlan} />
       </div>
     </div>
   );
