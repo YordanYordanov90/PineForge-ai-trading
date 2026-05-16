@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { messageFromApiErrorJson } from '@/lib/message-from-api-error';
+import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
 import type { GrokModelId } from '@/lib/types';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 

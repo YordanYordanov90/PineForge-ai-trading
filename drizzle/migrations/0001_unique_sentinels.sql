@@ -1,0 +1,1 @@
+ALTER TABLE "scripts" ADD COLUMN "metadata" jsonb;

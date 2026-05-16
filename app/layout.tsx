@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono, Inter, Syne } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { PRODUCT_NAME } from "@/lib/brand";
+import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -24,21 +27,21 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: {
-    default: "Grok Trading Strategy Generator",
-    template: "%s · Grok Trading Strategy Generator",
+    default: PRODUCT_NAME,
+    template: `%s · ${PRODUCT_NAME}`,
   },
   description:
     "Generate clean, copy-ready TradingView Pine Script v5 strategies with alert tiers and SL/TP lines.",
-  applicationName: "Grok Trading Strategy Generator",
+  applicationName: PRODUCT_NAME,
   openGraph: {
     type: "website",
-    title: "Grok Trading Strategy Generator",
+    title: PRODUCT_NAME,
     description:
       "Generate clean, copy-ready TradingView Pine Script v5 strategies with alert tiers and SL/TP lines.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Grok Trading Strategy Generator",
+    title: PRODUCT_NAME,
     description:
       "Generate clean, copy-ready TradingView Pine Script v5 strategies with alert tiers and SL/TP lines.",
   },
@@ -52,10 +55,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, syne.variable)}
+      className={cn("dark h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, syne.variable)}
     >
       <body className="flex min-h-full flex-col">
-        {children}
+        <ClerkProvider appearance={clerkAppearance}>
+          {children}
+        </ClerkProvider>
         <Toaster />
       </body>
     </html>

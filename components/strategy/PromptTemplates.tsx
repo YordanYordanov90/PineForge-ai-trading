@@ -1,6 +1,6 @@
 'use client';
 
-import { STRATEGY_PRESETS, type StrategyPreset } from '@/lib/constants';
+import { STRATEGY_PRESETS, type StrategyPreset } from '@/lib/config/constants';
 
 type PromptTemplatesProps = {
   activePreset: string | null;

@@ -5,7 +5,7 @@ Return ONLY a complete, clean, ready-to-paste //@version=5 indicator() script.
 No explanations, no markdown, no extra text, no code blocks.
 
 Strict requirements:
-- Use indicator() title="Grok Strategy", overlay=true
+- Use indicator() title="PineForge Strategy", overlay=true
 - Three alerts using alert() function:
   1. "Buy Getting Ready"
   2. "Average Buy Trigger"

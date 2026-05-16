@@ -60,3 +60,27 @@ export const improvePromptSchema = z.object({
     .optional(),
   rr: rrSchema,
 });
+
+const scriptMetadataSchema = z.object({
+  prompt: z.string().max(1500),
+  balance: z.string().max(32),
+  market: z.string().max(32).optional(),
+  timeframe: z.string().max(8).optional(),
+  direction: z.string().max(32).optional(),
+  indicators: z.array(z.string().max(32)).max(8).optional(),
+  rr: z.string().max(10).optional(),
+});
+
+export const createScriptSchema = z.object({
+  title: z.string().min(1).max(200),
+  content: z.string().min(1).max(20_000),
+  version: z.number().int().min(1).max(100).default(1),
+  parentId: z.number().int().positive().optional(),
+  model: grokModelEnum.optional(),
+  accountBalance: z.number().int().nonnegative().optional(),
+  metadata: scriptMetadataSchema,
+});
+
+export const renameScriptSchema = z.object({
+  title: z.string().min(1).max(200),
+});

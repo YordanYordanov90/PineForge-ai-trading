@@ -1,8 +1,8 @@
-# GrokTS — Project Overview
+# PineForge — Project Overview
 
 ## Overview
 
-GrokTS (Grok Trading Strategy) is a premium AI-powered Pine Script v5 generator
+PineForge is a premium AI-powered Pine Script v5 generator
 built for retail traders who use TradingView daily. It turns a plain-English
 strategy description and an account balance into a complete, production-ready
 Pine Script — with three-tier buy alerts, automatic Stop-Loss and Take-Profit
@@ -11,14 +11,15 @@ a "strategy compiler" for traders: less about general AI chat, more about
 removing the hours of manual Pine Script writing and debugging between having
 a trading idea and seeing it on a chart.
 
-**Tagline**: "Describe it. Grok writes it. You trade it."
+**Tagline**: "Describe it. PineForge writes it. You trade it."
 
 ## Goals
 
 1. Let traders go from strategy idea to working TradingView indicator in under 15 seconds
 2. Produce consistent, valid Pine Script v5 output without requiring prompt engineering
 3. Support iterative refinement so traders evolve strategies without starting from scratch
-4. Phase 4: monetize via a SaaS layer (Clerk auth, free/pro tiers, Neon Postgres history)
+4. Phase 4: Build proper foundation (Clerk auth + Neon Postgres + Drizzle ORM + rate limiting)
+5. Phase 5: Add high-value workflow features that turn PineForge into a complete daily driver for active traders (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
 
 ## Core User Flow
 
@@ -61,12 +62,29 @@ a trading idea and seeing it on a chart.
 ### Landing Page
 - Marketing page at `/` with hero, feature grid, how-it-works, code preview, CTA
 
+## Phase 5 — Value Expansion Features (High & Medium Value)
+
+These features will be implemented in Phase 5, after the auth + database foundation (Phase 4).
+
+### High Value (Ship Early — Even Before Full Auth)
+- **TradingView Auto-Import / Deep Link** — One-click button to open the generated script directly in TradingView Pine Editor (or copy the special URL scheme). Removes the last manual friction.
+- **Strategy Health Score** — After generation, run a quick AI analysis and give a 1–10 "Health Score" with specific actionable notes (e.g. "Missing volume filter — high false signal risk in low liquidity").
+- **Alert Message Templates** — Generate ready-to-use webhook JSON for popular brokers (3Commas, Alertatron, WunderTrading, etc.) alongside the Pine Script.
+- **Strategy Backtesting Summary Generator** — Button that produces a structured Markdown checklist: recommended timeframes, markets, what to look for in equity curve, common failure modes for this strategy type.
+
+### Medium Value (Better After Auth + DB)
+- **Pinned / Starred Scripts** — Users can star important strategies so they never get evicted from the 50-entry history limit. Per-user, survives across devices.
+- **Strategy Tags + Search** — Users can tag scripts (e.g. "crypto", "scalping", "15m", "live") and search/filter their entire history.
+- **Strategy Collections / Folders** — Group scripts into named collections ("BTC Strategies", "Testing", "Live Trading"). Requires user accounts.
+- **Export to Notion / Obsidian** — One-click export of the Breakdown tab as clean Markdown file (with metadata). Serious traders who journal their strategies will love this.
+
 ## Scope
 
 ### In Scope
 - Pine Script v5 generation and refinement
-- Client-side history via localStorage
-- Phase 4: Clerk auth, Neon Postgres history, Upstash rate limiting, public sharing
+- Client-side history via localStorage (Phase 1–3)
+- Phase 4: Clerk auth + Neon Postgres + Drizzle ORM + Upstash rate limiting + per-user history migration
+- Phase 5: High & Medium value workflow features (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
 
 ### Out of Scope
 - Live trading execution or broker integration

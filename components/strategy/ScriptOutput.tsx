@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Terminal, MousePointerClick } from 'lucide-react';
-import { highlightPineScript } from '@/lib/highlight';
+import { highlightPineScript } from '@/lib/ai/highlight';
 
 export type ValidationResult = {
   hasVersion: boolean;
@@ -34,14 +34,27 @@ type ScriptOutputProps = {
   isGenerating: boolean;
   isStreaming: boolean;
   isIdle: boolean;
+  /** When set, settled script is an editable textarea (for manual tweaks + Compare). */
+  onScriptChange?: (value: string) => void;
 };
 
-export function ScriptOutput({ script, isGenerating, isStreaming, isIdle }: ScriptOutputProps) {
+export function ScriptOutput({
+  script,
+  isGenerating,
+  isStreaming,
+  isIdle,
+  onScriptChange,
+}: ScriptOutputProps) {
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
 
   useEffect(() => {
+    if (onScriptChange) {
+      return;
+    }
     if (isGenerating || !script) {
-      setHighlightedHtml(null);
+      queueMicrotask(() => {
+        setHighlightedHtml(null);
+      });
       return;
     }
     let cancelled = false;
@@ -49,7 +62,7 @@ export function ScriptOutput({ script, isGenerating, isStreaming, isIdle }: Scri
       if (!cancelled) setHighlightedHtml(html);
     });
     return () => { cancelled = true; };
-  }, [isGenerating, script]);
+  }, [onScriptChange, isGenerating, script]);
 
   if (isIdle) {
     return (
@@ -95,6 +108,23 @@ export function ScriptOutput({ script, isGenerating, isStreaming, isIdle }: Scri
           <span className="animate-blink-cursor ml-0.5 inline-block h-4 w-2 bg-emerald-400 align-text-bottom" />
         </code>
       </pre>
+    );
+  }
+
+  const settledEditable = Boolean(onScriptChange && !isGenerating && !isStreaming && !isIdle);
+
+  if (settledEditable) {
+    return (
+      <textarea
+        id="generated-pine-script"
+        aria-label="Generated Pine Script — editable"
+        spellCheck={false}
+        value={script}
+        onChange={(e) => {
+          onScriptChange?.(e.target.value);
+        }}
+        className="box-border max-h-[640px] min-h-[320px] w-full resize-y border-0 bg-transparent p-6 font-mono text-sm leading-relaxed text-emerald-300/95 outline-none ring-0 focus-visible:outline-none"
+      />
     );
   }
 

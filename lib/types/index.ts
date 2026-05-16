@@ -1,4 +1,4 @@
-import type { GrokModel } from '@/lib/constants';
+import type { GrokModel } from '@/lib/config/constants';
 
 export type GrokModelId = GrokModel['id'];
 

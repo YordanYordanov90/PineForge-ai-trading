@@ -28,7 +28,7 @@ export function LandingFeatureGrid() {
                 Streaming AI Generation
               </h3>
               <p className="text-sm leading-relaxed text-zinc-400 sm:text-base">
-                Watch the script write itself in real-time. Our custom-tuned Grok-3 integration
+                Watch the script write itself in real-time. Powered by xAI Grok with streaming output
                 outputs clean, strictly validated Pine Script v5 code in seconds.
               </p>
             </div>

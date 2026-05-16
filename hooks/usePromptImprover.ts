@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
-import { messageFromApiErrorJson } from '@/lib/message-from-api-error';
+import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
 
 type UsePromptImproverOptions = {
   onSuccess: (improvedPrompt: string) => void;

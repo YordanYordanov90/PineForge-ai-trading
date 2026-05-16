@@ -1,14 +1,42 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useAuth, UserButton } from '@clerk/nextjs';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { clerkAppearance } from '@/lib/auth/clerk-appearance';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
 import { ScriptHistorySidebar } from '@/components/strategy/ScriptHistorySidebar';
+import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
+
+const USER_SYNC_SESSION_KEY = 'pineforge_user_synced';
+const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
 
 export function GenerateExperience() {
   const formRef = useRef<StrategyFormHandle>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useAuth();
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || typeof window === 'undefined') return;
+    if (
+      sessionStorage.getItem(USER_SYNC_SESSION_KEY) === '1' ||
+      sessionStorage.getItem(LEGACY_USER_SYNC_SESSION_KEY) === '1'
+    ) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/users/sync', { method: 'POST' });
+        if (res.ok) {
+          sessionStorage.setItem(USER_SYNC_SESSION_KEY, '1');
+        }
+      } catch {
+        // retry on next visit
+      }
+    })();
+  }, [isLoaded, isSignedIn]);
 
   const handleLoad = useCallback((entry: SavedScript) => {
     formRef.current?.loadSavedScript(entry);
@@ -24,19 +52,24 @@ export function GenerateExperience() {
               Pine Script v5 · Alerts + SL/TP · Copy‑ready output
             </div>
             <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-              Grok Trading Strategy Generator
+              {PRODUCT_NAME}
             </h1>
             <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-zinc-300 sm:text-base">
               Describe entries, filters, and risk rules. Get Pine Script with 3 alert tiers and automatic
               Stop‑Loss / Take‑Profit lines.
             </p>
           </div>
-          <div className="shrink-0 sm:pt-1 xl:hidden">
-            <ScriptHistory
-              onLoad={handleLoad}
-              open={historyOpen}
-              onOpenChange={setHistoryOpen}
-            />
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3 sm:pt-1">
+            {isLoaded && isSignedIn ? (
+              <UserButton appearance={clerkAppearance} />
+            ) : null}
+            <div className="xl:hidden">
+              <ScriptHistory
+                onLoad={handleLoad}
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+              />
+            </div>
           </div>
         </div>
       </header>

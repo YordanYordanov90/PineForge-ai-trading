@@ -1,10 +1,10 @@
-import { PINE_WEBHOOK_ALERT_MESSAGES } from '@/lib/constants';
+import { PINE_WEBHOOK_ALERT_MESSAGES } from '@/lib/config/constants';
 
 const PLACEHOLDER_WEBHOOK_URL = 'https://your-webhook-url.com';
 
 export type WebhookJsonExport = {
   meta: {
-    generatedBy: 'GrokTS';
+    generatedBy: 'PineForge';
     pineVersion: 'v5';
   };
   alertMessages: readonly [
@@ -33,7 +33,7 @@ export function buildWebhookJsonExport(webhookUrlInput: string): WebhookJsonExpo
 
   return {
     meta: {
-      generatedBy: 'GrokTS',
+      generatedBy: 'PineForge',
       pineVersion: 'v5',
     },
     alertMessages: [...PINE_WEBHOOK_ALERT_MESSAGES] as WebhookJsonExport['alertMessages'],

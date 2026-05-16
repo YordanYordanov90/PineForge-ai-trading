@@ -47,7 +47,7 @@ export function RefineChat({
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-950/40 p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-200">
         <MessageSquareText className="h-4 w-4 text-emerald-500/80" aria-hidden />
-        Refine this script with Grok
+        Refine this script with PineForge
       </div>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <div className="space-y-2">

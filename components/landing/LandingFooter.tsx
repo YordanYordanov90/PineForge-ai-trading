@@ -8,10 +8,10 @@ export function LandingFooter() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2 text-sm text-zinc-500">
             <Zap className="size-3.5 text-emerald-500/60" />
-            <span>Built for traders, powered by Grok</span>
+            <span>Built for traders, powered by xAI Grok</span>
           </div>
           <div className="text-sm text-zinc-600">
-            &copy; {new Date().getFullYear()} GrokTS
+            &copy; {new Date().getFullYear()} PineForge
           </div>
         </div>
       </footer>

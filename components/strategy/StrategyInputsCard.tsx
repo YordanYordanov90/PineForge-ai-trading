@@ -15,7 +15,7 @@ import {
   CHAR_WARNING_THRESHOLD,
   CHAR_DANGER_THRESHOLD,
   type GrokModel,
-} from '@/lib/constants';
+} from '@/lib/config/constants';
 import { cn } from '@/lib/utils';
 
 type StrategyInputsCardProps = {

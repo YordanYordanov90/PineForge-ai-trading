@@ -1,5 +1,10 @@
 # UI Context
 
+## Brand
+
+Product name: **PineForge**. Logo wordmark: `Pine` + accent `Forge` (emerald-400/500).
+Use `lib/brand.ts` (`PRODUCT_NAME`, `brandLogoParts()`) in nav, metadata, and headers.
+
 ## Theme
 
 Dark only. No light mode in Phase 1–3 (Phase 3 adds optional toggle via

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { buildWebhookJsonExport } from '@/lib/build-webhook-export';
+import { buildWebhookJsonExport } from '@/lib/scripts/webhook-export';
 import { Check, Copy } from 'lucide-react';
 
 type WebhookJsonPanelProps = {

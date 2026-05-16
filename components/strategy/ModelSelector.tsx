@@ -1,6 +1,6 @@
 'use client';
 
-import { GrokModel, GROK_MODELS } from '@/lib/constants';
+import { GrokModel, GROK_MODELS } from '@/lib/config/constants';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,

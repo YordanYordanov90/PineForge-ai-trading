@@ -1,14 +1,18 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
-import { explainScriptSchema } from '@/lib/validation';
-import { DEFAULT_MODEL, EXPLAIN_MAX_OUTPUT_TOKENS } from '@/lib/constants';
+import { explainScriptSchema } from '@/lib/api/validation';
+import { DEFAULT_MODEL, EXPLAIN_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import {
   EXPLAIN_BREAKDOWN_SYSTEM,
   EXPLAIN_CHECKLIST_SYSTEM,
-} from '@/lib/prompts/explain-script';
-import { responseIfMissingXaiApiKey } from '@/lib/xai-env';
+} from '@/lib/ai/prompts/explain-script';
+import { requireClerkSession } from '@/lib/auth/require-clerk-session';
+import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 
 export async function POST(req: Request) {
+  const session = await requireClerkSession();
+  if (!session.ok) return session.response;
+
   const body: unknown = await req.json().catch(() => null);
   const parsed = explainScriptSchema.safeParse(body);
 

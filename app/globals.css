@@ -129,6 +129,36 @@
   body {
     @apply min-h-full bg-zinc-950 text-zinc-100 antialiased;
   }
+
+  /* Clerk UserButton menu — ensure contrast on zinc-950 shell */
+  .cl-userButtonPopoverCard {
+    background-color: #09090b !important;
+    color: #fafafa !important;
+    border: 1px solid rgb(63 63 70 / 0.6);
+  }
+
+  .cl-userPreviewMainIdentifier,
+  .cl-userButtonPopoverAccountName {
+    color: #fafafa !important;
+  }
+
+  .cl-userPreviewSecondaryIdentifier,
+  .cl-userButtonPopoverAccountIdentifier {
+    color: #a1a1aa !important;
+  }
+
+  .cl-userButtonPopoverActionButton {
+    color: #e4e4e7 !important;
+  }
+
+  .cl-userButtonPopoverActionButton:hover {
+    background-color: rgb(39 39 42 / 0.8) !important;
+    color: #fafafa !important;
+  }
+
+  .cl-userButtonPopoverActionButton svg {
+    color: #a1a1aa !important;
+  }
 }
 
 @keyframes fade-up {
@@ -209,12 +239,60 @@
   animation: border-glow 2s ease-in-out infinite;
 }
 
+/* Auth shell — subtle CRT-style grid drift (trading terminal vibe) */
+@keyframes terminal-grid-drift {
+  0% {
+    background-position: 0 0, 0 0;
+  }
+  100% {
+    background-position: 48px 24px, -48px -24px;
+  }
+}
+
+.terminal-grid-bg {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 47px,
+      rgba(16, 185, 129, 0.08) 47px,
+      rgba(16, 185, 129, 0.08) 48px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 47px,
+      rgba(16, 185, 129, 0.08) 47px,
+      rgba(16, 185, 129, 0.08) 48px
+    );
+  background-size: 48px 48px;
+  animation: terminal-grid-drift 90s linear infinite;
+}
+
+/* Decorative bottom ticker — seamless loop when track is duplicated */
+@keyframes terminal-ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-terminal-ticker {
+  display: flex;
+  width: max-content;
+  animation: terminal-ticker-scroll 48s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-in,
   .animate-float,
   .animate-pulse-glow,
-  .animate-border-glow {
+  .animate-border-glow,
+  .terminal-grid-bg,
+  .animate-terminal-ticker {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

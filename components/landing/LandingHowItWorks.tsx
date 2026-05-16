@@ -31,7 +31,7 @@ export function LandingHowItWorks() {
           <div className="relative z-10 mb-4 flex size-16 items-center justify-center rounded-full border-2 border-emerald-500/40 bg-zinc-950 shadow-[0_0_30px_rgba(16,185,129,0.15)] sm:mb-6 sm:size-24">
             <span className="font-heading text-xl font-bold text-emerald-400 sm:text-2xl">2</span>
           </div>
-          <h4 className="mb-2 font-heading text-lg font-semibold text-white sm:mb-3 sm:text-xl">Grok Writes It</h4>
+          <h4 className="mb-2 font-heading text-lg font-semibold text-white sm:mb-3 sm:text-xl">PineForge Writes It</h4>
           <p className="max-w-xs text-xs text-zinc-400 sm:text-sm">
             Our custom AI instantly streams out validated, commented, and structured Pine Script
             v5.

@@ -2,7 +2,7 @@
 
 ## Approach
 
-Build GrokTS incrementally using a spec-driven workflow. Context files define
+Build PineForge incrementally using a spec-driven workflow. Context files define
 what to build, how to build it, and the current state of progress. Always
 implement against these specs — do not infer or invent behavior not defined here.
 The feature-specs folder contains numbered `.md` files — implement them in order.
@@ -38,7 +38,7 @@ Do not modify the following unless explicitly instructed:
 
 - `components/ui/*` — shadcn CLI-generated primitives, do not hand-edit
 - `lib/validation.ts` — Zod schemas are the contract; only change with explicit approval
-- `lib/constants.ts` — constants are referenced across the app; changes have wide impact
+- `lib/config/constants.ts` — constants are referenced across the app; changes have wide impact
 - `.env.local` — never touch, never read, never log
 
 ## Keeping Docs in Sync

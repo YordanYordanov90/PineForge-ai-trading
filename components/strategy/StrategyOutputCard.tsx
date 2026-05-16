@@ -17,12 +17,13 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExplainScriptPanel } from '@/components/strategy/ExplainScriptPanel';
 import { RefineChat } from '@/components/strategy/RefineChat';
+import { ScriptComparePanel } from '@/components/strategy/ScriptComparePanel';
 import { ScriptOutput } from '@/components/strategy/ScriptOutput';
 import type { ValidationResult } from '@/components/strategy/ScriptOutput';
 import { WebhookJsonPanel } from '@/components/strategy/WebhookJsonPanel';
 import { cn } from '@/lib/utils';
 
-export type OutputTab = 'script' | 'breakdown' | 'checklist';
+export type OutputTab = 'script' | 'breakdown' | 'checklist' | 'compare';
 
 type StrategyOutputCardProps = {
   outputRef: RefObject<HTMLDivElement | null>;
@@ -48,6 +49,12 @@ type StrategyOutputCardProps = {
   historyLineageReady: boolean;
   onRefine: (instruction: string) => Promise<void>;
   refineResetKey: number;
+  compareAvailable: boolean;
+  compareBeforeScript: string;
+  compareBeforeLabel: string;
+  compareAfterLabel: string;
+  compareEmptyHint: string;
+  onGeneratedScriptChange: (value: string) => void;
 };
 
 export function StrategyOutputCard({
@@ -74,6 +81,12 @@ export function StrategyOutputCard({
   historyLineageReady,
   onRefine,
   refineResetKey,
+  compareAvailable,
+  compareBeforeScript,
+  compareBeforeLabel,
+  compareAfterLabel,
+  compareEmptyHint,
+  onGeneratedScriptChange,
 }: StrategyOutputCardProps) {
   return (
     <Card
@@ -183,7 +196,8 @@ export function StrategyOutputCard({
           </div>
         </div>
         <CardDescription className="text-zinc-400">
-          Streams live while Grok writes. Paste into TradingView &rarr; Pine Editor &rarr; Add to chart.
+          Streams live while PineForge writes. Edit the Script tab directly when idle; use Compare to see edits vs
+          the last generated output or the previous version. Paste into TradingView &rarr; Pine Editor &rarr; Add to chart.
         </CardDescription>
         {webhookPanelOpen && generatedScript && !isOutputBusy && (
           <WebhookJsonPanel webhookUrl={webhookUrl} onWebhookUrlChange={onWebhookUrlChange} />
@@ -199,7 +213,12 @@ export function StrategyOutputCard({
           <Tabs
             value={outputTab}
             onValueChange={(v) => {
-              if (v === 'script' || v === 'breakdown' || v === 'checklist') {
+              if (
+                v === 'script' ||
+                v === 'breakdown' ||
+                v === 'checklist' ||
+                v === 'compare'
+              ) {
                 onOutputTabChange(v);
               }
             }}
@@ -227,6 +246,13 @@ export function StrategyOutputCard({
               >
                 Checklist
               </TabsTrigger>
+              <TabsTrigger
+                value="compare"
+                disabled={!compareAvailable}
+                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500 disabled:pointer-events-none disabled:opacity-40"
+              >
+                Compare
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="script" forceMount className="mt-0 data-[state=inactive]:hidden">
               <ScriptOutput
@@ -234,6 +260,7 @@ export function StrategyOutputCard({
                 isGenerating={isOutputBusy}
                 isStreaming={isStreaming}
                 isIdle={isIdle}
+                onScriptChange={onGeneratedScriptChange}
               />
             </TabsContent>
             <TabsContent value="breakdown" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -253,6 +280,25 @@ export function StrategyOutputCard({
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 cancelKey={explainCancelKey}
               />
+            </TabsContent>
+            <TabsContent value="compare" forceMount className="mt-0 data-[state=inactive]:hidden">
+              {!compareAvailable ? (
+                <p className="px-6 py-6 text-sm text-zinc-500">{compareEmptyHint}</p>
+              ) : isOutputBusy ? (
+                <p className="px-6 py-6 text-sm text-zinc-500">
+                  Finish streaming to see the side-by-side diff.
+                </p>
+              ) : compareBeforeScript !== '' ? (
+                <ScriptComparePanel
+                  beforeScript={compareBeforeScript}
+                  afterScript={generatedScript}
+                  beforeLabel={compareBeforeLabel}
+                  afterLabel={compareAfterLabel}
+                  isReady
+                />
+              ) : (
+                <p className="px-6 py-6 text-sm text-zinc-500">{compareEmptyHint}</p>
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -26,6 +26,7 @@ export type GeneratorCommandMenuProps = {
   onOpenHistory: () => void;
   hasScript: boolean;
   isOutputBusy: boolean;
+  compareAvailable: boolean;
   onCopy: () => void;
   onDownload: () => void;
   onStop: () => void;
@@ -53,6 +54,7 @@ export function GeneratorCommandMenu({
   onOpenHistory,
   hasScript,
   isOutputBusy,
+  compareAvailable,
   onCopy,
   onDownload,
   onStop,
@@ -64,6 +66,7 @@ export function GeneratorCommandMenu({
 
   const canCopyOrDownload = hasScript && !isOutputBusy;
   const canStop = isOutputBusy;
+  const canOpenCompare = compareAvailable && !isOutputBusy;
 
   const closeThen = (fn: () => void) => {
     onOpenChange(false);
@@ -208,6 +211,20 @@ export function GeneratorCommandMenu({
             >
               Checklist tab
               {outputTab === 'checklist' ? (
+                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+              ) : null}
+            </CommandItem>
+            <CommandItem
+              disabled={!canOpenCompare}
+              className={itemClass}
+              onSelect={() => {
+                if (!canOpenCompare) return;
+                closeThen(() => onOutputTabChange('compare'));
+              }}
+              value="tab compare diff"
+            >
+              Compare tab
+              {outputTab === 'compare' ? (
                 <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>

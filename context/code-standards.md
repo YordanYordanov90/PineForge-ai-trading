@@ -17,7 +17,7 @@
   boundaries before trusting it
 - Use `satisfies` operator and inferred return types where appropriate
 - Define interfaces for all props, API responses, and data models
-- Types and interfaces live in `lib/types.ts` unless component-scoped
+- Types and interfaces live in `lib/types/` unless component-scoped
 
 ## Next.js
 
@@ -62,8 +62,14 @@
 - `components/landing/` — All marketing page components
 - `components/ui/` — shadcn primitives only (CLI-managed, do not edit)
 - `hooks/` — Custom React hooks. One hook per concern.
-- `lib/` — Shared utilities, types, validation schemas, constants, prompts
-- `lib/prompts/` — System prompts for LLM calls
+- `lib/` — Shared utilities (`utils.ts`, `brand.ts` at root; subfolders below)
+- `lib/config/` — App constants and presets
+- `lib/types/` — Shared TypeScript types
+- `lib/auth/` — Clerk session helpers and appearance
+- `lib/db/` — Drizzle client, user lookup, script row mapping
+- `lib/scripts/` — Script lineage and webhook export helpers
+- `lib/api/` — Zod schemas and API error parsing
+- `lib/ai/` — xAI env checks, syntax highlighting, LLM prompts (`lib/ai/prompts/`)
 - Component files: PascalCase (`StrategyForm.tsx`)
 - Hook files: camelCase (`useScriptHistory.ts`)
 - Lib/util files: kebab-case (`pine-generate-system.ts`)
@@ -72,7 +78,7 @@
 
 ## Constants
 
-All shared constants live in `lib/constants.ts`:
+All shared constants live in `lib/config/constants.ts`:
 - `MAX_PROMPT_LENGTH = 1500`
 - `MAX_HISTORY_ENTRIES = 50`
 - `CHAR_WARNING_THRESHOLD = 1200`

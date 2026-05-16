@@ -17,8 +17,8 @@ import {
   MAX_PROMPT_LENGTH,
   DEFAULT_MODEL,
   GROK_MODELS,
-} from '@/lib/constants';
-import type { GrokModel } from '@/lib/constants';
+} from '@/lib/config/constants';
+import type { GrokModel } from '@/lib/config/constants';
 import {
   buildSavedScriptFromGeneration,
   buildSavedScriptFromRefinement,
@@ -30,8 +30,11 @@ import { useScriptGeneration } from '@/hooks/useScriptGeneration';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';
+import { getPreviousVersionScript } from '@/lib/scripts/lineage';
 
 const MODEL_IDS = new Set<GrokModel['id']>(GROK_MODELS.map((m) => m.id));
+
+type LineageState = { rootId: string; lastVersion: number };
 
 export type StrategyFormHandle = {
   loadSavedScript: (entry: SavedScript) => void;
@@ -43,7 +46,7 @@ export type StrategyFormProps = {
 
 export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   function StrategyForm({ onRequestOpenHistory }, ref) {
-  const { addEntry } = useScriptHistory();
+  const { entries, addEntry } = useScriptHistory();
   const [strategy, setStrategy] = useState('');
   const [balance, setBalance] = useState('');
   const [selectedModel, setSelectedModel] = useState<GrokModel['id']>(DEFAULT_MODEL);
@@ -58,7 +61,10 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   const [webhookUrl, setWebhookUrl] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
-  const lineageRef = useRef<{ rootId: string; lastVersion: number } | null>(null);
+  const lineageRef = useRef<LineageState | null>(null);
+  const [lineageState, setLineageState] = useState<LineageState | null>(null);
+  /** Last AI-settled script (generate / refine / load); Compare vs manual edits uses this. */
+  const [scriptCompareBaseline, setScriptCompareBaseline] = useState<string | null>(null);
   const sessionHistoryNameRef = useRef('');
 
   const { isImproving, handleImprovePrompt } = usePromptImprover({
@@ -80,52 +86,68 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   } = useScriptGeneration({
     onChunk: () => {
       requestAnimationFrame(() => {
-        const pre = outputRef.current?.querySelector('pre');
-        if (pre) pre.scrollTop = pre.scrollHeight;
+        const el = outputRef.current?.querySelector('pre, textarea');
+        if (el) el.scrollTop = el.scrollHeight;
       });
     },
     onGenerationComplete: (finalScript, payload) => {
-      const entry = buildSavedScriptFromGeneration({
-        prompt: payload.prompt,
-        balance: payload.balance,
-        script: finalScript,
-        model: payload.model,
-        market: payload.structuredInputs.market,
-        timeframe: payload.structuredInputs.timeframe,
-        direction: payload.structuredInputs.direction,
-        indicators: payload.structuredInputs.indicators,
-        rr: payload.structuredInputs.rr,
-      });
-      addEntry(entry);
-      lineageRef.current = { rootId: entry.id, lastVersion: 1 };
-      sessionHistoryNameRef.current = entry.name;
-      setHistoryLineageReady(true);
+      void (async () => {
+        const entry = buildSavedScriptFromGeneration({
+          prompt: payload.prompt,
+          balance: payload.balance,
+          script: finalScript,
+          model: payload.model,
+          market: payload.structuredInputs.market,
+          timeframe: payload.structuredInputs.timeframe,
+          direction: payload.structuredInputs.direction,
+          indicators: payload.structuredInputs.indicators,
+          rr: payload.structuredInputs.rr,
+        });
+        const saved = await addEntry(entry);
+        setScriptCompareBaseline(finalScript);
+        if (!saved) {
+          return;
+        }
+        const nextLineage: LineageState = { rootId: saved.id, lastVersion: 1 };
+        lineageRef.current = nextLineage;
+        setLineageState(nextLineage);
+        sessionHistoryNameRef.current = saved.name;
+        setHistoryLineageReady(true);
+      })();
     },
     onRefineComplete: (finalScript) => {
       const lineage = lineageRef.current;
       if (!lineage) return;
       const nextVersion = lineage.lastVersion + 1;
-      addEntry(
-        buildSavedScriptFromRefinement({
-          name: sessionHistoryNameRef.current,
-          prompt: strategy,
-          balance,
-          script: finalScript,
-          model: selectedModel,
-          version: nextVersion,
-          parentId: lineage.rootId,
-          market: structuredInputs.market,
-          timeframe: structuredInputs.timeframe,
-          direction: structuredInputs.direction,
-          indicators: structuredInputs.indicators,
-          rr: structuredInputs.rr,
-        }),
-      );
-      lineageRef.current = {
-        rootId: lineage.rootId,
-        lastVersion: nextVersion,
-      };
-      setRefineResetKey((k) => k + 1);
+      void (async () => {
+        const saved = await addEntry(
+          buildSavedScriptFromRefinement({
+            name: sessionHistoryNameRef.current,
+            prompt: strategy,
+            balance,
+            script: finalScript,
+            model: selectedModel,
+            version: nextVersion,
+            parentId: lineage.rootId,
+            market: structuredInputs.market,
+            timeframe: structuredInputs.timeframe,
+            direction: structuredInputs.direction,
+            indicators: structuredInputs.indicators,
+            rr: structuredInputs.rr,
+          }),
+        );
+        if (!saved) {
+          return;
+        }
+        const nextLineage: LineageState = {
+          rootId: lineage.rootId,
+          lastVersion: nextVersion,
+        };
+        lineageRef.current = nextLineage;
+        setLineageState(nextLineage);
+        setScriptCompareBaseline(finalScript);
+        setRefineResetKey((k) => k + 1);
+      })();
     },
   });
 
@@ -148,12 +170,15 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       setCopied(false);
       setGenElapsed(null);
       setGenStartTime(null);
-      lineageRef.current = {
+      const nextLineage: LineageState = {
         rootId: entry.parentId ?? entry.id,
         lastVersion: entry.version,
       };
+      lineageRef.current = nextLineage;
+      setLineageState(nextLineage);
       sessionHistoryNameRef.current = entry.name;
       setHistoryLineageReady(true);
+      setScriptCompareBaseline(entry.script);
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
     },
@@ -175,6 +200,99 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     [isOutputBusy, generatedScript],
   );
 
+  const comparePreviousScript = useMemo(() => {
+    if (!lineageState || lineageState.lastVersion < 2) return null;
+    return getPreviousVersionScript(
+      entries,
+      lineageState.rootId,
+      lineageState.lastVersion,
+    );
+  }, [entries, lineageState]);
+
+  const lineageCompareAvailable = useMemo(
+    () =>
+      Boolean(
+        historyLineageReady &&
+          lineageState &&
+          lineageState.lastVersion >= 2 &&
+          comparePreviousScript != null,
+      ),
+    [historyLineageReady, lineageState, comparePreviousScript],
+  );
+
+  const hasManualEdits = useMemo(
+    () =>
+      Boolean(
+        scriptCompareBaseline !== null && generatedScript !== scriptCompareBaseline,
+      ),
+    [scriptCompareBaseline, generatedScript],
+  );
+
+  const compareAvailable = useMemo(
+    () =>
+      Boolean(
+        !isOutputBusy &&
+          historyLineageReady &&
+          generatedScript.trim() &&
+          (lineageCompareAvailable || hasManualEdits),
+      ),
+    [
+      isOutputBusy,
+      historyLineageReady,
+      generatedScript,
+      lineageCompareAvailable,
+      hasManualEdits,
+    ],
+  );
+
+  const compareBeforeScript = useMemo(() => {
+    if (hasManualEdits && scriptCompareBaseline !== null) return scriptCompareBaseline;
+    if (lineageCompareAvailable && comparePreviousScript != null) return comparePreviousScript;
+    return '';
+  }, [
+    hasManualEdits,
+    scriptCompareBaseline,
+    lineageCompareAvailable,
+    comparePreviousScript,
+  ]);
+
+  const compareBeforeLabel = hasManualEdits
+    ? 'Last generated output'
+    : `v${(lineageState?.lastVersion ?? 1) - 1} (previous)`;
+
+  const compareAfterLabel = hasManualEdits
+    ? 'Current (edited)'
+    : `v${lineageState?.lastVersion ?? 1} (current)`;
+
+  const compareEmptyHint = useMemo(() => {
+    if (!historyLineageReady) {
+      return 'Generate or load a script from History to use Compare.';
+    }
+    if (!generatedScript.trim()) {
+      return 'Generate a script first.';
+    }
+    if (lineageState && lineageState.lastVersion >= 2 && comparePreviousScript == null) {
+      return 'The previous version is not in Script History anymore (older entries may be dropped).';
+    }
+    return 'Edit the Pine Script in the Script tab, or refine once, to enable Compare.';
+  }, [
+    historyLineageReady,
+    generatedScript,
+    lineageState,
+    comparePreviousScript,
+  ]);
+
+  const handleGeneratedScriptChange = useCallback((value: string) => {
+    setGeneratedScript(value);
+  }, [setGeneratedScript]);
+
+  useEffect(() => {
+    if (outputTab !== 'compare' || compareAvailable) return;
+    queueMicrotask(() => {
+      setOutputTab('script');
+    });
+  }, [outputTab, compareAvailable]);
+
   const handlePresetSelect = (prompt: string, presetId: string) => {
     setStrategy(prompt);
     setActivePreset(presetId);
@@ -190,6 +308,9 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     setOutputTab('script');
     setExplainCancelKey((k) => k + 1);
     setHistoryLineageReady(false);
+    lineageRef.current = null;
+    setLineageState(null);
+    setScriptCompareBaseline(null);
     setActivePreset(null);
     setWebhookPanelOpen(false);
     await generate({
@@ -289,6 +410,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         onOpenHistory={() => onRequestOpenHistory?.()}
         hasScript={Boolean(generatedScript.trim())}
         isOutputBusy={isOutputBusy}
+        compareAvailable={compareAvailable}
         onCopy={handleCopy}
         onDownload={handleDownload}
         onStop={stop}
@@ -340,6 +462,12 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         historyLineageReady={historyLineageReady}
         onRefine={handleRefine}
         refineResetKey={refineResetKey}
+        compareAvailable={compareAvailable}
+        compareBeforeScript={compareBeforeScript}
+        compareBeforeLabel={compareBeforeLabel}
+        compareAfterLabel={compareAfterLabel}
+        compareEmptyHint={compareEmptyHint}
+        onGeneratedScriptChange={handleGeneratedScriptChange}
       />
       </div>
     </>

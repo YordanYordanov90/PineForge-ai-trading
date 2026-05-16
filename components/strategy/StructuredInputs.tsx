@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { DEFAULT_RR_RATIO } from '@/lib/constants';
+import { DEFAULT_RR_RATIO } from '@/lib/config/constants';
 
 export type StructuredInputsValue = {
   market?: string;

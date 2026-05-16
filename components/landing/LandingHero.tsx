@@ -10,15 +10,15 @@ export function LandingHero() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
           </span>
-          v1.1 Live · Grok-4 Powered
+          v1.1 Live · AI-Powered
         </div>
 
-        <h1 className="font-heading text-balance text-4xl font-extrabold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
-          <span className="block text-zinc-100">Describe it.</span>
-          <span className="block text-zinc-400">Grok writes it.</span>
-          <span className="block bg-linear-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
-            You trade it.
-          </span>
+        <h1 className="font-heading text-balance text-4xl font-extrabold leading-[1.15] tracking-tight text-zinc-100 sm:text-5xl lg:text-6xl">
+          From idea to{" "}
+          <span className="bg-linear-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
+            Pine Script
+          </span>{" "}
+          in seconds.
         </h1>
 
         <p className="mx-auto max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg lg:mx-0 lg:text-xl">
