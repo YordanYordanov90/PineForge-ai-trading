@@ -229,6 +229,20 @@ export function GeneratorCommandMenu({
               ) : null}
             </CommandItem>
             <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                closeThen(() => onOutputTabChange('health'));
+              }}
+              value="tab health score"
+            >
+              Health tab
+              {outputTab === 'health' ? (
+                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+              ) : null}
+            </CommandItem>
+            <CommandItem
               disabled={!canOpenCompare}
               className={itemClass}
               onSelect={() => {

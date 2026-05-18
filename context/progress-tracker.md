@@ -86,8 +86,8 @@ database foundations in place.
 
 ## Current Goal
 
-Ship the next Phase 5 feature unit: **Strategy Health Score**. Optional
-follow-ups remain `15-theme-toggle.md` and deferred Phase 4 hardening from
+Ship the next Phase 5 high-value feature unit: **Alert Message Templates**.
+Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
 `context/fixes.md` (weighted quotas, audit logs).
 
 ## Phase 4 — Auth & Database Foundation
@@ -134,7 +134,7 @@ follow-ups remain `15-theme-toggle.md` and deferred Phase 4 hardening from
 
 **High Value (can start even before full auth is complete):**
 - TradingView Copy & Open — complete (`21`–`24`: clipboard + Pine Editor tab, button, Ctrl/Cmd+T + palette)
-- Strategy Health Score (1–10 + actionable notes)
+- Strategy Health Score — complete (`25` overview, `26` backend, `27` UI)
 - Alert Message Templates for popular brokers (3Commas, Alertatron, WunderTrading)
 - Strategy Backtesting Summary Generator (structured Markdown checklist)
 
@@ -160,19 +160,22 @@ follow-ups remain `15-theme-toggle.md` and deferred Phase 4 hardening from
 - **Fix 2 client UI** — `UserPlanContext`, locked model selector, history load clamp ✅
 - `21-23 TradingView` — Copy & Open pattern: `copyAndOpenTradingView()` copies script to clipboard + opens Pine Editor tab; Sonner toast confirmation; Ctrl/Cmd+T shortcut with typing guard; command palette entry. (Deep link URL format was undocumented and 404'd — replaced in spec 24.) ✅
 - `24-replace-deep-link.md` — Replaced `getTradingViewDeepLink` / `openInTradingView` with reliable clipboard + `pine-editor/` tab flow ✅
+- `25-health-score-overview.md` — Strategy Health Score product spec (scoring intent, output shape, trigger rules) ✅
+- `26-health-score-backend.md` — POST `/api/health-score` (Zod request/response, `protectAiRoute`, model entitlement, `generateObject` + output re-validation, `lib/ai/prompts/health-score.ts`, sanitized `{ success, data, error }` JSON) ✅
+- `27-health-score-ui.md` — `Health` output tab, `HealthScorePanel`, `useHealthScore`, manual **Run Health Score**; state clears on generate/refine/history load (`healthScoreResetKey`); command palette **Health tab** entry ✅
 
 ## In Progress
 
-- `25-health-score-overview.md` — feature scope and user-facing behavior drafted
-- `26-health-score-backend.md` — backend implementation spec drafted
-- `27-health-score-ui.md` — UI implementation spec drafted
+- `28-alert-templates-overview.md` — feature scope and broker template rules drafted
+- `29-alert-templates-backend.md` — backend implementation spec drafted
+- `30-alert-templates-ui.md` — UI implementation spec drafted
 
 ## Next Up
 
-- Implement Health Score in this order:
-  1. `25-health-score-overview.md`
-  2. `26-health-score-backend.md`
-  3. `27-health-score-ui.md`
+- Implement Alert Message Templates in this order:
+  1. `28-alert-templates-overview.md`
+  2. `29-alert-templates-backend.md`
+  3. `30-alert-templates-ui.md`
 - Optional: `15-theme-toggle.md`
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
 - Remaining Phase 5 high-value features (Alert Templates, Backtest Summary, etc.)
@@ -220,9 +223,19 @@ follow-ups remain `15-theme-toggle.md` and deferred Phase 4 hardening from
   and returned 404 — this approach is reliable and requires no URL encoding.
   Client-only utility. Button in `StrategyOutputCard`, Ctrl/Cmd+T shortcut
   in `StrategyForm`, and palette action in `GeneratorCommandMenu`.
+- **Strategy Health Score**: Manual analysis only (no auto-run, no DB).
+  `POST /api/health-score` returns `{ success, data, error }` with Zod-validated
+  `score` (1–10), `verdict`, `summary`, `strengths`, `risks`, `nextSteps`.
+  Prompt in `lib/ai/prompts/health-score.ts` frames structural quality, not
+  profitability. UI: `Health` tab when a script exists (`HealthScorePanel` +
+  `useHealthScore`); `healthScoreResetKey` bumps with `explainCancelKey` on
+  generate, refine, and history load.
 
 ## Session Notes
 
+- Strategy Health Score (`25`–`27`): backend `POST /api/health-score`, UI `Health` tab +
+  `HealthScorePanel` / `useHealthScore`, palette entry; `healthScoreResetKey` clears results on
+  generate, refine, and history load; `npm run build` passes
 - Clerk: custom auth pages, protected non-public routes, CSP tuned for Clerk Frontend API host
 - Neon/Drizzle: per-user script history wired; migrations `0000` + `0001` applied
 - Upstash: set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` in `.env.local` / Vercel

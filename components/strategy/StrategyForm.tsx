@@ -60,6 +60,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   const [historyLineageReady, setHistoryLineageReady] = useState(false);
   const [outputTab, setOutputTab] = useState<OutputTab>('script');
   const [explainCancelKey, setExplainCancelKey] = useState(0);
+  const [healthScoreResetKey, setHealthScoreResetKey] = useState(0);
   const [webhookPanelOpen, setWebhookPanelOpen] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
@@ -188,6 +189,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       setScriptCompareBaseline(entry.script);
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
+      setHealthScoreResetKey((k) => k + 1);
     },
   }), [plan]);
 
@@ -300,6 +302,13 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     });
   }, [outputTab, compareAvailable]);
 
+  useEffect(() => {
+    if (outputTab !== 'health' || generatedScript.trim()) return;
+    queueMicrotask(() => {
+      setOutputTab('script');
+    });
+  }, [outputTab, generatedScript]);
+
   const handlePresetSelect = (prompt: string, presetId: string) => {
     setStrategy(prompt);
     setActivePreset(presetId);
@@ -314,6 +323,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     if (!canGenerate) return;
     setOutputTab('script');
     setExplainCancelKey((k) => k + 1);
+    setHealthScoreResetKey((k) => k + 1);
     setHistoryLineageReady(false);
     lineageRef.current = null;
     setLineageState(null);
@@ -340,6 +350,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
 
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
+      setHealthScoreResetKey((k) => k + 1);
       setWebhookPanelOpen(false);
       await refine({
         script: previousScript,
@@ -491,6 +502,11 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         isStreaming={isStreaming}
         isIdle={isIdle}
         explainCancelKey={explainCancelKey}
+        healthScoreResetKey={healthScoreResetKey}
+        strategyPrompt={strategy}
+        accountBalance={balance}
+        selectedModel={selectedModel}
+        structuredInputs={structuredInputs}
         isGenerating={isGenerating}
         isRefining={isRefining}
         historyLineageReady={historyLineageReady}
