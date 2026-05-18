@@ -40,6 +40,9 @@ export const REFINE_MAX_OUTPUT_TOKENS = 2000;
 /** Plain-English breakdown and TradingView checklist from /api/explain-script. */
 export const EXPLAIN_MAX_OUTPUT_TOKENS = 1800;
 
+/** Structured Strategy Health Score from /api/health-score. */
+export const HEALTH_SCORE_MAX_OUTPUT_TOKENS = 700;
+
 export const CHAR_WARNING_THRESHOLD = 1200;
 
 export const CHAR_DANGER_THRESHOLD = 1400;

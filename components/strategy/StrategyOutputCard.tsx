@@ -19,6 +19,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExplainScriptPanel } from '@/components/strategy/ExplainScriptPanel';
+import { HealthScorePanel } from '@/components/strategy/HealthScorePanel';
+import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
+import type { GrokModel } from '@/lib/config/constants';
 import { RefineChat } from '@/components/strategy/RefineChat';
 import { ScriptComparePanel } from '@/components/strategy/ScriptComparePanel';
 import { ScriptOutput } from '@/components/strategy/ScriptOutput';
@@ -28,7 +31,7 @@ import { copyAndOpenTradingView } from '@/lib/scripts/tradingview';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export type OutputTab = 'script' | 'breakdown' | 'checklist' | 'compare';
+export type OutputTab = 'script' | 'breakdown' | 'checklist' | 'health' | 'compare';
 
 type StrategyOutputCardProps = {
   outputRef: RefObject<HTMLDivElement | null>;
@@ -50,6 +53,11 @@ type StrategyOutputCardProps = {
   isStreaming: boolean;
   isIdle: boolean;
   explainCancelKey: number;
+  healthScoreResetKey: number;
+  strategyPrompt: string;
+  accountBalance: string;
+  selectedModel: GrokModel['id'];
+  structuredInputs: StructuredInputsValue;
   isGenerating: boolean;
   isRefining: boolean;
   historyLineageReady: boolean;
@@ -83,6 +91,11 @@ export function StrategyOutputCard({
   isStreaming,
   isIdle,
   explainCancelKey,
+  healthScoreResetKey,
+  strategyPrompt,
+  accountBalance,
+  selectedModel,
+  structuredInputs,
   isGenerating,
   isRefining,
   historyLineageReady,
@@ -261,6 +274,7 @@ export function StrategyOutputCard({
                 v === 'script' ||
                 v === 'breakdown' ||
                 v === 'checklist' ||
+                v === 'health' ||
                 v === 'compare'
               ) {
                 onOutputTabChange(v);
@@ -290,6 +304,14 @@ export function StrategyOutputCard({
               >
                 Checklist
               </TabsTrigger>
+              {generatedScript.trim() ? (
+                <TabsTrigger
+                  value="health"
+                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500"
+                >
+                  Health
+                </TabsTrigger>
+              ) : null}
               <TabsTrigger
                 value="compare"
                 disabled={!compareAvailable}
@@ -323,6 +345,17 @@ export function StrategyOutputCard({
                 isTabActive={outputTab === 'checklist'}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 cancelKey={explainCancelKey}
+              />
+            </TabsContent>
+            <TabsContent value="health" forceMount className="mt-0 data-[state=inactive]:hidden">
+              <HealthScorePanel
+                prompt={strategyPrompt}
+                script={generatedScript}
+                model={selectedModel}
+                balance={accountBalance}
+                structuredInputs={structuredInputs}
+                isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
+                resetKey={healthScoreResetKey}
               />
             </TabsContent>
             <TabsContent value="compare" forceMount className="mt-0 data-[state=inactive]:hidden">
