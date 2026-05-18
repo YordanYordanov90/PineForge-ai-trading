@@ -32,6 +32,7 @@ import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';
 import { getPreviousVersionScript } from '@/lib/scripts/lineage';
+import { copyAndOpenTradingView } from '@/lib/scripts/tradingview';
 
 const MODEL_IDS = new Set<GrokModel['id']>(GROK_MODELS.map((m) => m.id));
 
@@ -377,10 +378,14 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
 
   const handleGenerateRef = useRef(handleGenerate);
   const commandOpenRef = useRef(commandOpen);
+  const generatedScriptRef = useRef(generatedScript);
+  const isOutputBusyRef = useRef(isOutputBusy);
 
   useEffect(() => {
     handleGenerateRef.current = handleGenerate;
     commandOpenRef.current = commandOpen;
+    generatedScriptRef.current = generatedScript;
+    isOutputBusyRef.current = isOutputBusy;
   });
 
   useEffect(() => {
@@ -395,6 +400,23 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         if (commandOpenRef.current) return;
         e.preventDefault();
         void handleGenerateRef.current();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 't') {
+        const target = e.target as HTMLElement;
+        const isTyping =
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'INPUT' ||
+          target.isContentEditable;
+        if (isTyping) return;
+
+        e.preventDefault();
+        const script = generatedScriptRef.current;
+        if (script.trim() && !isOutputBusyRef.current) {
+          void copyAndOpenTradingView(script).then(() => {
+            toast.success('Script copied — paste it in Pine Editor');
+          });
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -419,6 +441,11 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         compareAvailable={compareAvailable}
         onCopy={handleCopy}
         onDownload={handleDownload}
+        onOpenInTradingView={() => {
+          void copyAndOpenTradingView(generatedScript).then(() => {
+            toast.success('Script copied — paste it in Pine Editor');
+          });
+        }}
         onStop={stop}
         outputTab={outputTab}
         onOutputTabChange={setOutputTab}

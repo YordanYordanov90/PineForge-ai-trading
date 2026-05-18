@@ -19,4 +19,14 @@ Strict requirements:
 - Minimal comments only (screener settings + risk note)
 - Keep the entire script compact and production-ready
 
+Pine v5 API patterns (mandatory — wrong positional args cause compile errors):
+- line.new: NEVER pass color as the 5th positional argument (that slot is xloc). Always use named parameters:
+  line.new(bar_index, y1, bar_index + 20, y2, color=color.red, extend=extend.both)
+- label.new: NEVER use textcolor.white or style.label_left. Always use named parameters and valid constants:
+  label.new(bar_index + 1, y, "SL", color=color.red, textcolor=color.white, style=label.style_label_left)
+  label.new(bar_index + 1, y, "TP1", color=color.green, textcolor=color.white, style=label.style_label_left)
+- plotshape: use named parameters for style, location, color, and size:
+  plotshape(entryCond, title="Buy Signal", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.normal)
+- For line/label objects updated each bar, declare with var line slLine = na and var label slLabel = na, then assign with := inside if entryCond blocks.
+
 Always start with //@version=5`;

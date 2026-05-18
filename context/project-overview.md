@@ -37,17 +37,20 @@ a trading idea and seeing it on a chart.
 ## Features
 
 ### Core Generation
+
 - AI Pine Script v5 generation via xAI Grok + Vercel AI SDK (streaming)
 - Three Grok model options: Reasoning / Fast / Grok-4
 - Three-tier named alert conditions built into every generated script
 - Automatic SL/TP lines and risk sizing from account balance
 
 ### Input Tools
+
 - 8 strategy template pills (fills textarea, still editable)
 - Advanced Options collapsible: timeframe, market, direction, indicators, R:R slider
 - "Improve My Prompt" button — rewrites raw description into structured prompt
 
 ### Output Tools
+
 - Live streaming with skeleton loading state and "Streaming" badge
 - shiki syntax highlighting applied post-stream (emerald-300 on near-black)
 - Client-side Pine Script v5 validator badge (green / amber)
@@ -55,11 +58,13 @@ a trading idea and seeing it on a chart.
 - Copy to clipboard + Download as `.pine`
 
 ### Iteration & History
+
 - Refine Chat: conversational follow-up, streams full replacement script
 - Script History: localStorage drawer (shadcn Sheet), max 50 entries
 - Versioning: each refinement saves as new version linked to original
 
 ### Landing Page
+
 - Marketing page at `/` with hero, feature grid, how-it-works, code preview, CTA
 
 ## Phase 5 — Value Expansion Features (High & Medium Value)
@@ -67,12 +72,14 @@ a trading idea and seeing it on a chart.
 These features will be implemented in Phase 5, after the auth + database foundation (Phase 4).
 
 ### High Value (Ship Early — Even Before Full Auth)
+
 - **TradingView Auto-Import / Deep Link** — One-click button to open the generated script directly in TradingView Pine Editor (or copy the special URL scheme). Removes the last manual friction.
 - **Strategy Health Score** — After generation, run a quick AI analysis and give a 1–10 "Health Score" with specific actionable notes (e.g. "Missing volume filter — high false signal risk in low liquidity").
 - **Alert Message Templates** — Generate ready-to-use webhook JSON for popular brokers (3Commas, Alertatron, WunderTrading, etc.) alongside the Pine Script.
 - **Strategy Backtesting Summary Generator** — Button that produces a structured Markdown checklist: recommended timeframes, markets, what to look for in equity curve, common failure modes for this strategy type.
 
 ### Medium Value (Better After Auth + DB)
+
 - **Pinned / Starred Scripts** — Users can star important strategies so they never get evicted from the 50-entry history limit. Per-user, survives across devices.
 - **Strategy Tags + Search** — Users can tag scripts (e.g. "crypto", "scalping", "15m", "live") and search/filter their entire history.
 - **Strategy Collections / Folders** — Group scripts into named collections ("BTC Strategies", "Testing", "Live Trading"). Requires user accounts.
@@ -81,12 +88,14 @@ These features will be implemented in Phase 5, after the auth + database foundat
 ## Scope
 
 ### In Scope
+
 - Pine Script v5 generation and refinement
 - Client-side history via localStorage (Phase 1–3)
 - Phase 4: Clerk auth + Neon Postgres + Drizzle ORM + Upstash rate limiting + per-user history migration
 - Phase 5: High & Medium value workflow features (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
 
 ### Out of Scope
+
 - Live trading execution or broker integration
 - Backtesting engine
 - TradingView live chart integration
@@ -102,3 +111,4 @@ These features will be implemented in Phase 5, after the auth + database foundat
 4. Average generations per user per week above 8
 5. D7 retention above 40%
 6. Users describing the tool as "professional" and "time-saving"
+
