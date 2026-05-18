@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   Download,
+  ExternalLink,
   Radio,
   ShieldCheck,
   Webhook,
@@ -23,7 +24,9 @@ import { ScriptComparePanel } from '@/components/strategy/ScriptComparePanel';
 import { ScriptOutput } from '@/components/strategy/ScriptOutput';
 import type { ValidationResult } from '@/components/strategy/ScriptOutput';
 import { WebhookJsonPanel } from '@/components/strategy/WebhookJsonPanel';
+import { copyAndOpenTradingView } from '@/lib/scripts/tradingview';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export type OutputTab = 'script' | 'breakdown' | 'checklist' | 'compare';
 
@@ -142,6 +145,25 @@ export function StrategyOutputCard({
                 onClick={onStop}
               >
                 Stop
+              </Button>
+            )}
+            {(generatedScript || isOutputBusy) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void copyAndOpenTradingView(generatedScript).then(() => {
+                    toast.success('Script copied — paste it in Pine Editor');
+                  });
+                }}
+                disabled={!generatedScript.trim() || isOutputBusy}
+                className="border border-zinc-800 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30 disabled:opacity-50"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open in TradingView
+                </span>
               </Button>
             )}
             {generatedScript && !isOutputBusy && (

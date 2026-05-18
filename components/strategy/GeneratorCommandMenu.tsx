@@ -29,6 +29,7 @@ export type GeneratorCommandMenuProps = {
   compareAvailable: boolean;
   onCopy: () => void;
   onDownload: () => void;
+  onOpenInTradingView: () => void;
   onStop: () => void;
   outputTab: OutputTab;
   onOutputTabChange: (tab: OutputTab) => void;
@@ -57,6 +58,7 @@ export function GeneratorCommandMenu({
   compareAvailable,
   onCopy,
   onDownload,
+  onOpenInTradingView,
   onStop,
   outputTab,
   onOutputTabChange,
@@ -166,6 +168,18 @@ export function GeneratorCommandMenu({
               value="download pine"
             >
               Download .pine
+            </CommandItem>
+            <CommandItem
+              disabled={!canCopyOrDownload}
+              className={itemClass}
+              onSelect={() => {
+                if (!canCopyOrDownload) return;
+                closeThen(() => void onOpenInTradingView());
+              }}
+              value="open in tradingview pine editor"
+            >
+              Open in TradingView
+              <CommandShortcut className="font-mono text-zinc-500">{mod}+T</CommandShortcut>
             </CommandItem>
           </CommandGroup>
 

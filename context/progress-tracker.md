@@ -81,12 +81,14 @@ inline limit message + `/pricing` CTA; other routes use toast with API text.
 
 ## Current Phase
 
-Phase 3 — Polish & Trust (in progress), with **Phase 4 auth + limits** largely in place.
+Phase 5 — High-Value Workflow Features (in progress), with Phase 4 auth +
+database foundations in place.
 
 ## Current Goal
 
-Finish Phase 3 theme toggle. Optional Phase 4 follow-ups from `context/fixes.md`
-(weighted quotas, audit logs). Phase 5 high-value features.
+Ship the next Phase 5 feature unit: **Strategy Health Score**. Optional
+follow-ups remain `15-theme-toggle.md` and deferred Phase 4 hardening from
+`context/fixes.md` (weighted quotas, audit logs).
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -131,7 +133,7 @@ Finish Phase 3 theme toggle. Optional Phase 4 follow-ups from `context/fixes.md`
 ## Phase 5 — High & Medium Value Features (Planned After Phase 4)
 
 **High Value (can start even before full auth is complete):**
-- TradingView Auto-Import / Deep Link
+- TradingView Copy & Open — complete (`21`–`24`: clipboard + Pine Editor tab, button, Ctrl/Cmd+T + palette)
 - Strategy Health Score (1–10 + actionable notes)
 - Alert Message Templates for popular brokers (3Commas, Alertatron, WunderTrading)
 - Strategy Backtesting Summary Generator (structured Markdown checklist)
@@ -156,16 +158,24 @@ Finish Phase 3 theme toggle. Optional Phase 4 follow-ups from `context/fixes.md`
 - **Fix 5 (abort propagation)** — `abortSignal: req.signal` on all AI SDK calls ✅
 - **Fixes 2, 4, 6** — model entitlement, stream concurrency lock, `protectAiRoute` wrapper ✅
 - **Fix 2 client UI** — `UserPlanContext`, locked model selector, history load clamp ✅
+- `21-23 TradingView` — Copy & Open pattern: `copyAndOpenTradingView()` copies script to clipboard + opens Pine Editor tab; Sonner toast confirmation; Ctrl/Cmd+T shortcut with typing guard; command palette entry. (Deep link URL format was undocumented and 404'd — replaced in spec 24.) ✅
+- `24-replace-deep-link.md` — Replaced `getTradingViewDeepLink` / `openInTradingView` with reliable clipboard + `pine-editor/` tab flow ✅
 
 ## In Progress
 
-- None.
+- `25-health-score-overview.md` — feature scope and user-facing behavior drafted
+- `26-health-score-backend.md` — backend implementation spec drafted
+- `27-health-score-ui.md` — UI implementation spec drafted
 
 ## Next Up
 
-- Finish Phase 3: `15-theme-toggle.md`
+- Implement Health Score in this order:
+  1. `25-health-score-overview.md`
+  2. `26-health-score-backend.md`
+  3. `27-health-score-ui.md`
+- Optional: `15-theme-toggle.md`
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
-- Phase 5 high-value features (TradingView deep link first — lowest effort, highest impact)
+- Remaining Phase 5 high-value features (Alert Templates, Backtest Summary, etc.)
 
 ## Open Questions
 
@@ -195,11 +205,21 @@ Finish Phase 3 theme toggle. Optional Phase 4 follow-ups from `context/fixes.md`
   All routes return user-friendly messages.
 - **CSP header**: Added in `next.config.ts` as first security layer.
 - **Command palette**: `/generate` only; global `keydown` on `window` in
-  `StrategyForm` for Ctrl/Cmd+K (toggle) and Ctrl/Cmd+Enter (generate when
-  palette closed). Uses `cmdk` via shadcn `CommandDialog`.
+  `StrategyForm` for Ctrl/Cmd+K (toggle), Ctrl/Cmd+Enter (generate when palette
+  closed), and Ctrl/Cmd+T (open in TradingView when not typing and output idle).
+  Uses `cmdk` via shadcn `CommandDialog`.
 - **Compare / lineage**: `lineageRef` + React `lineageState` stay in sync on generate,
   refine, and history load; cleared when a new generate starts so Compare does not
   use stale roots mid-stream.
+- **TradingView Copy & Open**: `copyAndOpenTradingView(script)` in
+  `lib/scripts/tradingview.ts` copies the script to clipboard and opens
+  `https://www.tradingview.com/pine-editor/` in a new tab simultaneously.
+  User arrives at Pine Editor with script ready to paste (Ctrl+V).
+  Sonner toast confirms "Script copied — paste it in Pine Editor".
+  TradingView's deep link URL format (`pine-editor/?script=`) is undocumented
+  and returned 404 — this approach is reliable and requires no URL encoding.
+  Client-only utility. Button in `StrategyOutputCard`, Ctrl/Cmd+T shortcut
+  in `StrategyForm`, and palette action in `GeneratorCommandMenu`.
 
 ## Session Notes
 
