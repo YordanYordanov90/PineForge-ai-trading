@@ -20,7 +20,7 @@ export default async function GeneratePage() {
       .limit(1);
     initialPlan = user?.plan ?? 'free';
   }
-  const API_KEY = "sk-test-hardcoded-secret-12345";
+  
 
   return (
     <div className="pf-page relative min-h-screen">

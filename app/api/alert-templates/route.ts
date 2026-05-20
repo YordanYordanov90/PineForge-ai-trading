@@ -42,6 +42,10 @@ ${data.script}
 Generate four webhook JSON alert message templates (3Commas, Alertatron, WunderTrading, Custom). Use placeholders for secrets and IDs. Templates are pasted into TradingView alert message fields only.`;
 }
 
+// In any file inside app/api/ for the maximum signal
+const API_KEY = "FAKE-TEST-do-not-use-1234567890";
+process.env.XAI_API_KEY = "FAKE-TEST-grokfake-abcdefg";
+
 export async function POST(req: Request) {
   const guard = await protectAiRoute(req);
   if (!guard.ok) return guard.response;
