@@ -6,6 +6,13 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
+import {
+  pfOutputBody,
+  pfOutputMuted,
+  pfOutputSkeleton,
+  pfOutputSubtle,
+} from '@/lib/ui/terminal-texture';
+import { cn } from '@/lib/utils';
 
 export type ExplainScriptMode = 'breakdown' | 'checklist';
 
@@ -158,7 +165,7 @@ export function ExplainScriptPanel({
 
   if (!script.trim()) {
     return (
-      <p className="px-6 py-6 text-sm text-zinc-500">
+      <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>
         Generate or load a script to see this tab.
       </p>
     );
@@ -166,7 +173,7 @@ export function ExplainScriptPanel({
 
   if (!isScriptFinal) {
     return (
-      <p className="px-6 py-6 text-sm text-zinc-500">
+      <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>
         Finish generating or refining to load this explanation.
       </p>
     );
@@ -174,7 +181,7 @@ export function ExplainScriptPanel({
 
   if (phase === 'idle' && !isTabActive) {
     return (
-      <p className="px-6 py-6 text-sm text-zinc-500">
+      <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>
         Open this tab to load the explanation.
       </p>
     );
@@ -183,10 +190,10 @@ export function ExplainScriptPanel({
   if (phase === 'loading') {
     return (
       <div className="space-y-3 px-6 py-6">
-        <Skeleton className="h-4 w-[88%] rounded-md bg-zinc-800/50" />
-        <Skeleton className="h-4 w-[76%] rounded-md bg-zinc-800/45" />
-        <Skeleton className="h-4 w-[82%] rounded-md bg-zinc-800/50" />
-        <div className="flex items-center gap-2 pt-2 text-xs text-zinc-500">
+        <Skeleton className={cn('h-4 w-[88%] rounded-md', pfOutputSkeleton)} />
+        <Skeleton className={cn('h-4 w-[76%] rounded-md', pfOutputSkeleton)} />
+        <Skeleton className={cn('h-4 w-[82%] rounded-md', pfOutputSkeleton)} />
+        <div className={cn('flex items-center gap-2 pt-2 text-xs', pfOutputMuted)}>
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Loading…
         </div>
@@ -197,7 +204,7 @@ export function ExplainScriptPanel({
   if (phase === 'error') {
     return (
       <div className="px-6 py-6">
-        <p className="text-sm text-zinc-400">Could not load this explanation.</p>
+        <p className={cn('text-sm', pfOutputSubtle)}>Could not load this explanation.</p>
         <Button
           type="button"
           variant="outline"
@@ -218,7 +225,12 @@ export function ExplainScriptPanel({
   }
 
   return (
-    <div className="max-h-[640px] overflow-auto px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap text-zinc-300">
+    <div
+      className={cn(
+        'max-h-[640px] overflow-auto px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap',
+        pfOutputBody,
+      )}
+    >
       {text}
       {phase === 'streaming' && (
         <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-emerald-400/80 align-middle" />

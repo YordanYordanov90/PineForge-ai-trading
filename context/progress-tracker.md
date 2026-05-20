@@ -79,6 +79,28 @@ inline limit message + `/pricing` CTA; other routes use toast with API text.
 
 ---
 
+## UI/UX Improvements (`context/UI/`)
+
+Polish and discoverability work tracked separately from feature phases. Specs live
+in [`context/UI/`](UI/). Update the **Status** column when a spec ships.
+
+| Spec | Title | Status |
+|------|-------|--------|
+| [`01-shortcut-tooltips`](UI/01-shortcut-tooltips.md) | Shortcut tooltips | Done |
+| [`02-output-action-bar`](UI/02-output-action-bar.md) | Output action bar | Done |
+| [`03-script-output-empty-state`](UI/03-script-output-empty-state.md) | Script output empty state | Done |
+| [`04-health-next-step-refine`](UI/04-health-next-step-refine.md) | Health next step refine | Done |
+| [`05-motion-feedback`](UI/05-motion-feedback.md) | Motion feedback | Done |
+| [`06-sticky-output-tabs`](UI/06-sticky-output-tabs.md) | Sticky output tabs | Done |
+| [`07-history-sidebar-toggle`](UI/07-history-sidebar-toggle.md) | History sidebar toggle | Planned |
+| [`08-terminal-polish`](UI/08-terminal-polish.md) | Terminal polish | Done |
+| [`11-terminal-identity-phase-2`](UI/11-terminal-identity-phase-2.md) | Terminal identity phase 2 | Done |
+| [`12-generate-desk-atmosphere`](UI/12-generate-desk-atmosphere.md) | Generate desk atmosphere | Done |
+| [`09-prompt-health-badge`](UI/09-prompt-health-badge.md) | Prompt health badge | Done |
+| [`10-deferred-fullscreen-theme-timeline`](UI/10-deferred-fullscreen-theme-timeline.md) | Deferred fullscreen / theme / timeline | Partial (theme done — see `15-theme-toggle`) |
+
+---
+
 ## Current Phase
 
 Phase 5 — High-Value Workflow Features (in progress), with Phase 4 auth +
@@ -86,8 +108,10 @@ database foundations in place.
 
 ## Current Goal
 
-Ship the next Phase 5 high-value feature unit: **Alert Message Templates**.
-Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
+**Strategy Backtesting Summary Generator** shipped end-to-end (`31`–`35`).
+Phase 5 high-value features (TradingView Copy & Open, Health Score, Alert
+Templates, Backtest Summary) are all complete. Next: pick from Phase 5
+medium-value features or address deferred Phase 4 hardening from
 `context/fixes.md` (weighted quotas, audit logs).
 
 ## Phase 4 — Auth & Database Foundation
@@ -135,8 +159,8 @@ Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
 **High Value (can start even before full auth is complete):**
 - TradingView Copy & Open — complete (`21`–`24`: clipboard + Pine Editor tab, button, Ctrl/Cmd+T + palette)
 - Strategy Health Score — complete (`25` overview, `26` backend, `27` UI)
-- Alert Message Templates for popular brokers (3Commas, Alertatron, WunderTrading)
-- Strategy Backtesting Summary Generator (structured Markdown checklist)
+- Alert Message Templates — complete (`28`–`30`: 3Commas, Alertatron, WunderTrading, Custom)
+- Strategy Backtesting Summary Generator — complete (`31` schemas, `32` prompt + Markdown helper, `33` backend route, `34` hook, `35` UI)
 
 **Medium Value (better with user accounts + DB):**
 - Pinned / Starred Scripts (survives 50-entry limit, per-user)
@@ -163,26 +187,41 @@ Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
 - `25-health-score-overview.md` — Strategy Health Score product spec (scoring intent, output shape, trigger rules) ✅
 - `26-health-score-backend.md` — POST `/api/health-score` (Zod request/response, `protectAiRoute`, model entitlement, `generateObject` + output re-validation, `lib/ai/prompts/health-score.ts`, sanitized `{ success, data, error }` JSON) ✅
 - `27-health-score-ui.md` — `Health` output tab, `HealthScorePanel`, `useHealthScore`, manual **Run Health Score**; state clears on generate/refine/history load (`healthScoreResetKey`); command palette **Health tab** entry ✅
+- `28-alert-templates-overview.md` — Alert Message Templates product spec (v1 providers, template-only rules) ✅
+- `29-alert-templates-backend.md` — POST `/api/alert-templates` (Zod request/response, `protectAiRoute`, `generateObject`, per-`messageJson` `JSON.parse` verification, `lib/ai/prompts/alert-templates.ts`) ✅
+- `30-alert-templates-ui.md` — `Alerts` output tab, `AlertTemplatesPanel`, `AlertTemplateCard`, `useAlertTemplates`, manual **Generate Alert Templates**; state clears on generate/refine/history load (`alertTemplatesResetKey`); command palette **Alerts tab** entry ✅
+- **UI/UX `01-shortcut-tooltips`** — `ActionTooltip` + `lib/ui/shortcut-label.ts`; tooltips on Generate (`⌘/Ctrl+↵`), Open in TradingView (`⌘/Ctrl+T`), Copy/Download (label-only); platform-aware shortcut hints in inputs tip line ✅
+- **UI/UX `02-output-action-bar`** — `OutputActionBar` icon-first export strip (tooltips + `aria-label`); handlers from `StrategyForm` including shared `handleOpenInTradingView` ✅
+- **UI/UX `03-script-output-empty-state`** — Terminal-themed Script tab idle state with 4 static starter chips (`lib/config/prompt-suggestions.ts`); `onSuggestionClick` fills `#strategy` and focuses the textarea from `StrategyForm` ✅
+- **UI/UX `04-health-next-step-refine`** — Per next-step **Refine** in `HealthScorePanel`; `refinePrefillInstruction` + `refinePrefillNonce` prefill `RefineChat` (editable, no auto-submit); scroll/focus `#refine-chat` ✅
+- **UI/UX `05-motion-feedback`** — CSS-only `motion-btn-press`, `motion-ready-generate`, `animate-success-pulse` in `globals.css`; Generate ready glow + output card one-shot pulse on successful generation; `prefers-reduced-motion` respected ✅
+- **UI/UX `06-sticky-output-tabs`** — Sticky `TabsList` with backdrop blur inside scrollable output panel (`max-h-[min(72vh,720px)]`); Lucide icons on Script/Breakdown/Checklist/Health/Alerts/Compare; horizontal scroll on narrow viewports ✅
+- **UI/UX `08-terminal-polish`** — Shared terminal texture utilities in `globals.css` + `lib/ui/terminal-texture.ts` (noise, scanlines, phosphor glow, code surface); auth shell + `/generate` reuse `terminal-noise`; output panel `terminal-code-surface`; active tabs/model/pills/webhook get subtle emerald phosphor glow ✅
+- **UI/UX `11-terminal-identity-phase-2`** — `TerminalAmbientBackground` (emerald-only shared shell); single scanline owner on `terminal-code-surface`; semantic `terminal-active-*` tokens; streaming scanline pulse + cursor glow + status line; `TerminalOutputChrome` frame; mono uppercase tab labels + blinking `$` prompt ✅
+- **UI/UX `12-generate-desk-atmosphere`** — `TerminalPriceTicker` `variant="generate"` (68s scroll, dimmer `text-zinc-600` symbols + muted emerald/rose deltas, `bg-zinc-950/60` strip, 3.8s jitter); fixed bottom strip on `/generate` only (no activity HUD); `terminal-glow-breathe` 10s on generate ambient top glow; content `pb-28`/`pb-32` clears ticker; `prefers-reduced-motion` disables scroll + breathe; auth lobby unchanged ✅
+- **UI/UX `09-prompt-health-badge`** — Client-only `evaluatePromptHealth()` in `lib/prompt/prompt-health.ts`; live red/amber/emerald badge beside char count in `StrategyInputsCard` (length + strategy-detail heuristics); `title`/`aria-label` hints; does not block generate ✅
+- **`15-theme-toggle.md`** — `next-themes` + `ModeToggle`; diagonal TL→BR wipe (`lib/theme/theme-transition.ts`); phased `.pf-*` shell utilities; `clerkAppearanceDark`/`Light` + `useClerkAppearance`; toggle on landing, generate, auth ✅
+- `31-backtesting-summary-schemas.md` — `backtestSummaryRequestSchema`, `backtestSummarySectionsSchema`, `backtestSummaryResultSchema`, and shared types (`BacktestSummaryRequest`, `BacktestSummarySections`, `BacktestSummaryResult`) in `lib/api/validation.ts`; optional request fields match existing generator shapes (`balance` string regex, capitalized `direction`, market/timeframe/indicator enums); strict section length constraints (`recommendedTimeframes` 2–6, `recommendedMarkets` 2–6, `equityCurveChecks`/`failureModes`/`testPlan` 3–8); no DB changes ✅
+- `32-backtesting-summary-prompt-utility.md` — `BACKTEST_SUMMARY_SYSTEM` + `buildBacktestSummaryUserPrompt()` in `lib/ai/prompts/backtest-summary.ts` (structure-only research checklist, no performance metrics, no markdown emitted by LLM); deterministic `assembleBacktestSummaryMarkdown(sections)` in `lib/ai/backtest-summary-markdown.ts` (stable heading order, bullet list per section, whitespace collapsed); `backtestSummaryLlmResultSchema` (loose intake: `title` + `sections` only) added to `lib/api/validation.ts` so route can build `markdown` server-side then re-validate with strict schema ✅
+- **Landing page redesign (visual + conversion)** — Slice 1: `LANDING_CTA_SUBTEXT` + tier constants in `lib/config/constants.ts`; `LandingProofBar`; footer 3-column nav; CTA copy fix; navbar scroll `progressbar` a11y; hero `#examples` anchor. Slice 2: `LandingFeatureStat`, `LandingExamples` (tabbed), `LandingPricingTeaser`, `LandingFAQ` (`details`); replaced `LandingCodePreview` on page. Slice 3: `LandingTicker` (`TerminalPriceTicker` `variant="landing"`); `LandingHeroTerminal` typewriter demo; staggered `LandingHero`; terminal-session `LandingHowItWorks`; `terminal-grid-bg` on `LandingBackground`; light-mode `.pf-terminal-window` emerald rim; hero CSS in `globals.css` ✅
+- `33-backtesting-summary-backend-route.md` — `POST /api/backtesting-summary` at `app/api/backtesting-summary/route.ts`: `protectAiRoute` → `backtestSummaryRequestSchema.safeParse` → `resolveModelForPlan` → `responseIfMissingXaiApiKey` → `generateObject` against loose `backtestSummaryLlmResultSchema` (system: `BACKTEST_SUMMARY_SYSTEM`, prompt: `buildBacktestSummaryUserPrompt`, `temperature: 0.2`, `maxOutputTokens: BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS`, `abortSignal: guard.ctx.req.signal`) → `assembleBacktestSummaryMarkdown(object.sections)` → strict `backtestSummaryResultSchema.safeParse` → sanitized `{ success, data, error }`; `BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS = 1200` added to `lib/config/constants.ts`; dev-only `console.warn` on strict-validate / generate failures; `npm run build` passes (route registered as `ƒ /api/backtesting-summary`) ✅
+- `34-backtesting-summary-state-hook.md` — `hooks/useBacktestSummary.ts`: `useBacktestSummary(resetKey)` returns `{ phase, result, errorMessage, run, isLoading }` matching `useHealthScore` / `useAlertTemplates` exactly; `phase: 'empty' | 'loading' | 'success' | 'error'`; `BacktestSummaryRunInput` accepts `{ prompt, script, model, balance, structuredInputs }`; `run()` POSTs to `/api/backtesting-summary` with trimmed prompt/script, balance fallback to `null`, and structured-input fields; sanitized error fallbacks for 403 (Pro plan) / 429 (rate limit) / generic via `messageFromApiErrorJson`; `inFlightRef` blocks concurrent runs; resetKey effect clears phase/result/error on generate, refine, history load ✅
+- `35-backtesting-summary-ui.md` — `Backtest` output tab on `/generate` between Health and Alerts (only when a script exists). `BacktestSummaryPanel` renders structured sections (not the raw `markdown` blob): title heading + 5 bulleted sections with semantic icons — `Clock` Recommended Timeframes, `TrendingUp` Recommended Markets, `LineChart` What To Check In The Equity Curve, `AlertTriangle` Common Failure Modes (amber tint), `ListChecks` Backtesting Plan. Empty state shows a `FlaskConical` glyph + concise copy + `Generate Backtesting Summary` primary action; loading state shows spinner + status copy with `role="status" aria-live="polite" aria-busy="true"`; error state shows sanitized message + Retry, `role="alert"`; success ends with a Run-again button. `backtestSummaryResetKey` added in `StrategyForm` and bumped alongside `healthScoreResetKey` / `alertTemplatesResetKey` on generate / refine / history-load so stale summaries clear when the active script changes. `OutputTab` union, `onValueChange` discriminator, and `TerminalOutputChrome` `TAB_PATH` updated (`output://backtest.md`); off-tab bounce effect mirrors Health/Alerts. No command-palette additions (spec § Scope Limits). `npm run build` passes ✅
 
 ## In Progress
 
-- `28-alert-templates-overview.md` — feature scope and broker template rules drafted
-- `29-alert-templates-backend.md` — backend implementation spec drafted
-- `30-alert-templates-ui.md` — UI implementation spec drafted
+- _(none — Strategy Backtesting Summary feature complete)_
 
 ## Next Up
 
-- Implement Alert Message Templates in this order:
-  1. `28-alert-templates-overview.md`
-  2. `29-alert-templates-backend.md`
-  3. `30-alert-templates-ui.md`
-- Optional: `15-theme-toggle.md`
+- Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
-- Remaining Phase 5 high-value features (Alert Templates, Backtest Summary, etc.)
+- Remaining Phase 5 medium-value features (Pinned Scripts, Tags + Search,
+  Collections, Notion/Obsidian export)
 
 ## Open Questions
 
-- COPY-001: Align remaining landing copy with PineForge branding (done — hero/tagline/nav)
+- Landing footer links `/pricing`, `/privacy`, `/terms` — routes not implemented yet (stubs)
 
 ## Architecture Decisions
 
@@ -230,9 +269,125 @@ Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
   profitability. UI: `Health` tab when a script exists (`HealthScorePanel` +
   `useHealthScore`); `healthScoreResetKey` bumps with `explainCancelKey` on
   generate, refine, and history load.
+- **Alert Message Templates**: Template generation only (no webhooks sent, no
+  credentials stored, no DB). `POST /api/alert-templates` returns four provider
+  templates (`3commas`, `alertatron`, `wundertrading`, `custom`) with Zod +
+  `JSON.parse` on each `messageJson`. UI: `Alerts` tab (`AlertTemplatesPanel` +
+  `useAlertTemplates`); `alertTemplatesResetKey` clears on generate, refine, and
+  history load.
+- **Backtesting Summary**: Research-checklist generation only (no live backtests,
+  no performance numbers, no DB). `POST /api/backtesting-summary` runs
+  `generateObject` against a **loose** intake schema (`title` + `sections` only),
+  then `assembleBacktestSummaryMarkdown(sections)` builds the `markdown` field
+  deterministically server-side, then the full payload is re-validated with the
+  **strict** `backtestSummaryResultSchema` before responding. The LLM never emits
+  Markdown — heading order, bullet formatting, and whitespace normalization are
+  all controlled by the helper, so the `markdown` field can be trusted by the
+  client. Prompt (`BACKTEST_SUMMARY_SYSTEM`) explicitly forbids fabricated
+  performance metrics (win rate, CAGR, Sharpe, drawdown, profit factor) and
+  certainty language; tone stays advisory and qualitative. UI: `Backtest` tab
+  (`BacktestSummaryPanel` + `useBacktestSummary`) renders sections structurally
+  (not the raw `markdown` blob) so the `markdown` field stays available for
+  future copy/download without dictating the default reading experience;
+  `backtestSummaryResetKey` clears state on generate, refine, history load.
 
 ## Session Notes
 
+- UI/UX `01-shortcut-tooltips`: tooltips on generator actions; `formatShortcut` /
+  `getModKeyLabel` shared with command palette footer shortcuts
+- UI/UX `02-output-action-bar`: icon-first `OutputActionBar`; shared `handleOpenInTradingView`
+  from `StrategyForm` (palette, shortcut, action bar)
+- UI/UX `03-script-output-empty-state`: terminal idle copy + starter chips in `ScriptOutput`;
+  `handleSuggestionClick` in `StrategyForm` fills strategy field and focuses textarea
+- UI/UX `04-health-next-step-refine`: Health next-step **Refine** → `handlePrefillRefine` +
+  `prefillNonce` on `RefineChat`; smooth scroll to refine section, user submits manually
+- UI/UX `05-motion-feedback`: `motion-btn-press` / `motion-ready-generate` on inputs; output
+  `animate-success-pulse` when generation completes (not refine); reduced-motion overrides
+- UI/UX `06-sticky-output-tabs`: sticky tab bar + icons in `StrategyOutputCard`; panel scroll
+  keeps tabs pinned; mobile horizontal tab scroll
+- UI/UX `08-terminal-polish`: `terminal-noise` / `terminal-scanlines` / `terminal-phosphor-*`
+  / `terminal-code-surface` in `globals.css`; auth + generate backgrounds; output code surface +
+  active tab/model/pill/webhook phosphor glow
+- UI/UX `09-prompt-health-badge`: `lib/prompt/prompt-health.ts` heuristics (length + detail categories);
+  live badge next to char count in `StrategyInputsCard`; hover/title + `aria-label` hints; no API or generate blocking
+- `15-theme-toggle`: `ThemeProvider`, `ModeToggle`, diagonal wipe overlay, `.pf-page`/`.pf-nav` shells, Clerk light appearance; generator cards deferred for light polish
+- UI/UX `11-terminal-identity-phase-2`: `TerminalAmbientBackground`, `TerminalOutputChrome`,
+  `terminal-active-*` tokens, streaming surface pulse, mono tab labels, blinking `$` prompt;
+  emerald-only generate ambient; `npm run build` passes
+- UI/UX `12-generate-desk-atmosphere`: generate desk ticker (`variant="generate"`), slower scroll
+  + dimmer per-quote text (`text-zinc-600` symbols, muted deltas), `terminal-glow-breathe` on
+  generate ambient top glow; auth keeps HUD + default ticker
+- Alert Message Templates (`28`–`30`): backend `POST /api/alert-templates`, UI `Alerts` tab +
+  `AlertTemplatesPanel` / `useAlertTemplates`, palette entry; `alertTemplatesResetKey` clears on
+  generate, refine, and history load; `npm run build` passes
+- Backtesting Summary schemas (`31`): contracts only — `lib/api/validation.ts` gets request +
+  strict response (`title`, `markdown`, 5 section arrays with explicit length bounds) + shared
+  types (`BacktestSummaryRequest`, `BacktestSummarySections`, `BacktestSummaryResult`); request
+  shape mirrors existing AI routes (`balance` regex, capitalized `direction`, `market`/
+  `timeframe`/`indicators` enums) so the upcoming route, prompt utility, and hook can import
+  one source of truth; `npx tsc --noEmit` clean
+- Backtesting Summary prompt utility (`32`): `lib/ai/prompts/backtest-summary.ts` exports
+  `BACKTEST_SUMMARY_SYSTEM` (structure-only research checklist; explicit ban on win rate,
+  CAGR, Sharpe, drawdown, profit factor — any numeric performance metric) and
+  `buildBacktestSummaryUserPrompt()` (intent + Pine + strategy-context block, same shape as
+  health-score / alert-templates user prompt builders). LLM emits only `title` + `sections`;
+  Markdown is assembled server-side by `assembleBacktestSummaryMarkdown(sections)` in
+  `lib/ai/backtest-summary-markdown.ts` (stable heading order: Recommended Timeframes →
+  Recommended Markets → What To Check In The Equity Curve → Common Failure Modes →
+  Backtesting Plan; one bullet per item; deterministic and pure). Loose intake schema
+  `backtestSummaryLlmResultSchema` added to `lib/api/validation.ts` so step 33 can run
+  `generateObject` against the loose schema, assemble `markdown`, then re-validate against
+  the strict `backtestSummaryResultSchema` before returning to the client
+- Backtesting Summary route (`33`): `app/api/backtesting-summary/route.ts` POST-only handler
+  mirrors `health-score` / `alert-templates` flow exactly — `protectAiRoute` (auth + rate
+  limit + plan), Zod-validate body with `backtestSummaryRequestSchema`, `resolveModelForPlan`
+  for entitlement (403 on premium model for free plan), `responseIfMissingXaiApiKey` for the
+  503 env-config error path, then `generateObject` against the loose
+  `backtestSummaryLlmResultSchema` with `BACKTEST_SUMMARY_SYSTEM` + builder output,
+  `temperature 0.2`, `maxOutputTokens` from new `BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS = 1200`
+  constant, and `abortSignal: guard.ctx.req.signal`. Result is passed through
+  `assembleBacktestSummaryMarkdown(object.sections)` and re-validated with the strict
+  `backtestSummaryResultSchema` before responding — fulfils the ⚠️ "do not return
+  unvalidated Markdown" requirement from the spec. Errors return sanitized `{ success: false,
+  data: null, error }` envelopes (400 invalid request, 403 entitlement, 429 rate limit, 502
+  strict-validate failure, 500 generic). Dev-only `console.warn` for strict-validate /
+  generate failures (production silent). No DB writes. `npm run build` shows route as
+  `ƒ /api/backtesting-summary`; `/api(.*)` is public in `proxy.ts` so the route returns its
+  own JSON 401 instead of being redirected to sign-in
+- Backtesting Summary hook (`34`): `hooks/useBacktestSummary.ts` exposes
+  `useBacktestSummary(resetKey)` with the same return shape as `useHealthScore` /
+  `useAlertTemplates` (`{ phase, result, errorMessage, run, isLoading }`) so step 35 can
+  plug it into the output panel with no API drift. `run({ prompt, script, model, balance,
+  structuredInputs })` trims prompt + script, no-ops on missing inputs or in-flight
+  request (`inFlightRef`), POSTs to `/api/backtesting-summary` with `balance` falling back
+  to `null` and structured-input fields mapped 1:1 to the route schema. Error fallbacks via
+  `messageFromApiErrorJson`: 403 → "Premium models require a Pro plan.", 429 → "Too many
+  requests. Please try again in a moment.", anything else → "Backtesting summary request
+  failed. Please try again." Network failure path returns "Something went wrong. Please try
+  again." Stale results clear via `resetKey` effect — step 35 will bump
+  `backtestSummaryResetKey` alongside `healthScoreResetKey` / `alertTemplatesResetKey` on
+  generate, refine, and history load. File name uses `useBacktestSummary` (no "ing") to
+  match the schema type `BacktestSummaryResult` and the prompt/markdown utilities; the
+  spec's "suggested" `useBacktestingSummary` was a sketch, not a contract. Route URL stays
+  `/api/backtesting-summary` per step 33's public contract
+- Backtesting Summary UI (`35`): new `Backtest` output tab between Health and Alerts on
+  `/generate`. `components/strategy/BacktestSummaryPanel.tsx` renders the validated
+  structured sections (per spec: structured rendering first, raw `markdown` reserved for
+  future copy/download) — title heading, then 5 `BulletSection` blocks with semantic
+  icons (`Clock`, `TrendingUp`, `LineChart`, `AlertTriangle` with amber bullet tint,
+  `ListChecks`). Empty state uses `FlaskConical` glyph + `terminalRunButton`; loading uses
+  `Loader2` spinner with `role="status" aria-live="polite" aria-busy="true"`; error state
+  uses `role="alert"` with sanitized message + Retry; success ends with Run-again button.
+  `StrategyOutputCard`: `OutputTab` union extended with `'backtest'`, `onValueChange`
+  discriminator updated, tab trigger only renders when `generatedScript.trim()` (same gate
+  as Health/Alerts). `StrategyForm`: `backtestSummaryResetKey` state added, bumped in
+  `handleGenerate` / `handleRefine` / `loadSavedScript` alongside the other reset keys;
+  off-tab bounce effect mirrors Health/Alerts (sends user back to Script if Backtest is
+  active when script disappears). `TerminalOutputChrome` `TAB_PATH` extended with
+  `output://backtest.md`. Tab placement (between Health and Alerts) groups review/eval
+  tabs (Health = score, Backtest = test plan) before automation (Alerts) and the
+  diff (Compare). Per spec § Scope Limits: no command-palette additions,
+  no inline editing, no export feature in this step. `npm run build` passes
 - Strategy Health Score (`25`–`27`): backend `POST /api/health-score`, UI `Health` tab +
   `HealthScorePanel` / `useHealthScore`, palette entry; `healthScoreResetKey` clears results on
   generate, refine, and history load; `npm run build` passes
@@ -242,5 +397,5 @@ Optional follow-ups: `15-theme-toggle.md` and deferred Phase 4 hardening from
 - Audit report (report.md): SEC-001 closed; remaining items in `context/fixes.md`
 - Fix 2 UI: client model locks + `UserPlanContext`; deferred polish: quota hint, `/pricing` on all 429 toasts
 - A11Y-001: ModelSelector radiogroup semantics done; optional follow-up: `aria-disabled` + focus when locked
-- A11Y-002: LandingCodePreview decorative Copy div needs fix
+- A11Y-002: resolved — `LandingExamples` Copy control is a `<button>` with `aria-label`
 - NEXT-001: Root `app/error.tsx` and `app/loading.tsx` present (tracker was stale)

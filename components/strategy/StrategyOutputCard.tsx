@@ -1,17 +1,18 @@
 'use client';
 
-import type { RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import {
+  Activity,
   AlertTriangle,
   BarChart3,
-  Check,
-  Copy,
-  Download,
-  ExternalLink,
+  Bell,
+  Code2,
+  FlaskConical,
+  GitCompareArrows,
+  ListChecks,
   Radio,
   ShieldCheck,
-  Webhook,
 } from 'lucide-react';
 import type { GenerationRateLimitError } from '@/hooks/useScriptGeneration';
 import { Button } from '@/components/ui/button';
@@ -19,19 +20,58 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExplainScriptPanel } from '@/components/strategy/ExplainScriptPanel';
+import { AlertTemplatesPanel } from '@/components/strategy/AlertTemplatesPanel';
+import { BacktestSummaryPanel } from '@/components/strategy/BacktestSummaryPanel';
 import { HealthScorePanel } from '@/components/strategy/HealthScorePanel';
+import { OutputActionBar } from '@/components/strategy/OutputActionBar';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import type { GrokModel } from '@/lib/config/constants';
 import { RefineChat } from '@/components/strategy/RefineChat';
 import { ScriptComparePanel } from '@/components/strategy/ScriptComparePanel';
 import { ScriptOutput } from '@/components/strategy/ScriptOutput';
 import type { ValidationResult } from '@/components/strategy/ScriptOutput';
+import { TerminalOutputChrome } from '@/components/strategy/TerminalOutputChrome';
 import { WebhookJsonPanel } from '@/components/strategy/WebhookJsonPanel';
-import { copyAndOpenTradingView } from '@/lib/scripts/tradingview';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import {
+  pfOutputMuted,
+  terminalCodeSurface,
+  terminalCodeSurfaceStreaming,
+  terminalTabActive,
+} from '@/lib/ui/terminal-texture';
 
-export type OutputTab = 'script' | 'breakdown' | 'checklist' | 'health' | 'compare';
+export type OutputTab =
+  | 'script'
+  | 'breakdown'
+  | 'checklist'
+  | 'health'
+  | 'backtest'
+  | 'alerts'
+  | 'compare';
+
+const OUTPUT_TAB_TRIGGER_CLASS =
+  'pf-tab-trigger inline-flex shrink-0 items-center gap-1.5 rounded-none border-b-2 border-transparent px-3 py-2.5 text-xs font-medium shadow-none disabled:pointer-events-none disabled:opacity-40 sm:px-4';
+
+type OutputTabTriggerProps = {
+  value: OutputTab;
+  icon: typeof Code2;
+  label: string;
+  disabled?: boolean;
+};
+
+function OutputTabTrigger({ value, icon: Icon, label, disabled }: OutputTabTriggerProps) {
+  return (
+    <TabsTrigger
+      value={value}
+      disabled={disabled}
+      data-terminal-tab=""
+      className={cn(OUTPUT_TAB_TRIGGER_CLASS, terminalTabActive)}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+      <span className="font-mono text-[11px] uppercase tracking-widest">{label}</span>
+    </TabsTrigger>
+  );
+}
 
 type StrategyOutputCardProps = {
   outputRef: RefObject<HTMLDivElement | null>;
@@ -45,6 +85,7 @@ type StrategyOutputCardProps = {
   onStop: () => void;
   onDownload: () => void;
   onCopy: () => void;
+  onOpenInTradingView: () => void;
   copied: boolean;
   webhookUrl: string;
   onWebhookUrlChange: (value: string) => void;
@@ -54,6 +95,8 @@ type StrategyOutputCardProps = {
   isIdle: boolean;
   explainCancelKey: number;
   healthScoreResetKey: number;
+  backtestSummaryResetKey: number;
+  alertTemplatesResetKey: number;
   strategyPrompt: string;
   accountBalance: string;
   selectedModel: GrokModel['id'];
@@ -69,6 +112,10 @@ type StrategyOutputCardProps = {
   compareAfterLabel: string;
   compareEmptyHint: string;
   onGeneratedScriptChange: (value: string) => void;
+  onSuggestionClick?: (prompt: string) => void;
+  onPrefillRefine?: (instruction: string) => void;
+  refinePrefillInstruction?: string;
+  refinePrefillNonce?: number;
 };
 
 export function StrategyOutputCard({
@@ -83,6 +130,7 @@ export function StrategyOutputCard({
   onStop,
   onDownload,
   onCopy,
+  onOpenInTradingView,
   copied,
   webhookUrl,
   onWebhookUrlChange,
@@ -92,6 +140,8 @@ export function StrategyOutputCard({
   isIdle,
   explainCancelKey,
   healthScoreResetKey,
+  backtestSummaryResetKey,
+  alertTemplatesResetKey,
   strategyPrompt,
   accountBalance,
   selectedModel,
@@ -107,14 +157,39 @@ export function StrategyOutputCard({
   compareAfterLabel,
   compareEmptyHint,
   onGeneratedScriptChange,
+  onSuggestionClick,
+  onPrefillRefine,
+  refinePrefillInstruction,
+  refinePrefillNonce,
 }: StrategyOutputCardProps) {
+  const [successPulse, setSuccessPulse] = useState(false);
+  const wasGeneratingRef = useRef(false);
+
+  useEffect(() => {
+    const finishedGenerate =
+      wasGeneratingRef.current &&
+      !isGenerating &&
+      !isRefining &&
+      Boolean(generatedScript.trim()) &&
+      !generationError;
+
+    wasGeneratingRef.current = isGenerating;
+
+    if (!finishedGenerate) return;
+
+    setSuccessPulse(true);
+    const timer = window.setTimeout(() => setSuccessPulse(false), 720);
+    return () => window.clearTimeout(timer);
+  }, [isGenerating, isRefining, generatedScript, generationError]);
+
   return (
     <Card
-      className={`border-zinc-800/70 backdrop-blur transition-all duration-500 ${
-        isOutputBusy
-          ? 'border-emerald-500/40 shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)] animate-border-glow bg-zinc-950/40'
-          : 'bg-zinc-950/35'
-      }`}
+      className={cn(
+        'pf-card transition-all duration-500',
+        isOutputBusy &&
+          'border-emerald-500/40 shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)] animate-border-glow dark:bg-zinc-950/40',
+        successPulse && 'animate-success-pulse',
+      )}
     >
       <CardHeader className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -149,7 +224,7 @@ export function StrategyOutputCard({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {isOutputBusy && (
+            {isOutputBusy ? (
               <Button
                 type="button"
                 variant="outline"
@@ -159,82 +234,21 @@ export function StrategyOutputCard({
               >
                 Stop
               </Button>
-            )}
-            {(generatedScript || isOutputBusy) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  void copyAndOpenTradingView(generatedScript).then(() => {
-                    toast.success('Script copied — paste it in Pine Editor');
-                  });
-                }}
-                disabled={!generatedScript.trim() || isOutputBusy}
-                className="border border-zinc-800 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30 disabled:opacity-50"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open in TradingView
-                </span>
-              </Button>
-            )}
-            {generatedScript && !isOutputBusy && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onDownload}
-                className="border border-zinc-800 text-white hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Download className="h-3.5 w-3.5" />
-                  Download .pine
-                </span>
-              </Button>
-            )}
-            {generatedScript && !isOutputBusy && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onToggleWebhookPanel}
-                aria-pressed={webhookPanelOpen}
-                className={cn(
-                  'border border-zinc-800 text-white hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30',
-                  webhookPanelOpen && 'border-emerald-500/40 bg-emerald-500/5',
-                )}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Webhook className="h-3.5 w-3.5" />
-                  Webhook JSON
-                </span>
-              </Button>
-            )}
-            {generatedScript && !isOutputBusy && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onCopy}
-                className="border border-zinc-800 text-white hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
-              >
-                {copied ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    Copied!
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy
-                  </span>
-                )}
-              </Button>
+            ) : (
+              <OutputActionBar
+                generatedScript={generatedScript}
+                isOutputBusy={isOutputBusy}
+                copied={copied}
+                webhookPanelOpen={webhookPanelOpen}
+                onCopy={onCopy}
+                onDownload={onDownload}
+                onOpenInTradingView={onOpenInTradingView}
+                onToggleWebhookPanel={onToggleWebhookPanel}
+              />
             )}
           </div>
         </div>
-        <CardDescription className="text-zinc-400">
+        <CardDescription className="pf-muted">
           Streams live while PineForge writes. Edit the Script tab directly when idle; use Compare to see edits vs
           the last generated output or the previous version. Paste into TradingView &rarr; Pine Editor &rarr; Add to chart.
         </CardDescription>
@@ -263,10 +277,19 @@ export function StrategyOutputCard({
         ) : null}
         <div
           ref={outputRef}
-          className="relative overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/55 min-h-[280px]"
+          className={cn(
+            'relative max-h-[min(72vh,720px)] min-h-[280px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200/90 dark:border-zinc-800/70',
+            terminalCodeSurface,
+            isStreaming && terminalCodeSurfaceStreaming,
+          )}
           aria-live="polite"
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(800px_circle_at_10%_0%,rgba(16,185,129,0.12),transparent_45%),radial-gradient(650px_circle_at_90%_30%,rgba(59,130,246,0.10),transparent_50%)]" />
+          <TerminalOutputChrome
+            activeTab={outputTab}
+            isStreaming={isStreaming}
+            validationResult={validationResult}
+            isOutputBusy={isOutputBusy}
+          />
           <Tabs
             value={outputTab}
             onValueChange={(v) => {
@@ -275,50 +298,37 @@ export function StrategyOutputCard({
                 v === 'breakdown' ||
                 v === 'checklist' ||
                 v === 'health' ||
+                v === 'backtest' ||
+                v === 'alerts' ||
                 v === 'compare'
               ) {
                 onOutputTabChange(v);
               }
             }}
-            className="gap-0"
+            className="relative gap-0"
           >
             <TabsList
               variant="line"
-              className="relative z-10 w-full min-w-0 justify-start gap-0 rounded-none border-b border-zinc-700/80 bg-zinc-900/90 px-1 pt-0"
+              className="pf-tabs-bar sticky top-0 z-20 w-full min-w-0 justify-start gap-0 overflow-x-auto rounded-none border-b px-1 pt-0 backdrop-blur-md supports-backdrop-filter:bg-zinc-50/95 dark:supports-backdrop-filter:bg-zinc-900/90 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              <TabsTrigger
-                value="script"
-                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500"
-              >
-                Script
-              </TabsTrigger>
-              <TabsTrigger
-                value="breakdown"
-                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500"
-              >
-                Breakdown
-              </TabsTrigger>
-              <TabsTrigger
-                value="checklist"
-                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500"
-              >
-                Checklist
-              </TabsTrigger>
+              <OutputTabTrigger value="script" icon={Code2} label="Script" />
+              <OutputTabTrigger value="breakdown" icon={BarChart3} label="Breakdown" />
+              <OutputTabTrigger value="checklist" icon={ListChecks} label="Checklist" />
               {generatedScript.trim() ? (
-                <TabsTrigger
-                  value="health"
-                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500"
-                >
-                  Health
-                </TabsTrigger>
+                <OutputTabTrigger value="health" icon={Activity} label="Health" />
               ) : null}
-              <TabsTrigger
+              {generatedScript.trim() ? (
+                <OutputTabTrigger value="backtest" icon={FlaskConical} label="Backtest" />
+              ) : null}
+              {generatedScript.trim() ? (
+                <OutputTabTrigger value="alerts" icon={Bell} label="Alerts" />
+              ) : null}
+              <OutputTabTrigger
                 value="compare"
+                icon={GitCompareArrows}
+                label="Compare"
                 disabled={!compareAvailable}
-                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 shadow-none hover:bg-zinc-800/40 hover:text-zinc-100 data-[state=active]:border-emerald-500 data-[state=active]:bg-zinc-950/50 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-500 disabled:pointer-events-none disabled:opacity-40"
-              >
-                Compare
-              </TabsTrigger>
+              />
             </TabsList>
             <TabsContent value="script" forceMount className="mt-0 data-[state=inactive]:hidden">
               <ScriptOutput
@@ -327,6 +337,7 @@ export function StrategyOutputCard({
                 isStreaming={isStreaming}
                 isIdle={isIdle}
                 onScriptChange={onGeneratedScriptChange}
+                onSuggestionClick={onSuggestionClick}
               />
             </TabsContent>
             <TabsContent value="breakdown" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -356,13 +367,36 @@ export function StrategyOutputCard({
                 structuredInputs={structuredInputs}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 resetKey={healthScoreResetKey}
+                onPrefillRefine={onPrefillRefine}
+              />
+            </TabsContent>
+            <TabsContent value="backtest" forceMount className="mt-0 data-[state=inactive]:hidden">
+              <BacktestSummaryPanel
+                prompt={strategyPrompt}
+                script={generatedScript}
+                model={selectedModel}
+                balance={accountBalance}
+                structuredInputs={structuredInputs}
+                isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
+                resetKey={backtestSummaryResetKey}
+              />
+            </TabsContent>
+            <TabsContent value="alerts" forceMount className="mt-0 data-[state=inactive]:hidden">
+              <AlertTemplatesPanel
+                prompt={strategyPrompt}
+                script={generatedScript}
+                model={selectedModel}
+                balance={accountBalance}
+                structuredInputs={structuredInputs}
+                isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
+                resetKey={alertTemplatesResetKey}
               />
             </TabsContent>
             <TabsContent value="compare" forceMount className="mt-0 data-[state=inactive]:hidden">
               {!compareAvailable ? (
-                <p className="px-6 py-6 text-sm text-zinc-500">{compareEmptyHint}</p>
+                <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>{compareEmptyHint}</p>
               ) : isOutputBusy ? (
-                <p className="px-6 py-6 text-sm text-zinc-500">
+                <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>
                   Finish streaming to see the side-by-side diff.
                 </p>
               ) : compareBeforeScript !== '' ? (
@@ -374,7 +408,7 @@ export function StrategyOutputCard({
                   isReady
                 />
               ) : (
-                <p className="px-6 py-6 text-sm text-zinc-500">{compareEmptyHint}</p>
+                <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>{compareEmptyHint}</p>
               )}
             </TabsContent>
           </Tabs>
@@ -386,30 +420,32 @@ export function StrategyOutputCard({
             disabled={!historyLineageReady}
             onRefine={onRefine}
             resetKey={refineResetKey}
+            prefillInstruction={refinePrefillInstruction}
+            prefillNonce={refinePrefillNonce}
           />
         )}
 
-        <Separator className="bg-zinc-800/70" />
-        <div className="grid gap-3 text-xs sm:grid-cols-3">
-          <div className="flex items-start gap-2.5 rounded-xl border border-zinc-800/70 bg-zinc-950/35 p-3">
-            <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500/70" />
+        <Separator className="bg-zinc-200 dark:bg-zinc-800/70" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="pf-output-footer-tile flex items-start gap-2.5 rounded-xl p-3">
+            <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-500/70" />
             <div>
-              <div className="text-zinc-200">Alert tiers</div>
-              <div className="text-zinc-500">Getting Ready &middot; Average &middot; Strong</div>
+              <div className="pf-output-footer-title text-zinc-900 dark:text-zinc-200">Alert tiers</div>
+              <div className="pf-output-footer-caption mt-0.5 text-xs text-zinc-700 dark:text-zinc-500">Getting Ready &middot; Average &middot; Strong</div>
             </div>
           </div>
-          <div className="flex items-start gap-2.5 rounded-xl border border-zinc-800/70 bg-zinc-950/35 p-3">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500/70" />
+          <div className="pf-output-footer-tile flex items-start gap-2.5 rounded-xl p-3">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-500/70" />
             <div>
-              <div className="text-zinc-200">Auto lines</div>
-              <div className="text-zinc-500">SL / TP drawn with labels</div>
+              <div className="pf-output-footer-title text-zinc-900 dark:text-zinc-200">Auto lines</div>
+              <div className="pf-output-footer-caption mt-0.5 text-xs text-zinc-700 dark:text-zinc-500">SL / TP drawn with labels</div>
             </div>
           </div>
-          <div className="flex items-start gap-2.5 rounded-xl border border-zinc-800/70 bg-zinc-950/35 p-3">
-            <BarChart3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500/70" />
+          <div className="pf-output-footer-tile flex items-start gap-2.5 rounded-xl p-3">
+            <BarChart3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-500/70" />
             <div>
-              <div className="text-zinc-200">Risk rules</div>
-              <div className="text-zinc-500">Sized from account balance</div>
+              <div className="pf-output-footer-title text-zinc-900 dark:text-zinc-200">Risk rules</div>
+              <div className="pf-output-footer-caption mt-0.5 text-xs text-zinc-700 dark:text-zinc-500">Sized from account balance</div>
             </div>
           </div>
         </div>

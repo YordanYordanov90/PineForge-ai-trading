@@ -108,10 +108,11 @@ Defined in `drizzle/schema.ts` but unused (quotas are Upstash-only).
 
 ### Theme toggle (`15-theme-toggle.md`)
 
-Dark-only today; `next-themes` mentioned in `context/ui-context.md`.
+Done (v1 phased): `next-themes`, diagonal wipe, toggle on landing / generate / auth.
 
-- [ ] Add theme provider + toggle on landing and `/generate`
-- [ ] Verify Clerk appearance in light mode
+- [x] Add theme provider + toggle on landing and `/generate`
+- [x] Verify Clerk appearance in light mode (sign-in + UserButton)
+- [ ] Follow-up: generator cards, sonner, command palette light tokens
 
 ---
 

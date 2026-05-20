@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type Row = { sym: string; price: string; delta: number };
 
@@ -24,7 +25,16 @@ function formatDelta(d: number): string {
   return `${sign}${d.toFixed(2)}%`;
 }
 
-export function TerminalPriceTicker() {
+type TerminalPriceTickerProps = {
+  variant?: "auth" | "generate" | "landing";
+};
+
+export function TerminalPriceTicker({
+  variant = "auth",
+}: TerminalPriceTickerProps) {
+  const isGenerate = variant === "generate";
+  const isLanding = variant === "landing";
+  const jitterMs = isLanding ? 4500 : isGenerate ? 3800 : 2800;
   const [rows, setRows] = useState<Row[]>(BASE_ROWS);
 
   useEffect(() => {
@@ -32,19 +42,41 @@ export function TerminalPriceTicker() {
       setRows((prev) =>
         prev.map((r) => ({ ...r, delta: jitterDelta(r.delta) })),
       );
-    }, 2800);
+    }, jitterMs);
     return () => window.clearInterval(id);
-  }, []);
+  }, [jitterMs]);
 
   const renderQuote = (r: Row, copy: "a" | "b", index: number) => (
     <span
       key={`${copy}-${r.sym}-${index}`}
       className="inline-flex shrink-0 items-baseline gap-1.5 px-5"
     >
-      <span className="text-zinc-500">{r.sym}</span>
-      <span className="text-zinc-400">{r.price}</span>
       <span
-        className={r.delta >= 0 ? "text-emerald-400" : "text-rose-400"}
+        className={
+          isLanding ? "text-zinc-500" : isGenerate ? "text-zinc-600" : "text-white/85"
+        }
+      >
+        {r.sym}
+      </span>
+      <span
+        className={
+          isLanding ? "text-zinc-400" : isGenerate ? "text-zinc-400" : "text-white"
+        }
+      >
+        {r.price}
+      </span>
+      <span
+        className={
+          isLanding
+            ? "text-zinc-500"
+            : r.delta >= 0
+              ? isGenerate
+                ? "text-emerald-500/70"
+                : "text-emerald-400"
+              : isGenerate
+                ? "text-rose-500/70"
+                : "text-rose-400"
+        }
       >
         {formatDelta(r.delta)}
       </span>
@@ -52,13 +84,31 @@ export function TerminalPriceTicker() {
   );
 
   return (
-    <div className="pointer-events-none relative min-h-[2.25rem] w-full min-w-0 overflow-hidden border-t border-zinc-800/50 bg-zinc-950/85 backdrop-blur-sm">
+    <div
+      className={cn(
+        "pointer-events-none relative min-h-[2.25rem] w-full min-w-0 overflow-hidden border-t border-zinc-800/50 backdrop-blur-sm",
+        isLanding
+          ? "border-zinc-200/60 bg-zinc-100/90 dark:border-zinc-800/50 dark:bg-zinc-950/70"
+          : isGenerate
+            ? "bg-zinc-950/60"
+            : "bg-zinc-950/85",
+      )}
+    >
       <p className="sr-only">
         Demo: decorative simulated market data for atmosphere only. Not a live
         price feed.
       </p>
       <div aria-hidden className="flex h-9 items-center">
-        <div className="animate-terminal-ticker whitespace-nowrap font-mono text-[11px] tracking-tight text-zinc-500 sm:text-xs">
+        <div
+          className={cn(
+            "whitespace-nowrap font-mono text-[11px] tracking-tight sm:text-xs",
+            isLanding
+              ? "animate-terminal-ticker-landing"
+              : isGenerate
+                ? "animate-terminal-ticker-slow"
+                : "animate-terminal-ticker",
+          )}
+        >
           {rows.map((r, i) => renderQuote(r, "a", i))}
           {rows.map((r, i) => renderQuote(r, "b", i))}
         </div>

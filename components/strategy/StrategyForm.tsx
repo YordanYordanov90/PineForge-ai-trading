@@ -57,10 +57,14 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   const [copied, setCopied] = useState(false);
   const [structuredInputs, setStructuredInputs] = useState<StructuredInputsValue>({});
   const [refineResetKey, setRefineResetKey] = useState(0);
+  const [refinePrefillInstruction, setRefinePrefillInstruction] = useState('');
+  const [refinePrefillNonce, setRefinePrefillNonce] = useState(0);
   const [historyLineageReady, setHistoryLineageReady] = useState(false);
   const [outputTab, setOutputTab] = useState<OutputTab>('script');
   const [explainCancelKey, setExplainCancelKey] = useState(0);
   const [healthScoreResetKey, setHealthScoreResetKey] = useState(0);
+  const [backtestSummaryResetKey, setBacktestSummaryResetKey] = useState(0);
+  const [alertTemplatesResetKey, setAlertTemplatesResetKey] = useState(0);
   const [webhookPanelOpen, setWebhookPanelOpen] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
@@ -190,6 +194,8 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
       setHealthScoreResetKey((k) => k + 1);
+      setBacktestSummaryResetKey((k) => k + 1);
+      setAlertTemplatesResetKey((k) => k + 1);
     },
   }), [plan]);
 
@@ -309,6 +315,20 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     });
   }, [outputTab, generatedScript]);
 
+  useEffect(() => {
+    if (outputTab !== 'alerts' || generatedScript.trim()) return;
+    queueMicrotask(() => {
+      setOutputTab('script');
+    });
+  }, [outputTab, generatedScript]);
+
+  useEffect(() => {
+    if (outputTab !== 'backtest' || generatedScript.trim()) return;
+    queueMicrotask(() => {
+      setOutputTab('script');
+    });
+  }, [outputTab, generatedScript]);
+
   const handlePresetSelect = (prompt: string, presetId: string) => {
     setStrategy(prompt);
     setActivePreset(presetId);
@@ -319,11 +339,30 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     setActivePreset(null);
   }, []);
 
+  const handleSuggestionClick = useCallback((prompt: string) => {
+    setStrategy(prompt);
+    setActivePreset(null);
+    window.setTimeout(() => {
+      const el = document.getElementById('strategy');
+      if (!(el instanceof HTMLTextAreaElement)) return;
+      el.focus();
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    }, 0);
+  }, []);
+
+  const handlePrefillRefine = useCallback((instruction: string) => {
+    setRefinePrefillInstruction(instruction);
+    setRefinePrefillNonce((n) => n + 1);
+  }, []);
+
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
     setOutputTab('script');
     setExplainCancelKey((k) => k + 1);
     setHealthScoreResetKey((k) => k + 1);
+    setBacktestSummaryResetKey((k) => k + 1);
+    setAlertTemplatesResetKey((k) => k + 1);
     setHistoryLineageReady(false);
     lineageRef.current = null;
     setLineageState(null);
@@ -351,6 +390,8 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       setOutputTab('script');
       setExplainCancelKey((k) => k + 1);
       setHealthScoreResetKey((k) => k + 1);
+      setBacktestSummaryResetKey((k) => k + 1);
+      setAlertTemplatesResetKey((k) => k + 1);
       setWebhookPanelOpen(false);
       await refine({
         script: previousScript,
@@ -383,17 +424,25 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     toast.success('Script downloaded.');
   };
 
+  const handleOpenInTradingView = useCallback(() => {
+    void copyAndOpenTradingView(generatedScript).then(() => {
+      toast.success('Script copied — paste it in Pine Editor');
+    });
+  }, [generatedScript]);
+
   const onImprovePrompt = useCallback(() => {
     void handleImprovePrompt(strategy, structuredInputs);
   }, [handleImprovePrompt, strategy, structuredInputs]);
 
   const handleGenerateRef = useRef(handleGenerate);
+  const handleOpenInTradingViewRef = useRef(handleOpenInTradingView);
   const commandOpenRef = useRef(commandOpen);
   const generatedScriptRef = useRef(generatedScript);
   const isOutputBusyRef = useRef(isOutputBusy);
 
   useEffect(() => {
     handleGenerateRef.current = handleGenerate;
+    handleOpenInTradingViewRef.current = handleOpenInTradingView;
     commandOpenRef.current = commandOpen;
     generatedScriptRef.current = generatedScript;
     isOutputBusyRef.current = isOutputBusy;
@@ -424,9 +473,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         e.preventDefault();
         const script = generatedScriptRef.current;
         if (script.trim() && !isOutputBusyRef.current) {
-          void copyAndOpenTradingView(script).then(() => {
-            toast.success('Script copied — paste it in Pine Editor');
-          });
+          handleOpenInTradingViewRef.current();
         }
       }
     };
@@ -452,11 +499,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         compareAvailable={compareAvailable}
         onCopy={handleCopy}
         onDownload={handleDownload}
-        onOpenInTradingView={() => {
-          void copyAndOpenTradingView(generatedScript).then(() => {
-            toast.success('Script copied — paste it in Pine Editor');
-          });
-        }}
+        onOpenInTradingView={handleOpenInTradingView}
         onStop={stop}
         outputTab={outputTab}
         onOutputTabChange={setOutputTab}
@@ -494,6 +537,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         onStop={stop}
         onDownload={handleDownload}
         onCopy={handleCopy}
+        onOpenInTradingView={handleOpenInTradingView}
         copied={copied}
         webhookUrl={webhookUrl}
         onWebhookUrlChange={setWebhookUrl}
@@ -503,6 +547,8 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         isIdle={isIdle}
         explainCancelKey={explainCancelKey}
         healthScoreResetKey={healthScoreResetKey}
+        backtestSummaryResetKey={backtestSummaryResetKey}
+        alertTemplatesResetKey={alertTemplatesResetKey}
         strategyPrompt={strategy}
         accountBalance={balance}
         selectedModel={selectedModel}
@@ -518,6 +564,10 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
         compareAfterLabel={compareAfterLabel}
         compareEmptyHint={compareEmptyHint}
         onGeneratedScriptChange={handleGeneratedScriptChange}
+        onSuggestionClick={handleSuggestionClick}
+        onPrefillRefine={handlePrefillRefine}
+        refinePrefillInstruction={refinePrefillInstruction}
+        refinePrefillNonce={refinePrefillNonce}
       />
       </div>
     </>

@@ -15,7 +15,7 @@ export async function copyAndOpenTradingView(script: string): Promise<void> {
   }
 
   window.open(
-    'https://www.tradingview.com/pine-editor/',
+    'https://www.tradingview.com/pine/',
     '_blank',
     'noopener,noreferrer',
   );

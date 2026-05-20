@@ -1,5 +1,21 @@
 export const MAX_PROMPT_LENGTH = 1500;
 
+/** Free-tier AI actions per 24h — keep in sync with `lib/rate-limit/upstash.ts`. */
+export const FREE_TIER_DAILY_GENERATIONS = 3;
+
+/** Pro-tier AI actions per 24h — keep in sync with `lib/rate-limit/upstash.ts`. */
+export const PRO_TIER_DAILY_GENERATIONS = 200;
+
+/** Landing / auth social proof (marketing claim). */
+export const LANDING_TRADER_COUNT_LABEL = '2,400+ traders';
+
+/** Subtext under primary landing CTAs. */
+export const LANDING_CTA_SUBTEXT =
+  `${FREE_TIER_DAILY_GENERATIONS} free generations / day. No credit card required.`;
+
+/** Marketing stat for hero / feature stat section. */
+export const LANDING_AVG_GENERATION_LABEL = '~14s';
+
 export type GrokModel = {
   id: 'grok-4-1-fast-reasoning' | 'grok-4-1-fast-non-reasoning' | 'grok-4';
   label: string;
@@ -42,6 +58,12 @@ export const EXPLAIN_MAX_OUTPUT_TOKENS = 1800;
 
 /** Structured Strategy Health Score from /api/health-score. */
 export const HEALTH_SCORE_MAX_OUTPUT_TOKENS = 700;
+
+/** Provider webhook JSON templates from /api/alert-templates. */
+export const ALERT_TEMPLATES_MAX_OUTPUT_TOKENS = 4096;
+
+/** Structured backtesting checklist from /api/backtesting-summary. */
+export const BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS = 1200;
 
 export const CHAR_WARNING_THRESHOLD = 1200;
 

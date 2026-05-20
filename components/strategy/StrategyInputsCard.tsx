@@ -16,7 +16,15 @@ import {
   CHAR_DANGER_THRESHOLD,
   type GrokModel,
 } from '@/lib/config/constants';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { useFormatShortcut } from '@/hooks/useShortcutLabel';
+import { pfImprovePromptBtn } from '@/lib/ui/terminal-texture';
 import { cn } from '@/lib/utils';
+import {
+  evaluatePromptHealth,
+  PROMPT_HEALTH_STYLES,
+} from '@/lib/prompt/prompt-health';
 
 type StrategyInputsCardProps = {
   strategy: string;
@@ -56,6 +64,8 @@ export function StrategyInputsCard({
   onImprovePrompt,
 }: StrategyInputsCardProps) {
   const charCount = strategy.length;
+  const promptHealth = evaluatePromptHealth(strategy);
+  const healthStyles = PROMPT_HEALTH_STYLES[promptHealth.level];
   const charColor =
     charCount > CHAR_DANGER_THRESHOLD
       ? 'text-rose-400'
@@ -64,12 +74,15 @@ export function StrategyInputsCard({
         : 'text-zinc-500';
   const improveReady = Boolean(strategy.trim()) && !isOutputBusy && !isImproving;
   const improveBusy = Boolean(strategy.trim()) && isImproving;
+  const generateReady = canGenerate && !isOutputBusy;
+  const generateShortcut = useFormatShortcut('enter');
+  const commandShortcut = useFormatShortcut('k');
 
   return (
-    <Card className="border-zinc-800/70 bg-zinc-950/35 backdrop-blur">
+    <Card className="pf-card">
       <CardHeader className="p-4 sm:p-5">
         <CardTitle className="text-xl">Inputs</CardTitle>
-        <CardDescription className="text-zinc-400">
+        <CardDescription className="pf-muted">
           Tight prompt in, clean script out. Include timeframe, market, triggers, and invalidation.
         </CardDescription>
       </CardHeader>
@@ -77,11 +90,27 @@ export function StrategyInputsCard({
         <PromptTemplates activePreset={activePreset} onSelect={onPresetSelect} />
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Label htmlFor="strategy">Strategy description</Label>
-            <span className={`text-xs tabular-nums ${charColor}`} aria-live="polite">
-              {charCount} / {MAX_PROMPT_LENGTH}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+                  healthStyles.badge,
+                )}
+                title={promptHealth.hint}
+                aria-label={`Prompt quality: ${promptHealth.label}. ${promptHealth.hint}`}
+              >
+                <span
+                  className={cn('h-1.5 w-1.5 shrink-0 rounded-full', healthStyles.dot)}
+                  aria-hidden
+                />
+                {promptHealth.label}
+              </span>
+              <span className={`text-xs tabular-nums ${charColor}`} aria-live="polite">
+                {charCount} / {MAX_PROMPT_LENGTH}
+              </span>
+            </div>
           </div>
           <Textarea
             id="strategy"
@@ -89,7 +118,7 @@ export function StrategyInputsCard({
             value={strategy}
             onChange={(e) => onStrategyChange(e.target.value)}
             rows={8}
-            className="resize-none border-zinc-700/70 bg-zinc-950/60 leading-relaxed placeholder:text-zinc-500 focus-visible:ring-emerald-400/30 text-white"
+            className="pf-input resize-none leading-relaxed"
           />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="flex flex-col gap-1 sm:min-w-0 sm:flex-1">
@@ -98,30 +127,14 @@ export function StrategyInputsCard({
                   Prompt is too long. Please reduce it to under {MAX_PROMPT_LENGTH} characters.
                 </p>
               )}
-              <p className="text-xs text-zinc-400">
+              <p className="pf-muted text-xs">
                 Tip: mention exact alert conditions (e.g. &ldquo;Average&rdquo; vs &ldquo;Strong&rdquo; trigger).{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  Ctrl
-                </kbd>{' '}
-                /{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  ⌘
-                </kbd>
-                +{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  Enter
+                <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1 font-mono text-[10px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                  {generateShortcut}
                 </kbd>{' '}
                 to generate ·{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  Ctrl
-                </kbd>{' '}
-                /{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  ⌘
-                </kbd>
-                +{' '}
-                <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 text-[10px] text-zinc-300">
-                  K
+                <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1 font-mono text-[10px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                  {commandShortcut}
                 </kbd>{' '}
                 for commands
               </p>
@@ -134,7 +147,8 @@ export function StrategyInputsCard({
               disabled={!strategy.trim() || isOutputBusy}
               aria-busy={isImproving}
               className={cn(
-                'shrink-0 self-end border-emerald-500/45 bg-emerald-500/10 text-emerald-100 shadow-sm shadow-emerald-950/40 hover:border-emerald-400/70 hover:bg-emerald-500/18 hover:text-white focus-visible:border-emerald-400/60 focus-visible:ring-emerald-400/25 disabled:border-zinc-700 disabled:bg-zinc-900/40 disabled:text-zinc-500 disabled:shadow-none sm:self-start',
+                'motion-btn-press shrink-0 self-end sm:self-start',
+                pfImprovePromptBtn,
                 improveReady &&
                   'animate-pulse-glow shadow-[0_0_22px_-5px_rgba(16,185,129,0.45)] hover:shadow-[0_0_28px_-4px_rgba(16,185,129,0.55)]',
                 improveBusy &&
@@ -173,30 +187,42 @@ export function StrategyInputsCard({
                 placeholder="12,450"
                 value={balance}
                 onChange={(e) => onBalanceChange(e.target.value)}
-                className="border-zinc-700/70 bg-zinc-950/60 pl-7 placeholder:text-zinc-500 focus-visible:ring-emerald-400/30 text-white font-mono"
+                className="pf-input pl-7 font-mono"
               />
             </div>
             <p className="text-xs text-zinc-400">Numbers only. Used for position sizing.</p>
           </div>
 
           <div className="flex items-end">
-            <Button
-              type="button"
-              onClick={onGenerate}
-              disabled={!canGenerate}
-              size="lg"
-              className="w-full bg-emerald-500 text-zinc-950 hover:bg-emerald-400 disabled:opacity-60"
-              aria-busy={isGenerating}
-            >
-              {isGenerating ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating…
-                </span>
-              ) : (
-                'Generate Pine Script'
-              )}
-            </Button>
+            <TooltipProvider>
+              <ActionTooltip
+                label="Generate Pine Script"
+                shortcut="enter"
+                wrapDisabled
+                triggerClassName="w-full"
+              >
+                <Button
+                  type="button"
+                  onClick={onGenerate}
+                  disabled={!canGenerate}
+                  size="lg"
+                  className={cn(
+                    'motion-btn-press w-full bg-emerald-500 text-zinc-950 hover:bg-emerald-400 disabled:opacity-60',
+                    generateReady && 'motion-ready-generate',
+                  )}
+                  aria-busy={isGenerating}
+                >
+                  {isGenerating ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating…
+                    </span>
+                  ) : (
+                    'Generate Pine Script'
+                  )}
+                </Button>
+              </ActionTooltip>
+            </TooltipProvider>
           </div>
         </div>
       </CardContent>

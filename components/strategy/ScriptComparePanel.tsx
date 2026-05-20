@@ -2,6 +2,16 @@
 
 import { diffLines } from 'diff';
 import { useCallback, useMemo, useRef, type UIEvent } from 'react';
+import {
+  pfOutputCompareAdded,
+  pfOutputCompareDivide,
+  pfOutputCompareHeader,
+  pfOutputCompareLine,
+  pfOutputCompareRemoved,
+  pfOutputCompareSpacer,
+  pfOutputBorder,
+  pfOutputMuted,
+} from '@/lib/ui/terminal-texture';
 import { cn } from '@/lib/utils';
 
 export interface ScriptComparePanelProps {
@@ -68,6 +78,9 @@ function buildSideBySideRows(before: string, after: string): DiffRow[] {
   return rows;
 }
 
+const comparePreBase =
+  'm-0 min-h-[1.625rem] border-b px-3 py-0.5 font-mono text-sm leading-relaxed whitespace-pre overflow-x-auto';
+
 export function ScriptComparePanel({
   beforeScript,
   afterScript,
@@ -110,17 +123,17 @@ export function ScriptComparePanel({
 
   if (!isReady) {
     return (
-      <p className="px-6 py-6 text-sm text-zinc-500">{emptyMessage}</p>
+      <p className={cn('px-6 py-6 text-sm', pfOutputMuted)}>{emptyMessage}</p>
     );
   }
 
   return (
     <div className="flex flex-col">
-      <div className="relative z-10 grid grid-cols-2 border-b border-zinc-800/80 bg-zinc-900/90 text-xs font-medium text-zinc-400">
-        <div className="border-r border-zinc-800/80 px-3 py-2 tabular-nums">{beforeLabel}</div>
+      <div className={cn('relative z-10 grid grid-cols-2', pfOutputCompareHeader)}>
+        <div className={cn('border-r px-3 py-2 tabular-nums', pfOutputBorder)}>{beforeLabel}</div>
         <div className="px-3 py-2 tabular-nums">{afterLabel}</div>
       </div>
-      <div className="grid max-h-[640px] grid-cols-2 divide-x divide-zinc-800/80">
+      <div className={cn('grid max-h-[640px] grid-cols-2 divide-x', pfOutputCompareDivide)}>
         <div
           ref={leftScrollRef}
           onScroll={onLeftScroll}
@@ -130,9 +143,10 @@ export function ScriptComparePanel({
             <pre
               key={`l-${i}`}
               className={cn(
-                'm-0 min-h-[1.625rem] border-b border-zinc-800/40 px-3 py-0.5 font-mono text-sm leading-relaxed whitespace-pre overflow-x-auto text-zinc-200',
-                row.leftKind === 'removed' && 'bg-rose-950/35 text-rose-100/95',
-                row.leftKind === 'spacer' && 'bg-zinc-950/30 text-transparent',
+                comparePreBase,
+                pfOutputCompareLine,
+                row.leftKind === 'removed' && pfOutputCompareRemoved,
+                row.leftKind === 'spacer' && pfOutputCompareSpacer,
               )}
             >
               {row.leftKind === 'spacer' ? '\u00a0' : row.left}
@@ -148,9 +162,10 @@ export function ScriptComparePanel({
             <pre
               key={`r-${i}`}
               className={cn(
-                'm-0 min-h-[1.625rem] border-b border-zinc-800/40 px-3 py-0.5 font-mono text-sm leading-relaxed whitespace-pre overflow-x-auto text-zinc-200',
-                row.rightKind === 'added' && 'bg-emerald-950/30 text-emerald-100/95',
-                row.rightKind === 'spacer' && 'bg-zinc-950/30 text-transparent',
+                comparePreBase,
+                pfOutputCompareLine,
+                row.rightKind === 'added' && pfOutputCompareAdded,
+                row.rightKind === 'spacer' && pfOutputCompareSpacer,
               )}
             >
               {row.rightKind === 'spacer' ? '\u00a0' : row.right}
