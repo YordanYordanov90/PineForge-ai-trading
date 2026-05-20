@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useModKeyLabel } from '@/hooks/useShortcutLabel';
 import {
   Command,
   CommandDialog,
@@ -35,13 +35,6 @@ export type GeneratorCommandMenuProps = {
   onOutputTabChange: (tab: OutputTab) => void;
 };
 
-function useModLabel() {
-  return useMemo(() => {
-    if (typeof navigator === 'undefined') return 'Ctrl';
-    return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '⌘' : 'Ctrl';
-  }, []);
-}
-
 const itemClass =
   'rounded-xl text-zinc-200 data-[selected=true]:bg-emerald-500/15 data-[selected=true]:text-emerald-100';
 
@@ -64,7 +57,7 @@ export function GeneratorCommandMenu({
   onOutputTabChange,
 }: GeneratorCommandMenuProps) {
   const router = useRouter();
-  const mod = useModLabel();
+  const mod = useModKeyLabel();
 
   const canCopyOrDownload = hasScript && !isOutputBusy;
   const canStop = isOutputBusy;
@@ -239,6 +232,20 @@ export function GeneratorCommandMenu({
             >
               Health tab
               {outputTab === 'health' ? (
+                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+              ) : null}
+            </CommandItem>
+            <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                closeThen(() => onOutputTabChange('alerts'));
+              }}
+              value="tab alert templates"
+            >
+              Alerts tab
+              {outputTab === 'alerts' ? (
                 <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>

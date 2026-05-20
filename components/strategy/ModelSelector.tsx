@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useUserPlan } from '@/context/UserPlanContext';
 import { DEFAULT_MODEL, GrokModel, GROK_MODELS } from '@/lib/config/constants';
 import { cn } from '@/lib/utils';
+import { terminalActiveInset } from '@/lib/ui/terminal-texture';
 import {
   Tooltip,
   TooltipContent,
@@ -36,12 +37,12 @@ export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
 
   return (
     <div className="space-y-2">
-      <p id={modelLabelId} className="text-xs text-zinc-400">
+      <p id={modelLabelId} className="pf-label-muted">
         Model
       </p>
       <TooltipProvider>
         <div 
-          className="flex rounded-lg border border-zinc-800/70 bg-zinc-950/60 p-1"
+          className="pf-model-track flex rounded-lg p-1"
           role="radiogroup"
           aria-labelledby={modelLabelId}
         >
@@ -67,10 +68,10 @@ export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
                       isFirst && 'rounded-l-md',
                       isLast && 'rounded-r-md',
                       isSelected &&
-                        'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/50 ring-inset',
+                        cn('ring-1 ring-emerald-500/50 ring-inset', terminalActiveInset),
                       !isSelected &&
                         !isLocked &&
-                        'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200',
+                        'pf-model-option',
                       !isSelected &&
                         isRecommended &&
                         !isLocked &&

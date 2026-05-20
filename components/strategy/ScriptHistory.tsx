@@ -15,6 +15,7 @@ import {
 import { useScriptHistory } from '@/hooks/useScriptHistory';
 import type { SavedScript } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { terminalActivePressed } from '@/lib/ui/terminal-texture';
 
 type ScriptHistoryProps = {
   onLoad: (entry: SavedScript) => void;
@@ -65,7 +66,10 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
           type="button"
           variant="outline"
           size="sm"
-          className="border-zinc-700/70 bg-zinc-950/50 text-zinc-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300 focus-visible:ring-emerald-400/30"
+          className={cn(
+            'pf-nav-muted border-zinc-700/70 focus-visible:ring-emerald-400/30 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300',
+            open && terminalActivePressed,
+          )}
           aria-label="Open script history"
         >
           <Clock className="h-3.5 w-3.5" />
@@ -76,20 +80,20 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
         side="left"
         showCloseButton
         className={cn(
-          'w-full border-zinc-800 bg-zinc-950 p-0 text-white sm:max-w-[min(100vw,20rem)]',
-          'data-[side=left]:w-full data-[side=left]:sm:w-80'
+          'pf-history-sheet w-full p-0 sm:max-w-[min(100vw,20rem)]',
+          'data-[side=left]:w-full data-[side=left]:sm:w-80',
         )}
       >
-        <SheetHeader className="border-b border-zinc-800/70 p-4 text-left sm:p-6">
-          <SheetTitle className="text-lg text-zinc-100">Script history</SheetTitle>
-          <SheetDescription className="text-zinc-400">
+        <SheetHeader className="border-b border-zinc-200 p-4 text-left sm:p-6 dark:border-zinc-800/70">
+          <SheetTitle className="pf-heading text-lg">Script history</SheetTitle>
+          <SheetDescription className="pf-muted">
             Saved on this device. Up to 50 scripts, oldest removed when full.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col overflow-hidden">
           {entries.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-6">
+            <p className="pf-muted px-4 py-8 text-center text-sm sm:px-6">
               No saved scripts yet. Generate your first one.
             </p>
           ) : (
@@ -97,7 +101,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
               {entries.map((entry) => (
                 <li
                   key={entry.id}
-                  className="mb-2 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-3 last:mb-0"
+                  className="pf-history-entry mb-2 rounded-xl p-3 last:mb-0"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -113,7 +117,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                               setEditName('');
                             }
                           }}
-                          className="h-8 border-zinc-700 bg-zinc-950 text-sm text-white focus-visible:ring-emerald-400/30"
+                          className="pf-input h-8 text-sm"
                           autoFocus
                           aria-label="Script name"
                         />
@@ -121,18 +125,18 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                         <button
                           type="button"
                           onClick={() => startRename(entry)}
-                          className="w-full truncate text-left text-sm font-medium text-zinc-100 hover:text-emerald-300"
+                          className="pf-history-entry-title w-full truncate text-left text-sm font-medium"
                         >
                           {entry.name}
                         </button>
                       )}
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                      <div className="pf-muted mt-1 flex flex-wrap items-center gap-2 text-xs">
                         <time dateTime={entry.createdAt}>{formatSavedAt(entry.createdAt)}</time>
-                        <span className="rounded border border-zinc-700/80 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                        <span className="rounded border border-zinc-300 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 dark:border-zinc-700/80 dark:text-zinc-400">
                           v{entry.version}
                         </span>
                       </div>
-                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-zinc-500">
+                      <p className="pf-muted mt-2 line-clamp-2 text-xs leading-relaxed">
                         {previewPrompt(entry.prompt)}
                       </p>
                     </div>
@@ -142,7 +146,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 border border-zinc-800 text-zinc-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      className="pf-history-action h-8"
                       onClick={() => {
                         onLoad(entry);
                         onOpenChange(false);
@@ -156,7 +160,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                      className="pf-history-action-muted h-8"
                       onClick={() => startRename(entry)}
                       aria-label={`Rename ${entry.name}`}
                     >
@@ -167,7 +171,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 border border-rose-500/20 text-rose-300 hover:bg-rose-500/10"
+                      className="h-8 border border-rose-500/20 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300"
                       onClick={() => deleteEntry(entry.id)}
                       aria-label={`Delete ${entry.name}`}
                     >

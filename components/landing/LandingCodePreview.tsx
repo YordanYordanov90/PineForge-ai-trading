@@ -20,15 +20,15 @@ export function LandingCodePreview() {
     <section className="relative z-10 mx-auto mb-20 max-w-5xl sm:mb-32 lg:mb-40">
       <RevealOnScroll>
         <div className="mb-8 text-center sm:mb-10">
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="font-heading text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
             Production-ready output
           </h2>
-          <p className="mt-2 text-sm text-zinc-400 sm:mt-3 sm:text-base">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 sm:mt-3 sm:text-base">
             Copy-paste into TradingView. Clean, validated, ready to trade.
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/80 shadow-lg shadow-emerald-950/20 backdrop-blur-md transition-shadow duration-500 hover:shadow-emerald-900/25 sm:rounded-2xl">
+        <div className="pf-terminal-window relative overflow-hidden rounded-xl backdrop-blur-md transition-shadow duration-500 hover:shadow-xl dark:hover:shadow-emerald-900/25 sm:rounded-2xl">
           <div className="flex items-center gap-2 border-b border-zinc-800/50 bg-zinc-900/60 px-3 py-2.5 sm:px-5 sm:py-3">
             <div className="flex gap-1.5">
               <div className="size-2 rounded-full bg-zinc-700 sm:size-2.5" />

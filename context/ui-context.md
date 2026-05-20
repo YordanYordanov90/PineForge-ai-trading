@@ -7,10 +7,17 @@ Use `lib/brand.ts` (`PRODUCT_NAME`, `brandLogoParts()`) in nav, metadata, and he
 
 ## Theme
 
-Dark only. No light mode in Phase 1–3 (Phase 3 adds optional toggle via
-next-themes). The design language is a dark trading terminal — zinc-950 base,
-layered zinc-900 surfaces with backdrop blur, and emerald as the single accent
-color for all interactive and highlight elements.
+**Default:** dark trading terminal (`next-themes`, `storageKey="pineforge-theme"`).
+**Toggle:** `ModeToggle` on landing, `/generate`, and auth — diagonal TL→BR wipe
+(`lib/theme/theme-transition.ts`); `prefers-reduced-motion` skips animation.
+
+**Light mode (phased):** shell utilities `.pf-page`, `.pf-nav`, etc. in
+`globals.css` cover page backgrounds and nav. Generator cards, output terminal
+chrome, and landing hero sections may still use dark-terminal zinc until a
+follow-up pass (`context/features/15-theme-toggle.md`).
+
+Design language: zinc surfaces + emerald accent in both modes; shadcn
+`:root` / `.dark` CSS variables in `globals.css`.
 
 ## Colors
 

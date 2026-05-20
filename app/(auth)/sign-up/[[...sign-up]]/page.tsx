@@ -1,7 +1,6 @@
-import { SignUp } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { AuthFormShell } from "@/components/auth/AuthFormShell";
-import { clerkAppearance } from "@/lib/auth/clerk-appearance";
+import { ThemedClerkSignUp } from "@/components/auth/ThemedClerkSignUp";
 
 export const metadata: Metadata = {
   title: "Sign up",
@@ -11,11 +10,7 @@ export const metadata: Metadata = {
 export default function SignUpPage() {
   return (
     <AuthFormShell headline="Create your account and start shipping clean Pine strategies in minutes.">
-      <SignUp
-        appearance={clerkAppearance}
-        forceRedirectUrl="/generate"
-        signInForceRedirectUrl="/generate"
-      />
+      <ThemedClerkSignUp />
     </AuthFormShell>
   );
 }

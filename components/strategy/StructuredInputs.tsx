@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { DEFAULT_RR_RATIO } from '@/lib/config/constants';
+import { terminalActivePill } from '@/lib/ui/terminal-texture';
+import { cn } from '@/lib/utils';
 
 export type StructuredInputsValue = {
   market?: string;
@@ -40,7 +42,7 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+        className="pf-label-muted flex items-center gap-1.5 transition-colors hover:text-zinc-800 dark:hover:text-zinc-200"
       >
         <ChevronDown
           className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -49,15 +51,15 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
       </button>
 
       {isOpen && (
-        <div className="space-y-4 rounded-xl border border-zinc-800/70 bg-zinc-950/60 p-4 animate-fade-in">
+        <div className="pf-panel space-y-4 rounded-xl p-4 animate-fade-in">
           <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Timeframe</label>
+            <label className="pf-label-muted">Timeframe</label>
             <select
               value={value.timeframe ?? ''}
               onChange={(e) =>
                 onChange({ ...value, timeframe: e.target.value || undefined })
               }
-              className="w-full rounded-lg border border-zinc-700/70 bg-zinc-950/60 px-3 py-2 text-sm text-white focus-visible:ring-emerald-400/30"
+              className="pf-input w-full rounded-lg px-3 py-2 text-sm"
             >
               <option value="">Any</option>
               {TIMEFRAMES.map((tf) => (
@@ -69,13 +71,13 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Market</label>
+            <label className="pf-label-muted">Market</label>
             <select
               value={value.market ?? ''}
               onChange={(e) =>
                 onChange({ ...value, market: e.target.value || undefined })
               }
-              className="w-full rounded-lg border border-zinc-700/70 bg-zinc-950/60 px-3 py-2 text-sm text-white focus-visible:ring-emerald-400/30"
+              className="pf-input w-full rounded-lg px-3 py-2 text-sm"
             >
               <option value="">Any</option>
               {MARKETS.map((m) => (
@@ -87,13 +89,13 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Direction</label>
+            <label className="pf-label-muted">Direction</label>
             <select
               value={value.direction ?? ''}
               onChange={(e) =>
                 onChange({ ...value, direction: e.target.value || undefined })
               }
-              className="w-full rounded-lg border border-zinc-700/70 bg-zinc-950/60 px-3 py-2 text-sm text-white focus-visible:ring-emerald-400/30"
+              className="pf-input w-full rounded-lg px-3 py-2 text-sm"
             >
               <option value="">Any</option>
               {DIRECTIONS.map((d) => (
@@ -105,7 +107,7 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Indicators</label>
+            <label className="pf-label-muted">Indicators</label>
             <div className="flex flex-wrap gap-2">
               {INDICATORS.map((ind) => {
                 const isActive = value.indicators?.includes(ind);
@@ -114,11 +116,12 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
                     key={ind}
                     type="button"
                     onClick={() => toggleIndicator(ind)}
-                    className={
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs transition-colors',
                       isActive
-                        ? 'rounded-full border border-emerald-500/70 bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300 transition-colors'
-                        : 'rounded-full border border-zinc-700/70 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-300 transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300'
-                    }
+                        ? terminalActivePill
+                        : 'pf-pill',
+                    )}
                   >
                     {ind}
                   </button>
@@ -129,8 +132,8 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-zinc-400">Risk-Reward Ratio</label>
-              <span className="text-xs text-zinc-300 tabular-nums">
+              <label className="pf-label-muted">Risk-Reward Ratio</label>
+              <span className="pf-muted text-xs tabular-nums">
                 {value.rr ?? defaultRrString}:1
               </span>
             </div>

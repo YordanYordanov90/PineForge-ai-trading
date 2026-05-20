@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, MessageSquareText } from 'lucide-react';
+import { pfRefineHeading, pfRefinePanel } from '@/lib/ui/terminal-texture';
 import { cn } from '@/lib/utils';
 
 const MAX_INSTRUCTION = 1000;
@@ -15,6 +16,9 @@ export type RefineChatProps = {
   onRefine: (instruction: string) => Promise<void>;
   /** Increment after a successful refine to clear the input. */
   resetKey?: number;
+  /** Prefill from Health Score next steps; bump nonce to apply. */
+  prefillInstruction?: string;
+  prefillNonce?: number;
 };
 
 export function RefineChat({
@@ -22,12 +26,30 @@ export function RefineChat({
   busy,
   onRefine,
   resetKey = 0,
+  prefillInstruction = '',
+  prefillNonce = 0,
 }: RefineChatProps) {
   const [instruction, setInstruction] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setInstruction('');
   }, [resetKey]);
+
+  useEffect(() => {
+    if (!prefillNonce || !prefillInstruction.trim()) return;
+    const trimmed = prefillInstruction.trim().slice(0, MAX_INSTRUCTION);
+    setInstruction(trimmed);
+    window.setTimeout(() => {
+      const el = document.getElementById('refine-instruction');
+      if (el instanceof HTMLTextAreaElement) {
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      }
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 0);
+  }, [prefillNonce, prefillInstruction]);
 
   const len = instruction.length;
   const canSubmit =
@@ -44,21 +66,27 @@ export function RefineChat({
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-800/70 bg-zinc-950/40 p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-200">
-        <MessageSquareText className="h-4 w-4 text-emerald-500/80" aria-hidden />
+    <div
+      ref={containerRef}
+      id="refine-chat"
+      className={cn('scroll-mt-4', pfRefinePanel)}
+    >
+      <div className={cn('mb-3 flex items-center gap-2', pfRefineHeading)}>
+        <MessageSquareText className="h-4 w-4 text-emerald-600 dark:text-emerald-500/80" aria-hidden />
         Refine this script with PineForge
       </div>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="refine-instruction" className="text-zinc-400">
+            <Label htmlFor="refine-instruction" className="pf-label-muted">
               What should change?
             </Label>
             <span
               className={cn(
                 'text-xs tabular-nums',
-                len > MAX_INSTRUCTION ? 'text-rose-400' : 'text-zinc-500',
+                len > MAX_INSTRUCTION
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-zinc-600 dark:text-zinc-500',
               )}
               aria-live="polite"
             >
@@ -72,7 +100,7 @@ export function RefineChat({
             onChange={(e) => setInstruction(e.target.value.slice(0, MAX_INSTRUCTION))}
             rows={3}
             disabled={disabled || busy}
-            className="resize-none border-zinc-700/70 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:ring-emerald-400/30"
+            className="pf-input resize-none focus-visible:ring-emerald-400/30"
             aria-invalid={len > MAX_INSTRUCTION}
           />
         </div>

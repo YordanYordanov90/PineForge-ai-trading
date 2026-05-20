@@ -1,7 +1,6 @@
-import { SignIn } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { AuthFormShell } from "@/components/auth/AuthFormShell";
-import { clerkAppearance } from "@/lib/auth/clerk-appearance";
+import { ThemedClerkSignIn } from "@/components/auth/ThemedClerkSignIn";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -11,11 +10,7 @@ export const metadata: Metadata = {
 export default function SignInPage() {
   return (
     <AuthFormShell headline="Sign in to start generating production-ready Pine Script strategies.">
-      <SignIn
-        appearance={clerkAppearance}
-        forceRedirectUrl="/generate"
-        signUpForceRedirectUrl="/generate"
-      />
+      <ThemedClerkSignIn />
     </AuthFormShell>
   );
 }
