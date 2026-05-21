@@ -75,3 +75,35 @@ export const scripts = pgTable('scripts', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+```
+
+## Data Contracts
+
+### Pinned / Starred Scripts (spec `36`)
+
+- **Source of truth**: `scripts.is_starred` (boolean, default `false`) on the
+  existing `scripts` table. No migration is required — the column has shipped
+  with `0000_mute_rattler.sql` since the Phase 4 schema was generated.
+- **Client model**: `SavedScript.isStarred: boolean` (always present, defaults
+  to `false`). Exposed by `rowToSavedScript()` in `lib/db/script-mapper.ts`,
+  validated on the wire by `savedScriptSchema` in `hooks/useScriptHistory.ts`
+  (legacy localStorage entries without the field are parsed as `isStarred: false`).
+- **Per-user**: ownership is already enforced by `scripts.user_id`; star state
+  inherits per-user scope for free.
+- **Per-row** (not per-lineage): every refinement is its own row with its own
+  star state. The future UI (spec `39`) decides whether to surface starred
+  rows as a group or filter, but the persistence shape is row-level.
+- **Mutation**: this contract is **read-only here**. Toggling lives in the
+  dedicated `PATCH /api/scripts/[scriptId]/star` route (spec `37`), which must
+  bump `updated_at` and return the full `SavedScript` payload.
+- **Eviction rule**: signed-in history is sourced from Neon (not the
+  50-entry localStorage FIFO), so starred scripts are not at risk of being
+  evicted by client-side history limits.
+- **History query (spec `38`)**: `GET /api/scripts` uses
+  `listScriptsForUser()` — up to 50 rows by `created_at` desc, unioned with
+  any older `is_starred = true` rows, deduped and re-sorted by recency (order
+  unchanged for the main list). Each item includes `isStarred` via
+  `rowToSavedScript()`. Signed-in client cache uses `capScriptHistory()` so
+  optimistic adds keep all starred entries while trimming only unstarred
+  beyond 50. `partitionScriptsByStarred()` in `lib/scripts/history-list.ts`
+  is available for spec `39` UI grouping.

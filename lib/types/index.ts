@@ -17,6 +17,13 @@ export type SavedScript = {
   direction?: string;
   indicators?: string[];
   rr?: string;
+  /**
+   * Canonical pinned/starred flag. Persisted column: `scripts.is_starred`.
+   * Always exposed as a boolean to clients (defaults to `false` for legacy
+   * entries that predate Phase 5 starred scripts). Toggled via the dedicated
+   * `PATCH /api/scripts/[scriptId]/star` route (spec 37).
+   */
+  isStarred: boolean;
 };
 
 export type GenerationStats = {

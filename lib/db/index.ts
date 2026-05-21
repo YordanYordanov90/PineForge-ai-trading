@@ -11,3 +11,4 @@ export {
   parseAccountBalance,
   formatAccountBalance,
 } from './script-mapper';
+export { listScriptsForUser } from './list-user-scripts';

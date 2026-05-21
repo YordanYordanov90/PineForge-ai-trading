@@ -22,9 +22,7 @@ export async function POST(req: Request) {
   const body: unknown = await req.json().catch(() => null);
   const parsed = backtestSummaryRequestSchema.safeParse(body);
 
-// In any file inside app/api/ for the maximum signal
-const API_KEY = "FAKE-TEST-do-not-use-123454324267890";
-process.env.XAI_API_KEY = "FAKE-TEST-grokfake-abcvdsvsdefg";
+
 
   if (!parsed.success) {
     return Response.json(
