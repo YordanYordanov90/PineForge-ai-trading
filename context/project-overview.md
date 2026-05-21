@@ -85,6 +85,10 @@ These features will be implemented in Phase 5, after the auth + database foundat
 - **Strategy Collections / Folders** — Group scripts into named collections ("BTC Strategies", "Testing", "Live Trading"). Requires user accounts.
 - **Export to Notion / Obsidian** — One-click export of the Breakdown tab as clean Markdown file (with metadata). Serious traders who journal their strategies will love this.
 
+Implementation planning for the medium-value set is intentionally split into
+small feature specs under `context/features/` so schema/data reuse, routes,
+state, and UI can ship in narrow units.
+
 ## Scope
 
 ### In Scope
@@ -111,4 +115,3 @@ These features will be implemented in Phase 5, after the auth + database foundat
 4. Average generations per user per week above 8
 5. D7 retention above 40%
 6. Users describing the tool as "professional" and "time-saving"
-

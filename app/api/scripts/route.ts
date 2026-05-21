@@ -1,8 +1,12 @@
-import { desc, eq } from 'drizzle-orm';
 import { scripts } from '@/drizzle/schema';
-import { db, ensureDbUserForClerkId, getDbUserIdByClerk, rowToSavedScript } from '@/lib/db';
+import {
+  db,
+  ensureDbUserForClerkId,
+  getDbUserIdByClerk,
+  listScriptsForUser,
+  rowToSavedScript,
+} from '@/lib/db';
 import { requireClerkSession } from '@/lib/auth/require-clerk-session';
-import { MAX_HISTORY_ENTRIES } from '@/lib/config/constants';
 import { createScriptSchema } from '@/lib/api/validation';
 
 export async function GET() {
@@ -14,12 +18,7 @@ export async function GET() {
     return Response.json({ scripts: [] });
   }
 
-  const rows = await db
-    .select()
-    .from(scripts)
-    .where(eq(scripts.userId, userId))
-    .orderBy(desc(scripts.createdAt))
-    .limit(MAX_HISTORY_ENTRIES);
+  const rows = await listScriptsForUser(userId);
 
   return Response.json({ scripts: rows.map(rowToSavedScript) });
 }

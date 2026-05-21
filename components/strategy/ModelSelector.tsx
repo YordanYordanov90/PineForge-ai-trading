@@ -2,7 +2,7 @@
 
 import { Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUserPlan } from '@/context/UserPlanContext';
+import { useUserPlan } from '@/lib/providers/UserPlanContext';
 import { DEFAULT_MODEL, GrokModel, GROK_MODELS } from '@/lib/config/constants';
 import { cn } from '@/lib/utils';
 import { terminalActiveInset } from '@/lib/ui/terminal-texture';

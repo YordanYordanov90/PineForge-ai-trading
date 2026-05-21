@@ -85,6 +85,10 @@ export const renameScriptSchema = z.object({
   title: z.string().min(1).max(200),
 });
 
+export const starScriptSchema = z.object({
+  isStarred: z.boolean(),
+});
+
 const healthScoreBulletSchema = z
   .array(z.string().min(1).max(500))
   .min(2)

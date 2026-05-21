@@ -27,7 +27,7 @@ import {
 import type { SavedScript } from '@/lib/types';
 import { usePromptImprover } from '@/hooks/usePromptImprover';
 import { useScriptGeneration } from '@/hooks/useScriptGeneration';
-import { useUserPlan } from '@/context/UserPlanContext';
+import { useUserPlan } from '@/lib/providers/UserPlanContext';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';

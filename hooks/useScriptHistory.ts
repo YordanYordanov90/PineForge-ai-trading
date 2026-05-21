@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { MAX_HISTORY_ENTRIES } from '@/lib/config/constants';
 import { savedScriptToCreatePayload } from '@/lib/db/script-mapper';
+import { capScriptHistory } from '@/lib/scripts/history-list';
 import type { GrokModelId, SavedScript } from '@/lib/types';
 
 export const STORAGE_KEY = 'pineforge:history';
@@ -56,6 +57,7 @@ const savedScriptSchema = z.object({
   direction: z.string().optional(),
   indicators: z.array(z.string()).optional(),
   rr: z.string().optional(),
+  isStarred: z.boolean().default(false),
 });
 
 const savedScriptArraySchema = z.array(savedScriptSchema);
@@ -272,6 +274,7 @@ export function buildSavedScriptFromGeneration(params: {
     direction: params.direction,
     indicators: params.indicators,
     rr: params.rr,
+    isStarred: false,
   };
 }
 
@@ -304,6 +307,7 @@ export function buildSavedScriptFromRefinement(params: {
     direction: params.direction,
     indicators: params.indicators,
     rr: params.rr,
+    isStarred: false,
   };
 }
 
@@ -389,7 +393,7 @@ export function useScriptHistory() {
         try {
           const created = await postApiScript(entry);
           setApiEntries((prev) =>
-            [created, ...prev].slice(0, MAX_HISTORY_ENTRIES),
+            capScriptHistory([created, ...prev.filter((e) => e.id !== created.id)]),
           );
           return created;
         } catch {
@@ -469,5 +473,39 @@ export function useScriptHistory() {
     [useApi],
   );
 
-  return { entries, addEntry, renameEntry, deleteEntry };
+  const toggleStarEntry = useCallback(
+    async (id: string, isStarred: boolean): Promise<void> => {
+      if (useApi) {
+        try {
+          const res = await fetch(`/api/scripts/${id}/star`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isStarred }),
+          });
+          if (!res.ok) {
+            throw new Error('Star toggle failed');
+          }
+          const data: unknown = await res.json();
+          const parsed = z.object({ script: savedScriptSchema }).safeParse(data);
+          if (!parsed.success) {
+            throw new Error('Invalid star toggle response');
+          }
+          const updated = parsed.data.script;
+          setApiEntries((prev) =>
+            capScriptHistory(prev.map((e) => (e.id === id ? updated : e))),
+          );
+        } catch {
+          toast.error('Could not update pinned state');
+        }
+        return;
+      }
+
+      const current = readLocalHistory();
+      const next = current.map((e) => (e.id === id ? { ...e, isStarred } : e));
+      writeLocalHistory(capScriptHistory(next));
+    },
+    [useApi],
+  );
+
+  return { entries, addEntry, renameEntry, deleteEntry, toggleStarEntry };
 }

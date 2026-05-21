@@ -72,7 +72,7 @@ weighted quotas and audit logs (Fix 3, 7 — deferred).
 **Client model entitlement UX (Fix 2 UI):**
 Free users see all models in `ModelSelector`; Balanced and Maximum Quality show a lock,
 are dimmed, and show a Sonner toast on click (no selection change). Plan is fetched
-server-side on `/generate` and provided via [`context/UserPlanContext.tsx`](context/UserPlanContext.tsx)
+server-side on `/generate` and provided via [`lib/providers/UserPlanContext.tsx`](../lib/providers/UserPlanContext.tsx)
 (no prop drilling). History load clamps premium models to Fast for free users.
 Daily quota (3 shared AI actions/24h) remains enforced by Upstash; generate shows
 inline limit message + `/pricing` CTA; other routes use toast with API text.
@@ -108,11 +108,10 @@ database foundations in place.
 
 ## Current Goal
 
-**Strategy Backtesting Summary Generator** shipped end-to-end (`31`–`35`).
-Phase 5 high-value features (TradingView Copy & Open, Health Score, Alert
-Templates, Backtest Summary) are all complete. Next: pick from Phase 5
-medium-value features or address deferred Phase 4 hardening from
-`context/fixes.md` (weighted quotas, audit logs).
+**Pinned / Starred Scripts** (`36`–`39`) is complete. Next: Phase 5 medium-value
+sequence continues with tags (`40`–`43`) or deferred Phase 4 hardening
+(`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs) remains
+optional and can run in parallel.
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -144,7 +143,7 @@ medium-value features or address deferred Phase 4 hardening from
 - Client: 403/409 toasts on refine; 403/409 on generate; explain 409/429
 
 **Done (client model entitlement UI):**
-- `context/UserPlanContext.tsx` — `UserPlanProvider` + `useUserPlan()` for `/generate` subtree
+- `lib/providers/UserPlanContext.tsx` — `UserPlanProvider` + `useUserPlan()` for `/generate` subtree
 - `app/generate/page.tsx` — async RSC loads `users.plan` from Neon; passes `initialPlan`
 - `ModelSelector` — lock icon, dimmed Pro-only models, toast on click; tooltips note Pro-only
 - `StrategyForm.loadSavedScript` — clamps saved premium model to `DEFAULT_MODEL` for free users
@@ -163,7 +162,7 @@ medium-value features or address deferred Phase 4 hardening from
 - Strategy Backtesting Summary Generator — complete (`31` schemas, `32` prompt + Markdown helper, `33` backend route, `34` hook, `35` UI)
 
 **Medium Value (better with user accounts + DB):**
-- Pinned / Starred Scripts (survives 50-entry limit, per-user)
+- Pinned / Starred Scripts — complete (`36`–`39`)
 - Strategy Tags + Search (filterable history)
 - Strategy Collections / Folders ("BTC Strategies", "Testing", "Live Trading")
 - Export to Notion / Obsidian (Breakdown tab as clean Markdown)
@@ -207,17 +206,33 @@ medium-value features or address deferred Phase 4 hardening from
 - `33-backtesting-summary-backend-route.md` — `POST /api/backtesting-summary` at `app/api/backtesting-summary/route.ts`: `protectAiRoute` → `backtestSummaryRequestSchema.safeParse` → `resolveModelForPlan` → `responseIfMissingXaiApiKey` → `generateObject` against loose `backtestSummaryLlmResultSchema` (system: `BACKTEST_SUMMARY_SYSTEM`, prompt: `buildBacktestSummaryUserPrompt`, `temperature: 0.2`, `maxOutputTokens: BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS`, `abortSignal: guard.ctx.req.signal`) → `assembleBacktestSummaryMarkdown(object.sections)` → strict `backtestSummaryResultSchema.safeParse` → sanitized `{ success, data, error }`; `BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS = 1200` added to `lib/config/constants.ts`; dev-only `console.warn` on strict-validate / generate failures; `npm run build` passes (route registered as `ƒ /api/backtesting-summary`) ✅
 - `34-backtesting-summary-state-hook.md` — `hooks/useBacktestSummary.ts`: `useBacktestSummary(resetKey)` returns `{ phase, result, errorMessage, run, isLoading }` matching `useHealthScore` / `useAlertTemplates` exactly; `phase: 'empty' | 'loading' | 'success' | 'error'`; `BacktestSummaryRunInput` accepts `{ prompt, script, model, balance, structuredInputs }`; `run()` POSTs to `/api/backtesting-summary` with trimmed prompt/script, balance fallback to `null`, and structured-input fields; sanitized error fallbacks for 403 (Pro plan) / 429 (rate limit) / generic via `messageFromApiErrorJson`; `inFlightRef` blocks concurrent runs; resetKey effect clears phase/result/error on generate, refine, history load ✅
 - `35-backtesting-summary-ui.md` — `Backtest` output tab on `/generate` between Health and Alerts (only when a script exists). `BacktestSummaryPanel` renders structured sections (not the raw `markdown` blob): title heading + 5 bulleted sections with semantic icons — `Clock` Recommended Timeframes, `TrendingUp` Recommended Markets, `LineChart` What To Check In The Equity Curve, `AlertTriangle` Common Failure Modes (amber tint), `ListChecks` Backtesting Plan. Empty state shows a `FlaskConical` glyph + concise copy + `Generate Backtesting Summary` primary action; loading state shows spinner + status copy with `role="status" aria-live="polite" aria-busy="true"`; error state shows sanitized message + Retry, `role="alert"`; success ends with a Run-again button. `backtestSummaryResetKey` added in `StrategyForm` and bumped alongside `healthScoreResetKey` / `alertTemplatesResetKey` on generate / refine / history-load so stale summaries clear when the active script changes. `OutputTab` union, `onValueChange` discriminator, and `TerminalOutputChrome` `TAB_PATH` updated (`output://backtest.md`); off-tab bounce effect mirrors Health/Alerts. No command-palette additions (spec § Scope Limits). `npm run build` passes ✅
+- `36-starred-scripts-data-contract.md` — confirmed `scripts.is_starred` (Drizzle column shipped in `0000_mute_rattler.sql`) is the canonical persisted field; no migration required. Added required `isStarred: boolean` to `SavedScript` (`lib/types/index.ts`); `rowToSavedScript()` now maps `row.isStarred ?? false`; `savedScriptSchema` in `hooks/useScriptHistory.ts` adds `isStarred: z.boolean().default(false)` so legacy localStorage entries parse cleanly; `buildSavedScriptFromGeneration` / `buildSavedScriptFromRefinement` set `isStarred: false`. Contract is read-only at this step — mutation route lives in spec `37` (`PATCH /api/scripts/[scriptId]/star`), history query behaviour lives in spec `38`, UI lives in spec `39`. Documented in `context/architecture.md` § Data Contracts. `npm run build` passes ✅
+- `37-starred-scripts-mutation-route.md` — `PATCH /api/scripts/[scriptId]/star` at `app/api/scripts/[scriptId]/star/route.ts`: `requireClerkSession` → `starScriptSchema` (`{ isStarred: boolean }`) → ownership check on `scripts.user_id` → update `is_starred` + `updated_at` → `{ script: rowToSavedScript(updated) }` with persisted `isStarred`. Invalid id → 400; missing user → 404; non-owner → 403; sanitized JSON errors only. No UI, search, or collections/tags in this route. `npm run build` passes ✅
+- `38-starred-scripts-history-query.md` — `GET /api/scripts` now uses `listScriptsForUser()` (`lib/db/list-user-scripts.ts`): recent 50 by `created_at` desc merged with any older starred rows, deduped and re-sorted by recency (no forced starred-first sort). `rowToSavedScript()` continues to expose `isStarred` on every item; `useScriptHistory` validates via `savedScriptSchema` and signed-in `addEntry` uses `capScriptHistory()` so starred entries are never trimmed from the in-memory API cache. `partitionScriptsByStarred()` added in `lib/scripts/history-list.ts` for spec `39` UI. No UI changes in this step. `npm run build` passes ✅
+- `39-starred-scripts-ui.md` — `ScriptHistory`: icon star toggle per entry (`Star` with `fill-current` + `aria-pressed` when pinned); amber border/background on pinned rows; compact **Pinned** section via `partitionScriptsByStarred()` when any starred exist; sheet copy reflects account vs device storage. `useScriptHistory.toggleStarEntry()` — signed-in `PATCH /api/scripts/[id]/star` with optimistic cache update via `capScriptHistory()`; signed-out toggles `isStarred` in localStorage. Rename/delete/load unchanged; no full-page reload. `npm run build` passes ✅
 
 ## In Progress
-
-- _(none — Strategy Backtesting Summary feature complete)_
+- `40-tags-data-contract.md` — tags storage and normalization spec drafted
+- `41-tags-mutation-route.md` — tags mutation route spec drafted
+- `42-history-search-route.md` — signed-in history search route spec drafted
+- `43-tags-search-ui.md` — tags + search UI spec drafted
+- `44-collections-data-contract.md` — collections storage contract drafted
+- `45-collections-crud-route.md` — collections CRUD route spec drafted
+- `46-script-collection-assignment-route.md` — script-to-collection assignment route spec drafted
+- `47-collections-ui.md` — collections UI spec drafted
+- `48-export-breakdown-source-contract.md` — export source contract drafted
+- `49-export-markdown-serializer.md` — export markdown serializer spec drafted
+- `50-export-actions-ui.md` — export UI spec drafted
 
 ## Next Up
 
 - Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
-- Remaining Phase 5 medium-value features (Pinned Scripts, Tags + Search,
-  Collections, Notion/Obsidian export)
+- Phase 5 medium-value implementation sequence:
+  1. `36`–`39` Pinned / Starred Scripts
+  2. `40`–`43` Tags + Search
+  3. `44`–`47` Collections
+  4. `48`–`50` Notion / Obsidian export
 
 ## Open Questions
 
@@ -290,6 +305,10 @@ medium-value features or address deferred Phase 4 hardening from
   (not the raw `markdown` blob) so the `markdown` field stays available for
   future copy/download without dictating the default reading experience;
   `backtestSummaryResetKey` clears state on generate, refine, history load.
+- **Phase 5 medium-value foundation**: the required persistence columns and
+  table already exist in Drizzle (`scripts.isStarred`, `scripts.tags`,
+  `scripts.collectionId`, `collections`). Medium-feature planning should reuse
+  these first and only introduce migrations if a live-schema audit finds drift.
 
 ## Session Notes
 

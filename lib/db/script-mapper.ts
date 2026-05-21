@@ -45,6 +45,7 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
     direction: meta.direction,
     indicators: meta.indicators,
     rr: meta.rr,
+    isStarred: row.isStarred ?? false,
   };
 }
 

@@ -6,7 +6,7 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { useClerkAppearance } from '@/hooks/useClerkAppearance';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
-import { UserPlanProvider } from '@/context/UserPlanContext';
+import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
 import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
 
