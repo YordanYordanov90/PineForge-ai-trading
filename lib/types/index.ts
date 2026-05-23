@@ -61,3 +61,16 @@ export type GenerationStats = {
   durationMs: number;
   estimatedTokens: number;
 };
+
+/**
+ * Forge Agent contracts (spec 52). Re-exported here so consumers can keep
+ * importing from `@/lib/types` without reaching into `@/lib/types/agent`.
+ */
+export type {
+  AgentMessage,
+  AgentMessageRole,
+  AgentToolCall,
+  AgentToolResult,
+  AgentUserProfile,
+  SavedConversation,
+} from './agent';

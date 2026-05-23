@@ -130,6 +130,12 @@ type StrategyOutputCardProps = {
   exportTitle?: string;
   /** ISO createdAt when loaded from history; omitted for fresh drafts. */
   exportCreatedAt?: string | null;
+  /**
+   * DB id of the currently-loaded script lineage root, when the user
+   * is signed in and the script has been persisted. Surfaces the
+   * "Discuss with Forge" entry point in the action bar (spec 57).
+   */
+  forgeScriptId?: number | null;
 };
 
 export function StrategyOutputCard({
@@ -177,6 +183,7 @@ export function StrategyOutputCard({
   refinePrefillNonce,
   exportTitle,
   exportCreatedAt = null,
+  forgeScriptId = null,
 }: StrategyOutputCardProps) {
   const [successPulse, setSuccessPulse] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
@@ -337,6 +344,7 @@ export function StrategyOutputCard({
                 onOpenInTradingView={onOpenInTradingView}
                 onToggleWebhookPanel={onToggleWebhookPanel}
                 onToggleExportPanel={() => setExportPanelOpen((open) => !open)}
+                forgeScriptId={forgeScriptId}
               />
             )}
           </div>

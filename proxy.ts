@@ -11,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/api(.*)",
 ]);
 
-const isProtectedRoute = createRouteMatcher(["/generate(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/generate(.*)", "/forge(.*)"]);
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req) || !isPublicRoute(req)) {

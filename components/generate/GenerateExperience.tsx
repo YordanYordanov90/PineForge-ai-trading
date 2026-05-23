@@ -2,6 +2,8 @@
 
 import { useAuth, UserButton } from '@clerk/nextjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useClerkAppearance } from '@/hooks/useClerkAppearance';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
@@ -66,6 +68,22 @@ export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3 sm:pt-1">
+            {isLoaded && isSignedIn ? (
+              <Link
+                href="/forge"
+                className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-1.5 text-xs font-medium text-emerald-700 backdrop-blur-sm transition-all hover:border-emerald-500/50 hover:bg-emerald-500/15 dark:text-emerald-300"
+                aria-label="Open Forge agent"
+              >
+                <Sparkles className="size-3.5" aria-hidden />
+                Forge
+                <span
+                  aria-hidden
+                  className="ml-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300"
+                >
+                  New
+                </span>
+              </Link>
+            ) : null}
             <ModeToggle />
             <ScriptHistory
               onLoad={handleLoad}

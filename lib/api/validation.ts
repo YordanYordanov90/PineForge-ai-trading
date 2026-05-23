@@ -111,6 +111,55 @@ export const setScriptCollectionSchema = z.object({
 });
 
 /**
+ * Request body for `POST /api/forge/conversations` (spec 54). When
+ * `scriptId` is supplied, the route loads the script and verifies it
+ * belongs to the caller before attaching it as initial context. Omitted
+ * or `null` means a fresh conversation with no seed script.
+ */
+export const createConversationSchema = z.object({
+  scriptId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional()
+    .describe('Optional script ID to attach as initial context'),
+});
+
+/**
+ * Request body for `PATCH /api/forge/conversations/[conversationId]`
+ * (spec 54). v1 only allows renaming the conversation; message body
+ * mutations happen exclusively via the streaming endpoint (spec 55).
+ */
+export const updateConversationSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+});
+
+/**
+ * Request body for `POST /api/forge` (spec 55). Conversations are
+ * append-only via this endpoint — `conversationId` is required (the
+ * thread is created up-front via `POST /api/forge/conversations`),
+ * and `message` is the new user turn. Trim happens before length
+ * validation so a whitespace-only message is rejected at 400 rather
+ * than padded into the LLM context.
+ */
+export const forgeMessageSchema = z.object({
+  conversationId: z
+    .number()
+    .int()
+    .positive()
+    .describe('The conversation thread to continue'),
+  message: z
+    .string()
+    .trim()
+    .min(1, 'Message cannot be empty')
+    .max(4000, 'Message exceeds 4000 character limit')
+    .describe('The user message'),
+});
+
+export type ForgeMessageRequest = z.infer<typeof forgeMessageSchema>;
+
+/**
  * Request body for `POST /api/collections` (spec 45). Shape is validated
  * with {@link collectionNameInputSchema} (min/max length); the route
  * still passes `name` through `normalizeCollectionName()` before the

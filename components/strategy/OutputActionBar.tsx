@@ -1,6 +1,15 @@
 'use client';
 
-import { Check, Copy, Download, ExternalLink, FileText, Webhook } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  FileText,
+  Sparkles,
+  Webhook,
+} from 'lucide-react';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -21,6 +30,15 @@ type OutputActionBarProps = {
   onOpenInTradingView: () => void;
   onToggleWebhookPanel: () => void;
   onToggleExportPanel: () => void;
+  /**
+   * DB id of the currently-loaded script. When set, render a
+   * "Discuss with Forge" entry point that navigates to
+   * `/forge?scriptId=<id>` so the Forge Agent loads this script as
+   * initial context (spec 57 § Entry Points → "Discuss with Forge").
+   * Hidden when the script hasn't been saved yet (no id) or the
+   * user is signed-out / mid-stream — same gating spec defines.
+   */
+  forgeScriptId?: number | null;
 };
 
 export function OutputActionBar({
@@ -34,12 +52,16 @@ export function OutputActionBar({
   onOpenInTradingView,
   onToggleWebhookPanel,
   onToggleExportPanel,
+  forgeScriptId,
 }: OutputActionBarProps) {
   const canUseActions = Boolean(generatedScript.trim()) && !isOutputBusy;
 
   if (!canUseActions) {
     return null;
   }
+
+  const canDiscussWithForge =
+    typeof forgeScriptId === 'number' && Number.isFinite(forgeScriptId);
 
   return (
     <TooltipProvider>
@@ -48,6 +70,23 @@ export function OutputActionBar({
         role="toolbar"
         aria-label="Export actions"
       >
+        {canDiscussWithForge ? (
+          <ActionTooltip label="Open this script in the Forge Agent">
+            <Button
+              asChild
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.08] px-2.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200"
+              aria-label="Discuss this script with Forge"
+            >
+              <Link href={`/forge?scriptId=${forgeScriptId}`}>
+                <Sparkles className="size-3.5" aria-hidden />
+                Discuss with Forge
+              </Link>
+            </Button>
+          </ActionTooltip>
+        ) : null}
         <ActionTooltip label="Copy script to clipboard">
           <Button
             type="button"
