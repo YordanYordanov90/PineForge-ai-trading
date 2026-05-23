@@ -1,6 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { generateSchema } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest } from '@/lib/api/envelope';
 import { jsonApiError, protectAiRoute } from '@/lib/api/protected-ai-route';
 import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { DEFAULT_MODEL } from '@/lib/config/constants';
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues }, { status: 400 });
+    return apiInvalidRequest();
   }
 
   const entitlement = resolveModelForPlan(guard.ctx.plan, parsed.data.model);
@@ -77,9 +78,6 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch {
     await lock.release();
-    return Response.json(
-      { error: 'Failed to generate script. Please try again.' },
-      { status: 500 },
-    );
+    return apiError('Failed to generate script. Please try again.', 500);
   }
 }

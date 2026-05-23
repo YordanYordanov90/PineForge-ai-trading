@@ -1,5 +1,15 @@
 import { createHighlighter, type Highlighter, type ThemeRegistration } from 'shiki';
 
+/**
+ * Pine Script v5 has no first-party shiki grammar. JavaScript is the closest
+ * bundled language — it handles `//` line comments, function calls, numbers,
+ * strings, and the broad keyword shape well enough for the emerald-on-near-black
+ * read experience. A custom TextMate grammar would be more accurate for Pine
+ * keywords (e.g. `var`, `varip`, `series`, `ta.*`, `strategy.*`) but is
+ * deferred until the grammar maintenance cost is justified.
+ */
+const PINE_SHIKI_LANG = 'javascript';
+
 const EMERALD_DARK_THEME: ThemeRegistration = {
   name: 'emerald-dark',
   type: 'dark',
@@ -33,7 +43,7 @@ async function getHighlighter(): Promise<Highlighter> {
   if (!highlighterPromise) {
     highlighterPromise = createHighlighter({
       themes: [EMERALD_DARK_THEME],
-      langs: ['javascript'],
+      langs: [PINE_SHIKI_LANG],
     });
   }
   return highlighterPromise;
@@ -42,7 +52,7 @@ async function getHighlighter(): Promise<Highlighter> {
 export async function highlightPineScript(code: string): Promise<string> {
   const highlighter = await getHighlighter();
   return highlighter.codeToHtml(code, {
-    lang: 'javascript',
+    lang: PINE_SHIKI_LANG,
     theme: 'emerald-dark',
   });
 }

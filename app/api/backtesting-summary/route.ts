@@ -5,6 +5,7 @@ import {
   backtestSummaryRequestSchema,
   backtestSummaryResultSchema,
 } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
 import { protectAiRoute } from '@/lib/api/protected-ai-route';
 import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import {
@@ -25,18 +26,12 @@ export async function POST(req: Request) {
 
 
   if (!parsed.success) {
-    return Response.json(
-      { success: false, data: null, error: 'Invalid request.' },
-      { status: 400 },
-    );
+    return apiInvalidRequest();
   }
 
   const entitlement = resolveModelForPlan(guard.ctx.plan, parsed.data.model);
   if (!entitlement.ok) {
-    return Response.json(
-      { success: false, data: null, error: entitlement.message },
-      { status: 403 },
-    );
+    return apiError(entitlement.message, 403);
   }
 
   const missingKey = responseIfMissingXaiApiKey();
@@ -69,32 +64,17 @@ export async function POST(req: Request) {
           issues: validated.error.issues,
         });
       }
-      return Response.json(
-        {
-          success: false,
-          data: null,
-          error: 'Backtesting summary could not be validated. Please try again.',
-        },
-        { status: 502 },
+      return apiError(
+        'Backtesting summary could not be validated. Please try again.',
+        502,
       );
     }
 
-    return Response.json({
-      success: true,
-      data: validated.data,
-      error: null,
-    });
+    return apiSuccess(validated.data);
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[backtesting-summary] generateObject failed', error);
     }
-    return Response.json(
-      {
-        success: false,
-        data: null,
-        error: 'Failed to generate backtesting summary. Please try again.',
-      },
-      { status: 500 },
-    );
+    return apiError('Failed to generate backtesting summary. Please try again.', 500);
   }
 }

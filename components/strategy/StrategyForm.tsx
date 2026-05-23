@@ -1,42 +1,15 @@
 'use client';
 
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { toast } from 'sonner';
-import { validateScript } from '@/components/strategy/ScriptOutput';
-import type { ValidationResult } from '@/components/strategy/ScriptOutput';
-import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
-import {
-  MAX_PROMPT_LENGTH,
-  DEFAULT_MODEL,
-  GROK_MODELS,
-} from '@/lib/config/constants';
-import type { GrokModel } from '@/lib/config/constants';
-import {
-  buildSavedScriptFromGeneration,
-  buildSavedScriptFromRefinement,
-  useScriptHistory,
-} from '@/hooks/useScriptHistory';
-import type { SavedScript } from '@/lib/types';
-import { usePromptImprover } from '@/hooks/usePromptImprover';
-import { useScriptGeneration } from '@/hooks/useScriptGeneration';
-import { useUserPlan } from '@/lib/providers/UserPlanContext';
+import { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
-import { StrategyOutputCard, type OutputTab } from '@/components/strategy/StrategyOutputCard';
-import { getPreviousVersionScript } from '@/lib/scripts/lineage';
-import { copyAndOpenTradingView } from '@/lib/scripts/tradingview';
-
-const MODEL_IDS = new Set<GrokModel['id']>(GROK_MODELS.map((m) => m.id));
-
-type LineageState = { rootId: string; lastVersion: number };
+import { StrategyOutputCard } from '@/components/strategy/StrategyOutputCard';
+import { useScriptHistory } from '@/hooks/useScriptHistory';
+import { useStrategyFormInputs } from '@/hooks/strategy/useStrategyFormInputs';
+import { useStrategyGenerationSession } from '@/hooks/strategy/useStrategyGenerationSession';
+import { useStrategyLineageSync } from '@/hooks/strategy/useStrategyLineageSync';
+import { useUserPlan } from '@/lib/providers/UserPlanContext';
+import type { SavedScript } from '@/lib/types';
 
 export type StrategyFormHandle = {
   loadSavedScript: (entry: SavedScript) => void;
@@ -48,530 +21,132 @@ export type StrategyFormProps = {
 
 export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
   function StrategyForm({ onRequestOpenHistory }, ref) {
-  const plan = useUserPlan();
-  const { entries, addEntry } = useScriptHistory();
-  const [strategy, setStrategy] = useState('');
-  const [balance, setBalance] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GrokModel['id']>(DEFAULT_MODEL);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [structuredInputs, setStructuredInputs] = useState<StructuredInputsValue>({});
-  const [refineResetKey, setRefineResetKey] = useState(0);
-  const [refinePrefillInstruction, setRefinePrefillInstruction] = useState('');
-  const [refinePrefillNonce, setRefinePrefillNonce] = useState(0);
-  const [historyLineageReady, setHistoryLineageReady] = useState(false);
-  const [outputTab, setOutputTab] = useState<OutputTab>('script');
-  const [explainCancelKey, setExplainCancelKey] = useState(0);
-  const [healthScoreResetKey, setHealthScoreResetKey] = useState(0);
-  const [backtestSummaryResetKey, setBacktestSummaryResetKey] = useState(0);
-  const [alertTemplatesResetKey, setAlertTemplatesResetKey] = useState(0);
-  const [webhookPanelOpen, setWebhookPanelOpen] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [commandOpen, setCommandOpen] = useState(false);
-  const outputRef = useRef<HTMLDivElement>(null);
-  const lineageRef = useRef<LineageState | null>(null);
-  const [lineageState, setLineageState] = useState<LineageState | null>(null);
-  /** Last AI-settled script (generate / refine / load); Compare vs manual edits uses this. */
-  const [scriptCompareBaseline, setScriptCompareBaseline] = useState<string | null>(null);
-  const sessionHistoryNameRef = useRef('');
-
-  const { isImproving, handleImprovePrompt } = usePromptImprover({
-    onSuccess: setStrategy,
-  });
-
-  const {
-    generatedScript,
-    setGeneratedScript,
-    generationError,
-    isGenerating,
-    isRefining,
-    isOutputBusy,
-    setGenStartTime,
-    genElapsed,
-    setGenElapsed,
-    stop,
-    generate,
-    refine,
-  } = useScriptGeneration({
-    onChunk: () => {
-      requestAnimationFrame(() => {
-        const el = outputRef.current?.querySelector('pre, textarea');
-        if (el) el.scrollTop = el.scrollHeight;
-      });
-    },
-    onGenerationComplete: (finalScript, payload) => {
-      void (async () => {
-        const entry = buildSavedScriptFromGeneration({
-          prompt: payload.prompt,
-          balance: payload.balance,
-          script: finalScript,
-          model: payload.model,
-          market: payload.structuredInputs.market,
-          timeframe: payload.structuredInputs.timeframe,
-          direction: payload.structuredInputs.direction,
-          indicators: payload.structuredInputs.indicators,
-          rr: payload.structuredInputs.rr,
-        });
-        const saved = await addEntry(entry);
-        setScriptCompareBaseline(finalScript);
-        if (!saved) {
-          return;
-        }
-        const nextLineage: LineageState = { rootId: saved.id, lastVersion: 1 };
-        lineageRef.current = nextLineage;
-        setLineageState(nextLineage);
-        sessionHistoryNameRef.current = saved.name;
-        setHistoryLineageReady(true);
-      })();
-    },
-    onRefineComplete: (finalScript) => {
-      const lineage = lineageRef.current;
-      if (!lineage) return;
-      const nextVersion = lineage.lastVersion + 1;
-      void (async () => {
-        const saved = await addEntry(
-          buildSavedScriptFromRefinement({
-            name: sessionHistoryNameRef.current,
-            prompt: strategy,
-            balance,
-            script: finalScript,
-            model: selectedModel,
-            version: nextVersion,
-            parentId: lineage.rootId,
-            market: structuredInputs.market,
-            timeframe: structuredInputs.timeframe,
-            direction: structuredInputs.direction,
-            indicators: structuredInputs.indicators,
-            rr: structuredInputs.rr,
-          }),
-        );
-        if (!saved) {
-          return;
-        }
-        const nextLineage: LineageState = {
-          rootId: lineage.rootId,
-          lastVersion: nextVersion,
-        };
-        lineageRef.current = nextLineage;
-        setLineageState(nextLineage);
-        setScriptCompareBaseline(finalScript);
-        setRefineResetKey((k) => k + 1);
-      })();
-    },
-  });
-
-  useImperativeHandle(ref, () => ({
-    loadSavedScript(entry: SavedScript) {
-      setStrategy(entry.prompt);
-      setBalance(entry.balance);
-      let model =
-        entry.model && MODEL_IDS.has(entry.model) ? entry.model : DEFAULT_MODEL;
-      if (plan !== 'pro' && model !== DEFAULT_MODEL) {
-        model = DEFAULT_MODEL;
-      }
-      setSelectedModel(model);
-      setStructuredInputs({
-        market: entry.market,
-        timeframe: entry.timeframe,
-        direction: entry.direction,
-        indicators: entry.indicators,
-        rr: entry.rr,
-      });
-      setGeneratedScript(entry.script);
-      setActivePreset(null);
-      setCopied(false);
-      setGenElapsed(null);
-      setGenStartTime(null);
-      const nextLineage: LineageState = {
-        rootId: entry.parentId ?? entry.id,
-        lastVersion: entry.version,
-      };
-      lineageRef.current = nextLineage;
-      setLineageState(nextLineage);
-      sessionHistoryNameRef.current = entry.name;
-      setHistoryLineageReady(true);
-      setScriptCompareBaseline(entry.script);
-      setOutputTab('script');
-      setExplainCancelKey((k) => k + 1);
-      setHealthScoreResetKey((k) => k + 1);
-      setBacktestSummaryResetKey((k) => k + 1);
-      setAlertTemplatesResetKey((k) => k + 1);
-    },
-  }), [plan]);
-
-  const canGenerate =
-    Boolean(strategy.trim()) &&
-    Boolean(balance.trim()) &&
-    !isOutputBusy &&
-    strategy.length <= MAX_PROMPT_LENGTH;
-
-  const canImprove = useMemo(
-    () => Boolean(strategy.trim()) && !isOutputBusy && !isImproving,
-    [strategy, isOutputBusy, isImproving],
-  );
-
-  const validationResult: ValidationResult | null = useMemo(
-    () => (!isOutputBusy && generatedScript ? validateScript(generatedScript) : null),
-    [isOutputBusy, generatedScript],
-  );
-
-  const comparePreviousScript = useMemo(() => {
-    if (!lineageState || lineageState.lastVersion < 2) return null;
-    return getPreviousVersionScript(
+    const plan = useUserPlan();
+    const { entries, addEntry } = useScriptHistory();
+    const inputs = useStrategyFormInputs();
+    const lineage = useStrategyLineageSync();
+    const session = useStrategyGenerationSession({
+      inputs,
+      lineage,
       entries,
-      lineageState.rootId,
-      lineageState.lastVersion,
+      addEntry,
+    });
+
+    const loadSavedScript = useCallback(
+      (entry: SavedScript) => {
+        lineage.applyLoadedScript(entry, plan, {
+          setStrategy: inputs.setStrategy,
+          setBalance: inputs.setBalance,
+          setSelectedModel: inputs.setSelectedModel,
+          setStructuredInputs: inputs.setStructuredInputs,
+          setGeneratedScript: session.setGeneratedScript,
+          setActivePreset: inputs.setActivePreset,
+          setCopied: session.setCopied,
+          setGenElapsed: session.setGenElapsed,
+          setGenStartTime: session.setGenStartTime,
+          resetPanelKeys: session.resetPanelKeys,
+          setOutputTab: session.setOutputTab,
+        });
+      },
+      [lineage, plan, inputs, session],
     );
-  }, [entries, lineageState]);
 
-  const lineageCompareAvailable = useMemo(
-    () =>
-      Boolean(
-        historyLineageReady &&
-          lineageState &&
-          lineageState.lastVersion >= 2 &&
-          comparePreviousScript != null,
-      ),
-    [historyLineageReady, lineageState, comparePreviousScript],
-  );
+    useImperativeHandle(ref, () => ({ loadSavedScript }), [loadSavedScript]);
 
-  const hasManualEdits = useMemo(
-    () =>
-      Boolean(
-        scriptCompareBaseline !== null && generatedScript !== scriptCompareBaseline,
-      ),
-    [scriptCompareBaseline, generatedScript],
-  );
+    const { compare } = session;
 
-  const compareAvailable = useMemo(
-    () =>
-      Boolean(
-        !isOutputBusy &&
-          historyLineageReady &&
-          generatedScript.trim() &&
-          (lineageCompareAvailable || hasManualEdits),
-      ),
-    [
-      isOutputBusy,
-      historyLineageReady,
-      generatedScript,
-      lineageCompareAvailable,
-      hasManualEdits,
-    ],
-  );
+    return (
+      <>
+        <GeneratorCommandMenu
+          open={session.commandOpen}
+          onOpenChange={session.setCommandOpen}
+          canGenerate={session.canGenerate}
+          onGenerate={() => void session.handleGenerate()}
+          canImprove={session.canImprove}
+          onImprovePrompt={inputs.onImprovePrompt}
+          onOpenHistory={() => onRequestOpenHistory?.()}
+          hasScript={Boolean(session.generatedScript.trim())}
+          isOutputBusy={session.isOutputBusy}
+          compareAvailable={compare.compareAvailable}
+          onCopy={session.handleCopy}
+          onDownload={session.handleDownload}
+          onOpenInTradingView={session.handleOpenInTradingView}
+          onStop={session.stop}
+          outputTab={session.outputTab}
+          onOutputTabChange={session.setOutputTab}
+        />
 
-  const compareBeforeScript = useMemo(() => {
-    if (hasManualEdits && scriptCompareBaseline !== null) return scriptCompareBaseline;
-    if (lineageCompareAvailable && comparePreviousScript != null) return comparePreviousScript;
-    return '';
-  }, [
-    hasManualEdits,
-    scriptCompareBaseline,
-    lineageCompareAvailable,
-    comparePreviousScript,
-  ]);
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
+          <StrategyInputsCard
+            strategy={inputs.strategy}
+            onStrategyChange={inputs.handleStrategyChange}
+            balance={inputs.balance}
+            onBalanceChange={inputs.setBalance}
+            activePreset={inputs.activePreset}
+            onPresetSelect={inputs.handlePresetSelect}
+            selectedModel={inputs.selectedModel}
+            onModelChange={inputs.setSelectedModel}
+            structuredInputs={inputs.structuredInputs}
+            onStructuredInputsChange={inputs.setStructuredInputs}
+            canGenerate={session.canGenerate}
+            isGenerating={session.isGenerating}
+            isOutputBusy={session.isOutputBusy}
+            isImproving={inputs.isImproving}
+            onGenerate={() => void session.handleGenerate()}
+            onImprovePrompt={inputs.onImprovePrompt}
+          />
 
-  const compareBeforeLabel = hasManualEdits
-    ? 'Last generated output'
-    : `v${(lineageState?.lastVersion ?? 1) - 1} (previous)`;
-
-  const compareAfterLabel = hasManualEdits
-    ? 'Current (edited)'
-    : `v${lineageState?.lastVersion ?? 1} (current)`;
-
-  const compareEmptyHint = useMemo(() => {
-    if (!historyLineageReady) {
-      return 'Generate or load a script from History to use Compare.';
-    }
-    if (!generatedScript.trim()) {
-      return 'Generate a script first.';
-    }
-    if (lineageState && lineageState.lastVersion >= 2 && comparePreviousScript == null) {
-      return 'The previous version is not in Script History anymore (older entries may be dropped).';
-    }
-    return 'Edit the Pine Script in the Script tab, or refine once, to enable Compare.';
-  }, [
-    historyLineageReady,
-    generatedScript,
-    lineageState,
-    comparePreviousScript,
-  ]);
-
-  const handleGeneratedScriptChange = useCallback((value: string) => {
-    setGeneratedScript(value);
-  }, [setGeneratedScript]);
-
-  useEffect(() => {
-    if (outputTab !== 'compare' || compareAvailable) return;
-    queueMicrotask(() => {
-      setOutputTab('script');
-    });
-  }, [outputTab, compareAvailable]);
-
-  useEffect(() => {
-    if (outputTab !== 'health' || generatedScript.trim()) return;
-    queueMicrotask(() => {
-      setOutputTab('script');
-    });
-  }, [outputTab, generatedScript]);
-
-  useEffect(() => {
-    if (outputTab !== 'alerts' || generatedScript.trim()) return;
-    queueMicrotask(() => {
-      setOutputTab('script');
-    });
-  }, [outputTab, generatedScript]);
-
-  useEffect(() => {
-    if (outputTab !== 'backtest' || generatedScript.trim()) return;
-    queueMicrotask(() => {
-      setOutputTab('script');
-    });
-  }, [outputTab, generatedScript]);
-
-  const handlePresetSelect = (prompt: string, presetId: string) => {
-    setStrategy(prompt);
-    setActivePreset(presetId);
-  };
-
-  const handleStrategyChange = useCallback((value: string) => {
-    setStrategy(value);
-    setActivePreset(null);
-  }, []);
-
-  const handleSuggestionClick = useCallback((prompt: string) => {
-    setStrategy(prompt);
-    setActivePreset(null);
-    window.setTimeout(() => {
-      const el = document.getElementById('strategy');
-      if (!(el instanceof HTMLTextAreaElement)) return;
-      el.focus();
-      const end = el.value.length;
-      el.setSelectionRange(end, end);
-    }, 0);
-  }, []);
-
-  const handlePrefillRefine = useCallback((instruction: string) => {
-    setRefinePrefillInstruction(instruction);
-    setRefinePrefillNonce((n) => n + 1);
-  }, []);
-
-  const handleGenerate = useCallback(async () => {
-    if (!canGenerate) return;
-    setOutputTab('script');
-    setExplainCancelKey((k) => k + 1);
-    setHealthScoreResetKey((k) => k + 1);
-    setBacktestSummaryResetKey((k) => k + 1);
-    setAlertTemplatesResetKey((k) => k + 1);
-    setHistoryLineageReady(false);
-    lineageRef.current = null;
-    setLineageState(null);
-    setScriptCompareBaseline(null);
-    setActivePreset(null);
-    setWebhookPanelOpen(false);
-    await generate({
-      prompt: strategy,
-      balance,
-      model: selectedModel,
-      structuredInputs,
-    });
-  }, [canGenerate, strategy, balance, selectedModel, structuredInputs, generate]);
-
-  const handleRefine = useCallback(
-    async (instruction: string) => {
-      const lineage = lineageRef.current;
-      if (!lineage) {
-        toast.error('Could not link refinement. Generate or load a script from History.');
-        return;
-      }
-      const previousScript = generatedScript;
-      if (!previousScript.trim()) return;
-
-      setOutputTab('script');
-      setExplainCancelKey((k) => k + 1);
-      setHealthScoreResetKey((k) => k + 1);
-      setBacktestSummaryResetKey((k) => k + 1);
-      setAlertTemplatesResetKey((k) => k + 1);
-      setWebhookPanelOpen(false);
-      await refine({
-        script: previousScript,
-        instruction,
-        model: selectedModel,
-      });
-    },
-    [generatedScript, selectedModel, refine],
-  );
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedScript);
-      setCopied(true);
-      toast.success('Copied to clipboard.');
-      setTimeout(() => setCopied(false), 1400);
-    } catch {
-      toast.error('Copy failed. Please copy manually from the output.');
-    }
-  };
-
-  const handleDownload = () => {
-    const blob = new Blob([generatedScript], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `strategy-${Date.now()}.pine`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Script downloaded.');
-  };
-
-  const handleOpenInTradingView = useCallback(() => {
-    void copyAndOpenTradingView(generatedScript).then(() => {
-      toast.success('Script copied — paste it in Pine Editor');
-    });
-  }, [generatedScript]);
-
-  const onImprovePrompt = useCallback(() => {
-    void handleImprovePrompt(strategy, structuredInputs);
-  }, [handleImprovePrompt, strategy, structuredInputs]);
-
-  const handleGenerateRef = useRef(handleGenerate);
-  const handleOpenInTradingViewRef = useRef(handleOpenInTradingView);
-  const commandOpenRef = useRef(commandOpen);
-  const generatedScriptRef = useRef(generatedScript);
-  const isOutputBusyRef = useRef(isOutputBusy);
-
-  useEffect(() => {
-    handleGenerateRef.current = handleGenerate;
-    handleOpenInTradingViewRef.current = handleOpenInTradingView;
-    commandOpenRef.current = commandOpen;
-    generatedScriptRef.current = generatedScript;
-    isOutputBusyRef.current = isOutputBusy;
-  });
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setCommandOpen((open) => !open);
-        return;
-      }
-      if (mod && e.key === 'Enter') {
-        if (commandOpenRef.current) return;
-        e.preventDefault();
-        void handleGenerateRef.current();
-        return;
-      }
-      if (mod && e.key.toLowerCase() === 't') {
-        const target = e.target as HTMLElement;
-        const isTyping =
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'INPUT' ||
-          target.isContentEditable;
-        if (isTyping) return;
-
-        e.preventDefault();
-        const script = generatedScriptRef.current;
-        if (script.trim() && !isOutputBusyRef.current) {
-          handleOpenInTradingViewRef.current();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  const isStreaming = isOutputBusy && Boolean(generatedScript);
-  const isIdle = !isOutputBusy && !generatedScript;
-
-  return (
-    <>
-      <GeneratorCommandMenu
-        open={commandOpen}
-        onOpenChange={setCommandOpen}
-        canGenerate={canGenerate}
-        onGenerate={() => void handleGenerate()}
-        canImprove={canImprove}
-        onImprovePrompt={onImprovePrompt}
-        onOpenHistory={() => onRequestOpenHistory?.()}
-        hasScript={Boolean(generatedScript.trim())}
-        isOutputBusy={isOutputBusy}
-        compareAvailable={compareAvailable}
-        onCopy={handleCopy}
-        onDownload={handleDownload}
-        onOpenInTradingView={handleOpenInTradingView}
-        onStop={stop}
-        outputTab={outputTab}
-        onOutputTabChange={setOutputTab}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
-        <StrategyInputsCard
-        strategy={strategy}
-        onStrategyChange={handleStrategyChange}
-        balance={balance}
-        onBalanceChange={setBalance}
-        activePreset={activePreset}
-        onPresetSelect={handlePresetSelect}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        structuredInputs={structuredInputs}
-        onStructuredInputsChange={setStructuredInputs}
-        canGenerate={canGenerate}
-        isGenerating={isGenerating}
-        isOutputBusy={isOutputBusy}
-        isImproving={isImproving}
-        onGenerate={() => void handleGenerate()}
-        onImprovePrompt={onImprovePrompt}
-      />
-
-      <StrategyOutputCard
-        outputRef={outputRef}
-        validationResult={validationResult}
-        isOutputBusy={isOutputBusy}
-        genElapsed={genElapsed}
-        generatedScript={generatedScript}
-        generationError={generationError}
-        webhookPanelOpen={webhookPanelOpen}
-        onToggleWebhookPanel={() => setWebhookPanelOpen((open) => !open)}
-        onStop={stop}
-        onDownload={handleDownload}
-        onCopy={handleCopy}
-        onOpenInTradingView={handleOpenInTradingView}
-        copied={copied}
-        webhookUrl={webhookUrl}
-        onWebhookUrlChange={setWebhookUrl}
-        outputTab={outputTab}
-        onOutputTabChange={setOutputTab}
-        isStreaming={isStreaming}
-        isIdle={isIdle}
-        explainCancelKey={explainCancelKey}
-        healthScoreResetKey={healthScoreResetKey}
-        backtestSummaryResetKey={backtestSummaryResetKey}
-        alertTemplatesResetKey={alertTemplatesResetKey}
-        strategyPrompt={strategy}
-        accountBalance={balance}
-        selectedModel={selectedModel}
-        structuredInputs={structuredInputs}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        historyLineageReady={historyLineageReady}
-        onRefine={handleRefine}
-        refineResetKey={refineResetKey}
-        compareAvailable={compareAvailable}
-        compareBeforeScript={compareBeforeScript}
-        compareBeforeLabel={compareBeforeLabel}
-        compareAfterLabel={compareAfterLabel}
-        compareEmptyHint={compareEmptyHint}
-        onGeneratedScriptChange={handleGeneratedScriptChange}
-        onSuggestionClick={handleSuggestionClick}
-        onPrefillRefine={handlePrefillRefine}
-        refinePrefillInstruction={refinePrefillInstruction}
-        refinePrefillNonce={refinePrefillNonce}
-      />
-      </div>
-    </>
-  );
+          <StrategyOutputCard
+            outputRef={session.outputRef}
+            validationResult={session.validationResult}
+            isOutputBusy={session.isOutputBusy}
+            genElapsed={session.genElapsed}
+            generatedScript={session.generatedScript}
+            generationError={session.generationError}
+            webhookPanelOpen={session.webhookPanelOpen}
+            onToggleWebhookPanel={() =>
+              session.setWebhookPanelOpen((open) => !open)
+            }
+            onStop={session.stop}
+            onDownload={session.handleDownload}
+            onCopy={session.handleCopy}
+            onOpenInTradingView={session.handleOpenInTradingView}
+            copied={session.copied}
+            webhookUrl={session.webhookUrl}
+            onWebhookUrlChange={session.setWebhookUrl}
+            outputTab={session.outputTab}
+            onOutputTabChange={session.setOutputTab}
+            isStreaming={session.isStreaming}
+            isIdle={session.isIdle}
+            explainCancelKey={session.explainCancelKey}
+            healthScoreResetKey={session.healthScoreResetKey}
+            backtestSummaryResetKey={session.backtestSummaryResetKey}
+            alertTemplatesResetKey={session.alertTemplatesResetKey}
+            strategyPrompt={inputs.strategy}
+            accountBalance={inputs.balance}
+            selectedModel={inputs.selectedModel}
+            structuredInputs={inputs.structuredInputs}
+            isGenerating={session.isGenerating}
+            isRefining={session.isRefining}
+            historyLineageReady={lineage.historyLineageReady}
+            onRefine={session.handleRefine}
+            refineResetKey={session.refineResetKey}
+            compareAvailable={compare.compareAvailable}
+            compareBeforeScript={compare.compareBeforeScript}
+            compareBeforeLabel={compare.compareBeforeLabel}
+            compareAfterLabel={compare.compareAfterLabel}
+            compareEmptyHint={compare.compareEmptyHint}
+            onGeneratedScriptChange={session.handleGeneratedScriptChange}
+            onSuggestionClick={inputs.handleSuggestionClick}
+            onPrefillRefine={session.handlePrefillRefine}
+            refinePrefillInstruction={session.refinePrefillInstruction}
+            refinePrefillNonce={session.refinePrefillNonce}
+            exportTitle={lineage.exportTitle}
+            exportCreatedAt={lineage.exportCreatedAt}
+          />
+        </div>
+      </>
+    );
   },
 );
 

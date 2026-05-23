@@ -8,10 +8,15 @@ import {
   ipRatelimit,
   freeUserRatelimit,
   proUserRatelimit,
+  dataUserRatelimit,
 } from '@/lib/rate-limit/upstash';
 
 export type RateLimitResult =
   | { allowed: true; plan: string }
+  | { allowed: false; reason: string; retryAfter?: number };
+
+export type DataRateLimitResult =
+  | { allowed: true }
   | { allowed: false; reason: string; retryAfter?: number };
 
 function clientIp(forwarded: string | null): string {
@@ -53,4 +58,25 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
   }
 
   return { allowed: true, plan };
+}
+
+/**
+ * Per-user limit for non-AI data routes. Plan-agnostic (data operations
+ * aren't a paid feature). Skips the IP limiter — data routes already
+ * require an authenticated Clerk session.
+ */
+export async function checkDataRateLimit(
+  userId: string,
+): Promise<DataRateLimitResult> {
+  const result = await dataUserRatelimit.limit(userId);
+
+  if (!result.success) {
+    return {
+      allowed: false,
+      reason: 'Too many requests. Please slow down and try again.',
+      retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+    };
+  }
+
+  return { allowed: true };
 }

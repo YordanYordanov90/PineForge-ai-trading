@@ -4,6 +4,12 @@ import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
+import { parseApiSuccessEnvelope } from '@/lib/api/parse-envelope';
+import { z } from 'zod';
+
+const improvePromptDataSchema = z.object({
+  improvedPrompt: z.string(),
+});
 
 type UsePromptImproverOptions = {
   onSuccess: (improvedPrompt: string) => void;
@@ -42,12 +48,13 @@ export function usePromptImprover(options: UsePromptImproverOptions) {
         }
 
         const data: unknown = await res.json();
-        if (typeof data === 'object' && data && 'improvedPrompt' in data) {
-          options.onSuccess((data as { improvedPrompt: string }).improvedPrompt.slice(0, 1500));
-          toast.success('Prompt improved!');
+        const parsed = parseApiSuccessEnvelope(data, improvePromptDataSchema);
+        if (!parsed) {
+          toast.error('Unexpected response. Please try again.');
           return;
         }
-        toast.error('Unexpected response. Please try again.');
+        options.onSuccess(parsed.improvedPrompt.slice(0, 1500));
+        toast.success('Prompt improved!');
       } catch {
         toast.error('Something went wrong. Please try again.');
       } finally {

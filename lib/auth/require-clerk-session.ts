@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { apiError } from "@/lib/api/envelope";
 
 export type ClerkSessionOk = { ok: true; userId: string };
 export type ClerkSessionDenied = {
@@ -16,7 +17,7 @@ export async function requireClerkSession(): Promise<
   if (userId == null || userId === "") {
     return {
       ok: false,
-      response: Response.json({ error: "Unauthorized" }, { status: 401 }),
+      response: apiError("Unauthorized", 401),
     };
   }
   return { ok: true, userId };

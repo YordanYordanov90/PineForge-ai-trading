@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { collectionNameInputSchema } from '@/lib/collections/collections';
+import { tagsInputSchema } from '@/lib/scripts/tags';
 
 const grokModelEnum = z.enum([
   'grok-4-1-fast-reasoning',
@@ -87,6 +89,68 @@ export const renameScriptSchema = z.object({
 
 export const starScriptSchema = z.object({
   isStarred: z.boolean(),
+});
+
+/**
+ * Request body for `PATCH /api/scripts/[scriptId]/tags` (spec 41). Shape
+ * is validated with {@link tagsInputSchema} (per-tag length + array
+ * length); the route still passes `tags` through `normalizeTags()` before
+ * persistence — Zod cannot dedupe / lower-case for us.
+ */
+export const setScriptTagsSchema = z.object({
+  tags: tagsInputSchema,
+});
+
+/**
+ * Request body for `PATCH /api/scripts/[scriptId]/collection` (spec 46).
+ * `null` clears the assignment; a positive integer assigns the script to
+ * one of the caller's collections (ownership verified server-side).
+ */
+export const setScriptCollectionSchema = z.object({
+  collectionId: z.number().int().positive().nullable(),
+});
+
+/**
+ * Request body for `POST /api/collections` (spec 45). Shape is validated
+ * with {@link collectionNameInputSchema} (min/max length); the route
+ * still passes `name` through `normalizeCollectionName()` before the
+ * duplicate check so leading/trailing whitespace doesn't reach the DB
+ * and the dup check works on the canonical value.
+ */
+export const createCollectionSchema = z.object({
+  name: collectionNameInputSchema,
+});
+
+/**
+ * Request body for `PATCH /api/collections/[collectionId]` (spec 45).
+ * Same shape as create; kept as a separate export so future fields
+ * (e.g. color, description) can diverge without affecting create.
+ */
+export const renameCollectionSchema = z.object({
+  name: collectionNameInputSchema,
+});
+
+/**
+ * Query-param guard for `GET /api/scripts/search` (spec 42). All fields are
+ * optional. The route still:
+ * - splits comma-separated `tag` entries and runs them through
+ *   `normalizeTags()` from `lib/scripts/tags.ts`
+ * - coerces `starred` from `'true' | 'false'` to a boolean
+ * - parses `collectionId` to a positive integer
+ *
+ * Caps `q` at 200 chars, individual `tag` entries at 256 chars (allowing
+ * comma-separated bundles), and the repeated `tag` array at 50 entries to
+ * cap URL length / DoS surface. Final tag list is still clamped to
+ * `MAX_TAGS_PER_SCRIPT` by `normalizeTags()`.
+ */
+export const searchScriptsQuerySchema = z.object({
+  q: z.string().trim().max(200, 'Search query too long').optional(),
+  tag: z.array(z.string().max(256, 'Tag query value too long')).max(50).default([]),
+  starred: z.enum(['true', 'false']).optional(),
+  collectionId: z
+    .string()
+    .regex(/^\d+$/, 'collectionId must be a positive integer')
+    .optional(),
 });
 
 const healthScoreBulletSchema = z

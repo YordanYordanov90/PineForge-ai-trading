@@ -24,6 +24,37 @@ export type SavedScript = {
    * `PATCH /api/scripts/[scriptId]/star` route (spec 37).
    */
   isStarred: boolean;
+  /**
+   * Canonical user-defined tag list. Persisted column: `scripts.tags`
+   * (jsonb `string[]`, default `[]`). Always exposed as a normalized
+   * lower-cased array (defaults to `[]` for legacy entries that predate
+   * Phase 5 tags). Normalization + length rules live in
+   * `lib/scripts/tags.ts`; mutations land via the dedicated route in
+   * spec 41 (`PATCH /api/scripts/[scriptId]/tags`).
+   */
+  tags: string[];
+  /**
+   * Optional foreign key to the user's collection. Persisted column:
+   * `scripts.collection_id` (`integer references collections(id)`,
+   * nullable). Always exposed as `number | null` (defaults to `null` for
+   * legacy entries that predate Phase 5 collections). Naming rules live in
+   * `lib/collections/collections.ts`; assignment lands via the dedicated
+   * route in spec 46 (`PATCH /api/scripts/[scriptId]/collection`).
+   */
+  collectionId: number | null;
+};
+
+/**
+ * Canonical client model for a strategy collection (folder). Persisted in
+ * the `collections` table. Names are per-user, trimmed, and de-duplicated
+ * at the app layer (no DB unique index yet — see
+ * `lib/collections/collections.ts`). Spec 45's CRUD route returns this
+ * shape; spec 47's UI consumes it for the collection picker.
+ */
+export type SavedCollection = {
+  id: number;
+  name: string;
+  createdAt: string;
 };
 
 export type GenerationStats = {

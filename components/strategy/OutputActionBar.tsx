@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Download, ExternalLink, Webhook } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, FileText, Webhook } from 'lucide-react';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -15,10 +15,12 @@ type OutputActionBarProps = {
   isOutputBusy: boolean;
   copied: boolean;
   webhookPanelOpen: boolean;
+  exportPanelOpen: boolean;
   onCopy: () => void;
   onDownload: () => void;
   onOpenInTradingView: () => void;
   onToggleWebhookPanel: () => void;
+  onToggleExportPanel: () => void;
 };
 
 export function OutputActionBar({
@@ -26,10 +28,12 @@ export function OutputActionBar({
   isOutputBusy,
   copied,
   webhookPanelOpen,
+  exportPanelOpen,
   onCopy,
   onDownload,
   onOpenInTradingView,
   onToggleWebhookPanel,
+  onToggleExportPanel,
 }: OutputActionBarProps) {
   const canUseActions = Boolean(generatedScript.trim()) && !isOutputBusy;
 
@@ -87,6 +91,22 @@ export function OutputActionBar({
             )}
           >
             <ExternalLink className="h-4 w-4" aria-hidden />
+          </Button>
+        </ActionTooltip>
+
+        <ActionTooltip
+          label={exportPanelOpen ? 'Hide Markdown export' : 'Export Markdown for Notion / Obsidian'}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleExportPanel}
+            aria-pressed={exportPanelOpen}
+            aria-label="Export Markdown note"
+            className={cn(iconActionClass, exportPanelOpen && terminalActivePressed)}
+          >
+            <FileText className="h-4 w-4" aria-hidden />
           </Button>
         </ActionTooltip>
 

@@ -46,6 +46,8 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
     indicators: meta.indicators,
     rr: meta.rr,
     isStarred: row.isStarred ?? false,
+    tags: row.tags ?? [],
+    collectionId: row.collectionId ?? null,
   };
 }
 

@@ -61,6 +61,12 @@ controlled from `GenerateExperience` so the palette can open the drawer.
 **Compare tab:** side-by-side line diff (`diff` + `ScriptComparePanel`) between
 the previous version in lineage (from history) and the current script; enabled
 after at least one refine when the prior version is still in localStorage history.
+**Terminal error & 404 surfaces:** [`app/not-found.tsx`](../app/not-found.tsx) (`SIGNAL LOST` / 404),
+[`app/error.tsx`](../app/error.tsx) (`SYSTEM HALT`, rose accent, `FAULT_ID` digest),
+[`app/global-error.tsx`](../app/global-error.tsx) (self-contained `<html>`/`<body>` for root-layout faults),
+[`app/generate/not-found.tsx`](../app/generate/not-found.tsx) and [`app/generate/error.tsx`](../app/generate/error.tsx)
+(in-context `GeneratorFaultPanel`). Shared chrome in [`components/error/TerminalErrorScreen.tsx`](../components/error/TerminalErrorScreen.tsx)
+(terminal grid, nav, candle/glitch motifs). Removed orphan [`components/landing/error.tsx`](../components/landing/error.tsx).
 
 **Current Security State**
 Zod validation and sanitized errors are in place on all API routes. CSP header
@@ -103,15 +109,16 @@ in [`context/UI/`](UI/). Update the **Status** column when a spec ships.
 
 ## Current Phase
 
-Phase 5 — High-Value Workflow Features (in progress), with Phase 4 auth +
-database foundations in place.
+Phase 5 nearly complete (specs 49–50 in progress). Phase 6 — Forge Agent —
+spec'd and ready to implement after Phase 5 ships.
 
 ## Current Goal
 
-**Pinned / Starred Scripts** (`36`–`39`) is complete. Next: Phase 5 medium-value
-sequence continues with tags (`40`–`43`) or deferred Phase 4 hardening
-(`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs) remains
-optional and can run in parallel.
+Phase 5 medium-value features are wrapping up: Starred Scripts (`36`–`39`),
+Tags + Search (`40`–`43`), Collections (`44`–`47`) are complete. Export
+(`48`–`50`) is in progress. Next after Phase 5: Phase 6 Forge Agent
+(`51`–`58`). Deferred Phase 4 hardening (`context/fixes.md` Fix 3 / Fix 7 —
+weighted quotas, audit logs) remains optional.
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -163,9 +170,23 @@ optional and can run in parallel.
 
 **Medium Value (better with user accounts + DB):**
 - Pinned / Starred Scripts — complete (`36`–`39`)
-- Strategy Tags + Search (filterable history)
-- Strategy Collections / Folders ("BTC Strategies", "Testing", "Live Trading")
-- Export to Notion / Obsidian (Breakdown tab as clean Markdown)
+- Strategy Tags + Search — complete (`40`–`43`)
+- Strategy Collections / Folders — complete (`44`–`47`)
+- Export to Notion / Obsidian — in progress (`48`–`50`)
+
+## Phase 6 — Forge Agent (Planned After Phase 5)
+
+AI strategy workflow agent on `/forge` with tool calling, persistent memory,
+and orchestration over existing PineForge features. Specs:
+
+- `51` — Forge Agent overview (product spec, identity, scope, examples)
+- `52` — Memory schema (Drizzle tables + migration: `agent_conversations`, `agent_memory`)
+- `53` — Tool definitions (Zod schemas, descriptions, endpoint mappings)
+- `54` — Conversation CRUD routes (save/load/list/delete REST)
+- `55` — Agent streaming endpoint (`POST /api/forge` — system prompt, `streamText`, tool calling)
+- `56` — Memory extraction (background preference extraction from conversations)
+- `57` — `/forge` page UI (chat interface, tool call display, conversation sidebar)
+- `58` — Guardrails (refusal patterns, prompt injection defense, output validation)
 
 ## Completed
 
@@ -210,29 +231,27 @@ optional and can run in parallel.
 - `37-starred-scripts-mutation-route.md` — `PATCH /api/scripts/[scriptId]/star` at `app/api/scripts/[scriptId]/star/route.ts`: `requireClerkSession` → `starScriptSchema` (`{ isStarred: boolean }`) → ownership check on `scripts.user_id` → update `is_starred` + `updated_at` → `{ script: rowToSavedScript(updated) }` with persisted `isStarred`. Invalid id → 400; missing user → 404; non-owner → 403; sanitized JSON errors only. No UI, search, or collections/tags in this route. `npm run build` passes ✅
 - `38-starred-scripts-history-query.md` — `GET /api/scripts` now uses `listScriptsForUser()` (`lib/db/list-user-scripts.ts`): recent 50 by `created_at` desc merged with any older starred rows, deduped and re-sorted by recency (no forced starred-first sort). `rowToSavedScript()` continues to expose `isStarred` on every item; `useScriptHistory` validates via `savedScriptSchema` and signed-in `addEntry` uses `capScriptHistory()` so starred entries are never trimmed from the in-memory API cache. `partitionScriptsByStarred()` added in `lib/scripts/history-list.ts` for spec `39` UI. No UI changes in this step. `npm run build` passes ✅
 - `39-starred-scripts-ui.md` — `ScriptHistory`: icon star toggle per entry (`Star` with `fill-current` + `aria-pressed` when pinned); amber border/background on pinned rows; compact **Pinned** section via `partitionScriptsByStarred()` when any starred exist; sheet copy reflects account vs device storage. `useScriptHistory.toggleStarEntry()` — signed-in `PATCH /api/scripts/[id]/star` with optimistic cache update via `capScriptHistory()`; signed-out toggles `isStarred` in localStorage. Rename/delete/load unchanged; no full-page reload. `npm run build` passes ✅
+- `40-tags-data-contract.md` — confirmed `scripts.tags` (jsonb `string[]`, default `[]`, shipped in `0000_mute_rattler.sql`) is the canonical persisted field; no migration required. Added required `tags: string[]` to `SavedScript` (`lib/types/index.ts`); `rowToSavedScript()` now maps `row.tags ?? []`; `savedScriptSchema` in `hooks/useScriptHistory.ts` adds `tags: z.array(z.string()).default([])` so legacy localStorage entries parse cleanly; `buildSavedScriptFromGeneration` / `buildSavedScriptFromRefinement` set `tags: []`. New `lib/scripts/tags.ts` is the single source of truth for the contract — exports `MAX_TAGS_PER_SCRIPT = 10`, `MAX_TAG_LENGTH = 24`, `normalizeTag()`, pure `normalizeTags()` (trim → lower-case → drop empty → drop > 24-char → de-dupe → clamp to 10), and `tagsInputSchema` (Zod array-boundary check). Contract is read-only at this step — mutation route lives in spec `41` (`PATCH /api/scripts/[scriptId]/tags`), search route in `42`, chip-editor UI in `43`. Documented in `context/architecture.md` § Data Contracts. `npm run build` passes ✅
+- `41-tags-mutation-route.md` — `PATCH /api/scripts/[scriptId]/tags` at `app/api/scripts/[scriptId]/tags/route.ts`: `requireClerkSession` → `parseScriptId` → `getDbUserIdByClerk` → Zod-validate body with `setScriptTagsSchema` (`{ tags: tagsInputSchema }`) → ownership check on `scripts.user_id` → `normalizeTags(parsed.data.tags)` (server-side; never trust raw input) → update `scripts.tags` + bump `updated_at` → `{ script: rowToSavedScript(updated) }` with the final normalized list. Invalid id → 400; invalid body → 400 with Zod issues; missing user → 404; non-owner → 403; sanitized JSON errors only. Empty arrays are valid and clear all tags. `setScriptTagsSchema` added to `lib/api/validation.ts` alongside `starScriptSchema` for symmetry. No UI, no search, no collection changes in this route. `npm run build` passes (route registered as `ƒ /api/scripts/[scriptId]/tags`) ✅
+- `42-history-search-route.md` — `GET /api/scripts/search` at `app/api/scripts/search/route.ts`: dedicated read endpoint (`GET /api/scripts` keeps its plain recency+starred-union behavior). Query params validated by `searchScriptsQuerySchema` in `lib/api/validation.ts` — `q` (≤ 200 chars, trimmed), `tag` (repeated **or** comma-separated; route splits on `,` then runs the combined list through `normalizeTags()`), `starred` (`'true' \| 'false'`), `collectionId` (positive int). DB helper `searchScriptsForUser()` in `lib/db/search-user-scripts.ts` always ANDs `eq(scripts.userId, userId)` first; text match uses Drizzle's `ilike()` on `scripts.title` `OR` parameterized `metadata->>'prompt' ILIKE`; tag match uses jsonb `@>` containment (all requested tags must be present); `starred` and `collectionId` use `eq()`; `q` is escaped against LIKE wildcards (`%`, `_`, `\\`) before binding so user-typed wildcards don't expand the match. Results sort by `created_at` desc, capped at `MAX_HISTORY_ENTRIES`. Response `{ scripts: SavedScript[] }` matches `GET /api/scripts`. Signed-out → 401; invalid query → 400 with Zod issues; missing user → `{ scripts: [] }`. No UI, no mutation, no ranking engine. `npm run build` passes (route registered as `ƒ /api/scripts/search`) ✅
+- `43-tags-search-ui.md` — `ScriptHistory` gains a search input + active-tag filter chips + per-entry tag chips + inline tag editor + no-results state. Client-side filtering via new pure helper `filterHistoryEntries()` / `isHistoryFilterActive()` in `lib/scripts/history-filter.ts` mirrors the server semantics from spec 42 (case-insensitive substring on `name`+`prompt`, AND-containment on tags) so the in-memory cache filters predictably; the dedicated server route (`GET /api/scripts/search`) stays available for future cross-session lookups beyond the cached window. `useScriptHistory.setTagsEntry(id, tags)` — signed-in `PATCH /api/scripts/[id]/tags` with `normalizeTags()` applied client-side before the request (server re-normalizes); optimistic cache update via `capScriptHistory()` after success; signed-out path writes normalized tags to localStorage. Per-entry tag chips are buttons that toggle membership in `activeTagFilters`; active filters render as removable chips above the list with a Clear control. Inline tag editor opens via a new `Tag` action button — comma-separated input, Enter/Save commits, Escape/Cancel reverts. `aria-pressed` / `aria-expanded` / `aria-label` set on every interactive control; chip color uses emerald accent for active filters, amber kept for the existing Pinned section. Rename/delete/star/load flows unchanged; sheet copy + Pinned/unpinned partition reuse the existing `partitionScriptsByStarred()` helper, now applied to the **filtered** list so filters narrow both groups. `npm run build` passes ✅
+- `44-collections-data-contract.md` — confirmed the existing `collections` table (`id`, `user_id → users.id`, `name varchar(100)`, `created_at`) and the `scripts.collection_id` foreign key (`integer references collections(id)`, nullable) are the canonical persisted shape; both ship in `0000_mute_rattler.sql`, so no migration is required. Added required `collectionId: number | null` to `SavedScript` (`lib/types/index.ts`); `rowToSavedScript()` now maps `row.collectionId ?? null`; `savedScriptSchema` in `hooks/useScriptHistory.ts` adds `collectionId: z.number().int().nullable().default(null)` so legacy localStorage entries parse cleanly; `buildSavedScriptFromGeneration` / `buildSavedScriptFromRefinement` set `collectionId: null`. New `SavedCollection` type (`{ id, name, createdAt }`) added in `lib/types/index.ts` as the shared shape for spec `45`'s CRUD response and spec `47`'s picker. New `rowToSavedCollection()` mapper in `lib/db/collection-mapper.ts` (re-exported from `lib/db/index.ts`) keeps collection responses shape-consistent across upcoming routes. New `lib/collections/collections.ts` is the single source of truth for the contract — exports `MAX_COLLECTION_NAME_LENGTH = 100` (matches the `varchar(100)` column), `MIN_COLLECTION_NAME_LENGTH = 1`, pure `normalizeCollectionName()` (trim → length-check; returns `null` on empty / oversize), case-insensitive `isSameCollectionName()` for app-layer duplicate prevention (no DB unique index yet), and `collectionNameInputSchema` (Zod boundary). Contract is read-only at this step — CRUD route lives in spec `45`, assignment route in spec `46`, UI in spec `47`. Documented in `context/architecture.md` § Data Contracts. `npm run build` passes ✅
+- `45-collections-crud-route.md` — `GET / POST /api/collections` at `app/api/collections/route.ts` and `PATCH / DELETE /api/collections/[collectionId]` at `app/api/collections/[collectionId]/route.ts`. Pattern mirrors the spec 37 / spec 41 narrow-route style: `requireClerkSession` → parse id (PATCH/DELETE) → `getDbUserIdByClerk` (or `ensureDbUserForClerkId` on POST so first-call after sign-in auto-provisions the user row) → Zod-validate body with `createCollectionSchema` / `renameCollectionSchema` (both `{ name: collectionNameInputSchema }` from spec 44) → `normalizeCollectionName(parsed.data.name)` → app-layer duplicate guard via new `findUserCollectionByNameInsensitive(userId, name, excludeId?)` in `lib/db/list-user-collections.ts` (runs `lower(${collections.name}) = lower(${name})` scoped to `userId`; `excludeId` lets PATCH rename to its own casing variant without conflicting with itself) → ownership pre-check (PATCH/DELETE) → write → `{ collection }` or `{ ok: true }`. GET returns `{ collections: SavedCollection[] }` ordered by `createdAt` desc via new `listCollectionsForUser()`; signed-in but no DB user → `{ collections: [] }` matching the `/api/scripts` soft-empty pattern. Status codes are predictable per the spec: 401 unauth, 400 invalid id / Zod issues, 403 non-owner, 404 missing DB user (PATCH/DELETE only), 409 duplicate name with sanitized copy `"A collection with this name already exists."`, 500 write returned nothing. DELETE handles the existing `ON DELETE no action` FK on `scripts.collection_id` by **unassigning referencing scripts first** (`UPDATE scripts SET collection_id = NULL, updated_at = NOW() WHERE user_id = ? AND collection_id = ? AND collection_id IS NOT NULL`), then deleting the collection — both writes scoped to the caller's `userId` so cross-user side effects are structurally impossible. neon-http does not expose transactions, so partial-failure recovery is idempotent retry. New helpers re-exported from `lib/db/index.ts`. No script-assignment mutation, no UI, no picker in this step (specs 46 / 47). Documented in `context/architecture.md` § Data Contracts → "Collections CRUD route". `npm run build` passes (routes register as `ƒ /api/collections` + `ƒ /api/collections/[collectionId]`) ✅
+- `46-script-collection-assignment-route.md` — `PATCH /api/scripts/[scriptId]/collection` at `app/api/scripts/[scriptId]/collection/route.ts`: mirrors the spec 37 star / spec 41 tags narrow-route pattern — `requireClerkSession` → `parseScriptId` → `getDbUserIdByClerk` → Zod-validate body with new `setScriptCollectionSchema` (`{ collectionId: z.number().int().positive().nullable() }` in `lib/api/validation.ts`) → ownership pre-check on `scripts.user_id` → when `collectionId` is non-null, a second pre-check on `collections.user_id` (same `userId`) so cross-user assignment is structurally impossible (missing or foreign collection → 403, no existence leak) → `update().set({ collectionId, updatedAt })` with both `scripts.id` and `scripts.user_id` in the WHERE clause → `{ script: rowToSavedScript(updated) }` with the persisted `collectionId`. `null` clears the assignment. Status codes: 401 unauth, 400 invalid script id / Zod issues, 404 missing DB user, 403 non-owner script or non-owned target collection, 500 update returned nothing. No tag, star, or collection CRUD side effects. Documented in `context/architecture.md` § Data Contracts → "Script collection assignment route". `npm run build` passes (route registers as `ƒ /api/scripts/[scriptId]/collection`) ✅
+
+- `47-collections-ui.md` — `ScriptHistory` gains collection filter chips (All / per-collection / None), compact `CollectionControls` for create/rename/delete via `useCollections()` (`GET|POST /api/collections`, `PATCH|DELETE /api/collections/[id]`), and per-entry `<select>` picker calling `useScriptHistory.setCollectionEntry()` → `PATCH /api/scripts/[id]/collection` with optimistic cache update via `capScriptHistory()`. Client filter extended in `lib/scripts/history-filter.ts` (`collectionId: number | 'uncategorized'`). After collection delete, `refreshEntries()` syncs unassigned scripts in cache. Signed-out users see sheet copy pointing to sign-in; collection UI hidden (`collectionsApi` gate). Sky accent for collection chips/badges; mobile-friendly native select. `npm run build` passes ✅
+- `48-export-breakdown-source-contract.md` — single source of truth for what feeds the Notion / Obsidian export lives in `lib/export/source.ts`. Exports `StrategyExportSource` type (title, prompt, script, model `{ id, label }`, `structuredInputs` with `market`/`timeframe`/`direction`/`indicators`/`rr`/`balance`, `breakdown`, `createdAt`, `updatedAt`), helper types `StrategyExportSourceModel` + `StrategyExportStructuredInputs`, the `DEFAULT_EXPORT_TITLE` fallback, and two pure builders: `buildStrategyExportSource(input)` for the active generator path and `buildExportSourceFromSavedScript(saved, { breakdown? })` for the history path. Builders are deterministic and synchronous — no AI calls, no DB writes, no DOM access — so they are safe on either client or server, and same input always yields the same payload (per spec § Rules). Title falls back to `DEFAULT_EXPORT_TITLE` ("Untitled strategy") on empty input; `prompt` and `breakdown` are trimmed; `model` is resolved against `GROK_MODELS` so the serializer (spec 49) does not have to re-resolve constants; `structuredInputs` filters out empty strings, empty arrays, and `undefined` so spec 49 can use simple truthy checks; `script` is preserved verbatim (no whitespace normalization here — spec 49 owns fenced-code formatting); `breakdown` is `null` when the user has not loaded the Breakdown tab yet; `updatedAt` is reserved as `null` for forward compatibility with `scripts.updated_at` (currently not surfaced by `SavedScript`). No Zod schema (no API boundary at this step — spec 50 may add validation if needed). Contract is read-only here — the markdown serializer lives in spec 49 (`lib/export/strategy-markdown.ts`) and the copy/download actions live in spec 50. Documented in `context/architecture.md` § Data Contracts → "Strategy Export Source". `npm run build` passes ✅
+- `49-export-markdown-serializer.md` — `lib/export/strategy-markdown.ts` exports `assembleStrategyExportMarkdown(source, options?)` + `StrategyExportMarkdownOptions` + `exportHasMetadata(source)`. Consumes spec-48 `StrategyExportSource`; optional `options` carries already-loaded `healthScore`, `alertTemplates`, and `backtestSummary` (no new AI). Stable section order: `#` title → `## Strategy Metadata` (bullet list: model, market, timeframe, direction, R:R, balance, indicators, created/updated as UTC `YYYY-MM-DD`) → `## Original Prompt` (blockquote, line breaks preserved) → `## Breakdown` (only when non-null; body verbatim) → `## Pine Script` (fenced `pine` block; fence length auto-expands if script contains triple backticks) → optional `## Health Score` / `## Alert Templates` (per-provider `###` + fenced `json` for `messageJson`) / `## Backtesting Summary` (reuses spec-33 `markdown` field + optional `###` title). Deterministic: inline bullet whitespace collapsed, document `.trim()`'d, no Notion/Obsidian-specific variants. No UI, no download route, no Notion API. Documented in `context/architecture.md` § "Strategy Export Markdown Serializer". `npm run build` passes ✅
+- `50-export-actions-ui.md` — `/generate` output workflow: `FileText` toggle in `OutputActionBar` opens `ExportMarkdownPanel` (Notion/Obsidian copy + **Copy Markdown** / **Download .md**). Client-only download via `lib/export/download-markdown.ts` (Blob + anchor, sanitized filename). Assembly via `lib/export/build-export-markdown.ts` → spec-48 source + spec-49 serializer. `StrategyOutputCard` collects breakdown (`ExplainScriptPanel.onBreakdownChange`), optional Health/Alerts/Backtest results (`onResultChange` on panels — no export-time AI). `StrategyForm` passes `exportTitle` + `exportCreatedAt` (set on save/load, cleared on new generate). Panel hints when Breakdown not loaded; resets on generate/refine/history load. No OAuth, no Notion API, no backend route. `npm run build` passes ✅
 
 ## In Progress
-- `40-tags-data-contract.md` — tags storage and normalization spec drafted
-- `41-tags-mutation-route.md` — tags mutation route spec drafted
-- `42-history-search-route.md` — signed-in history search route spec drafted
-- `43-tags-search-ui.md` — tags + search UI spec drafted
-- `44-collections-data-contract.md` — collections storage contract drafted
-- `45-collections-crud-route.md` — collections CRUD route spec drafted
-- `46-script-collection-assignment-route.md` — script-to-collection assignment route spec drafted
-- `47-collections-ui.md` — collections UI spec drafted
-- `48-export-breakdown-source-contract.md` — export source contract drafted
-- `49-export-markdown-serializer.md` — export markdown serializer spec drafted
-- `50-export-actions-ui.md` — export UI spec drafted
 
 ## Next Up
 
+- Finish Phase 5: `49`–`50` Export to Notion / Obsidian (in progress)
+- Phase 6: Forge Agent (`51`–`58`) — implement in spec order
 - Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
-- Phase 5 medium-value implementation sequence:
-  1. `36`–`39` Pinned / Starred Scripts
-  2. `40`–`43` Tags + Search
-  3. `44`–`47` Collections
-  4. `48`–`50` Notion / Obsidian export
 
 ## Open Questions
 
@@ -309,6 +328,123 @@ optional and can run in parallel.
   table already exist in Drizzle (`scripts.isStarred`, `scripts.tags`,
   `scripts.collectionId`, `collections`). Medium-feature planning should reuse
   these first and only introduce migrations if a live-schema audit finds drift.
+- **Strategy Tags contract**: `scripts.tags` (jsonb `string[]`, default `[]`)
+  is the source of truth; `SavedScript.tags` is always present
+  (defaults `[]`). Normalization rules live in `lib/scripts/tags.ts` —
+  `normalizeTags()` trims, lower-cases, drops empty values, drops entries
+  longer than `MAX_TAG_LENGTH = 24`, de-duplicates, and clamps to
+  `MAX_TAGS_PER_SCRIPT = 10`. Pure and deterministic, shared by client
+  and server so persistence stays consistent. `tagsInputSchema` (Zod) is
+  the API-boundary guard for shape; the mutation route (spec 41)
+  parses → normalizes → persists (never writes raw input).
+- **Tags mutation route**: `PATCH /api/scripts/[scriptId]/tags` mirrors
+  the spec 37 star route — narrow, single-purpose, owner-scoped. Body is
+  `{ tags: string[] }`, validated by `setScriptTagsSchema`. Server
+  always re-runs `normalizeTags()` after Zod (Zod cannot dedupe /
+  lower-case), then writes the normalized array + bumps `updated_at`.
+  Response returns the full `SavedScript` via `rowToSavedScript()` so
+  clients can drop optimistic UI state and trust the server payload.
+- **History search route**: `GET /api/scripts/search` is a dedicated
+  read endpoint — `GET /api/scripts` stays the recency+starred-union
+  feed (spec 38) so the UI can pick between "browse" and "search"
+  cleanly. All filters live in `searchScriptsForUser()`
+  (`lib/db/search-user-scripts.ts`) and are ANDed with
+  `eq(scripts.userId, userId)` first so cross-user leaks are
+  structurally impossible. Text search uses Drizzle's `ilike()` plus a
+  parameterized `metadata->>'prompt' ILIKE` clause — values are bound,
+  never concatenated, and user-typed `%`/`_`/`\` are escaped so they
+  don't act as SQL wildcards. Tag filter uses jsonb `@>` containment so
+  multi-tag queries are AND-semantics. `starred` is symmetric (`true` =
+  only starred, `false` = only unstarred, omitted = no filter).
+  `collectionId` is wired now but only takes effect once spec 46 starts
+  assigning rows.
+- **Tags + Search UI (client-side filter)**: the history sheet filters
+  the **in-memory** cache via `filterHistoryEntries()`
+  (`lib/scripts/history-filter.ts`), not the server route. Rationale:
+  the cache already holds the recency window + every starred row (specs
+  38, 39), so client-side filtering is responsive, has no flicker, and
+  works for signed-out users too. The semantics mirror the server
+  route exactly (case-insensitive substring on `name`+`prompt`,
+  AND-containment on tags) so swapping to server search later requires
+  no UX changes. The server route stays the right tool for future
+  cross-session search beyond the cached window. `useScriptHistory.setTagsEntry()`
+  also runs `normalizeTags()` client-side before PATCH; the server
+  re-normalizes so the boundary is double-locked.
+- **Strategy Collections contract**: the `collections` table
+  (`id`, `user_id`, `name varchar(100)`, `created_at`) and
+  `scripts.collection_id` (`integer references collections(id)`,
+  nullable) are the source of truth — both already shipped with
+  `0000_mute_rattler.sql`. `SavedScript.collectionId` is always
+  present as `number | null` (defaults `null`); a separate
+  `SavedCollection` type (`{ id, name, createdAt }`) is the response
+  shape for spec 45's CRUD. All naming rules live in
+  `lib/collections/collections.ts` — `normalizeCollectionName()`
+  trims and rejects empty / oversize values, casing is preserved
+  (unlike tags, since collections are display labels), and
+  `isSameCollectionName()` runs the case-insensitive comparison that
+  spec 45's CRUD route uses for **app-layer** duplicate prevention
+  (no DB unique index yet — a future migration on
+  `(user_id, lower(name))` would replace the app check; until then
+  the app guard is canonical). Spec 42's search route already
+  filters on `collectionId` via `searchScriptsForUser`, so the
+  contract closes the round-trip; spec 46's assignment route now
+  populates `scripts.collection_id` so collection filters return
+  matches.
+- **Script collection assignment route**: `PATCH /api/scripts/
+  [scriptId]/collection` is a narrow, single-purpose mutation —
+  body `{ collectionId: number | null }`, validated by
+  `setScriptCollectionSchema`. Flow mirrors star/tags routes:
+  script ownership pre-check, then (when non-null) collection
+  ownership pre-check on the **same** `userId`, then write with
+  both `scripts.id` and `scripts.user_id` in the WHERE clause.
+  Cross-user assignment is impossible (403 on foreign/missing
+  collection, no existence leak). Response returns full
+  `SavedScript` via `rowToSavedScript()` so clients trust
+  `collectionId` from the server payload.
+- **Strategy Export source contract**: `lib/export/source.ts` is the
+  single source of truth for the Notion / Obsidian export payload.
+  `StrategyExportSource` matches the spec-48 recommended payload
+  one-to-one (title, prompt, script, model, structured inputs,
+  breakdown, created / updated timestamps). The two builders —
+  `buildStrategyExportSource()` for the active generator path and
+  `buildExportSourceFromSavedScript()` for the history path — are
+  pure, deterministic, and synchronous (no AI calls, no DB writes,
+  no DOM), so spec 49's serializer can rely on a stable input
+  regardless of where the data was assembled. `breakdown` is `null`
+  when the Breakdown tab has not been loaded yet; spec 50 decides
+  whether to skip the section or prompt the user. `updatedAt` is
+  reserved as `null` so the contract does not need a breaking change
+  once `SavedScript` exposes `scripts.updated_at`. Mirrors the
+  spec-36 starred / spec-40 tags / spec-44 collections data-contract
+  pattern — a contract-only step that lets later specs (49 markdown
+  serializer, 50 client actions) depend on one canonical payload.
+- **Collections CRUD route**: `GET / POST /api/collections` and
+  `PATCH / DELETE /api/collections/[collectionId]` follow the spec
+  37 / 41 narrow-route style — narrow, single-purpose, owner-scoped.
+  Every write statement includes both `eq(collections.id, ?)` **and**
+  `eq(collections.userId, userId)` so cross-user writes are
+  structurally impossible. Names are validated with
+  `createCollectionSchema` / `renameCollectionSchema`
+  (both `{ name: collectionNameInputSchema }`); the route still
+  re-runs `normalizeCollectionName()` after Zod (Zod cannot trim
+  whitespace for us) so the canonical value reaches both the
+  duplicate guard and the DB. The duplicate guard
+  (`findUserCollectionByNameInsensitive()`) runs a single SQL query
+  with `lower(${collections.name}) = lower(${name})` ANDed under
+  `userId`, returning 409 with sanitized copy — no DB unique index
+  yet so the app guard is canonical, mirroring the spec-44 contract.
+  PATCH passes `excludeId` so renaming a collection to its own
+  current casing variant doesn't conflict with itself. DELETE
+  unassigns referencing scripts before removing the collection
+  (`UPDATE scripts SET collection_id = NULL` scoped to
+  `user_id = ? AND collection_id = ?`) because the existing FK is
+  `ON DELETE no action`; both writes are user-scoped, neon-http has
+  no transactions, and the unassign step is idempotent so retries
+  are safe on partial failure. POST uses `ensureDbUserForClerkId`
+  so a freshly-signed-in user auto-provisions the DB row on first
+  collection create; GET/PATCH/DELETE use `getDbUserIdByClerk` and
+  return `{ collections: [] }` (GET) / 404 (PATCH/DELETE) on missing
+  DB user, matching the existing `/api/scripts` envelope.
 
 ## Session Notes
 
@@ -410,6 +546,182 @@ optional and can run in parallel.
 - Strategy Health Score (`25`–`27`): backend `POST /api/health-score`, UI `Health` tab +
   `HealthScorePanel` / `useHealthScore`, palette entry; `healthScoreResetKey` clears results on
   generate, refine, and history load; `npm run build` passes
+- Strategy Tags data contract (`40`): no migration — `scripts.tags` shipped
+  in `0000_mute_rattler.sql`. Contract additions stay tight: `SavedScript`
+  gets required `tags: string[]`, `rowToSavedScript()` maps `row.tags ?? []`,
+  `savedScriptSchema` parses legacy entries via `.default([])`, and the two
+  builders default to `tags: []`. All tag rules — trim, lower-case,
+  de-dupe, drop empty, drop > 24-char, clamp 10 — live in
+  `lib/scripts/tags.ts` so the mutation route (spec 41), search route
+  (spec 42), and chip-editor UI (spec 43) can import a single source of
+  truth (`normalizeTags`, `MAX_TAGS_PER_SCRIPT`, `MAX_TAG_LENGTH`,
+  `tagsInputSchema`). No route, search, or UI work in this step
+- Strategy Tags + Search UI (`43`): history sheet now owns search,
+  filters, and tag editing without growing into a management screen.
+  Pure helper `filterHistoryEntries()` / `isHistoryFilterActive()` in
+  `lib/scripts/history-filter.ts` runs client-side against the cached
+  list, mirroring spec 42's server semantics so behavior stays
+  consistent if/when the UI switches to server search later. New hook
+  method `useScriptHistory.setTagsEntry(id, tags)` parallels
+  `toggleStarEntry`: signed-in path PATCHes `/api/scripts/[id]/tags`
+  (client pre-runs `normalizeTags`, server re-runs — double-locked),
+  optimistic cache update via `capScriptHistory()` so starred entries
+  survive the 50-cap trim; signed-out path writes normalized tags to
+  localStorage. UI additions in `components/strategy/ScriptHistory.tsx`:
+  (a) search input with Search icon at the top of the sheet body,
+  (b) active-filter chip row with per-tag X and global Clear,
+  (c) per-entry tag chips (`<button aria-pressed>`) that toggle filter
+  membership, (d) inline tag editor (comma-separated input + Save/Cancel
+  + Esc to cancel) reached via a new `Tag` action button, (e)
+  no-results state with a Clear-filters CTA when filtering empties the
+  list. `partitionScriptsByStarred()` now consumes the **filtered**
+  list so the Pinned section also narrows under filters. Rename/delete/
+  star/load semantics, sheet copy, and the legacy
+  empty-state-when-no-entries fall-through are untouched. A11y: every
+  chip and action carries an `aria-label`, edit-mode buttons use
+  `aria-expanded`, filter chips use `aria-pressed`, Search input has
+  an `aria-label`
+- Strategy Tags history search route (`42`): dedicated read endpoint
+  `GET /api/scripts/search` (not an overload of `GET /api/scripts` — the
+  base route keeps spec 38's recency+starred-union behavior, so the UI
+  picks the right call by mode). Query layer is a single helper
+  `searchScriptsForUser()` in `lib/db/search-user-scripts.ts` so the
+  route stays thin (parse → coerce → call helper → map rows).
+  `searchScriptsQuerySchema` validates query-param shape only — `q`
+  trimmed + capped at 200, `tag` accepts repeated `?tag=` **and**
+  comma-separated values (route flattens with `flatMap(v => v.split(','))`
+  then runs the combined list through `normalizeTags()` so `Foo`, `foo`,
+  and `FOO` resolve to the same DB value), `starred` accepts
+  `'true' | 'false'` (symmetric — `false` filters to only-unstarred,
+  not "no filter"), `collectionId` accepts a positive integer string.
+  SQL safety: `q` is bound as a parameter via `ilike()` / `sql\`... ILIKE ${pattern}\``,
+  and `escapeLikePattern()` escapes user-typed `%`/`_`/`\\` so they
+  don't expand the match unintentionally; tag match uses parameterized
+  jsonb `@>` containment (`${scripts.tags} @> ${JSON.stringify(tags)}::jsonb`);
+  every condition is ANDed with `eq(scripts.userId, userId)` first.
+  Results sort by `created_at` desc, capped at `MAX_HISTORY_ENTRIES`,
+  returned as `{ scripts: SavedScript[] }` via `rowToSavedScript()`
+  (same shape as `GET /api/scripts` so spec 43's UI can swap calls
+  without touching parse paths). Status codes: 401 unauth (session
+  helper), 400 invalid query (Zod issues), `{ scripts: [] }` on missing
+  user (signed in but no DB row yet). No UI, no mutation, no ranking
+  engine in this step — that's spec 43
+- Strategy Collections assignment route (`46`): dedicated narrow route
+  `PATCH /api/scripts/[scriptId]/collection` at
+  `app/api/scripts/[scriptId]/collection/route.ts`. New
+  `setScriptCollectionSchema` in `lib/api/validation.ts` —
+  `{ collectionId: z.number().int().positive().nullable() }`.
+  Route flow: session → parse script id → `getDbUserIdByClerk` →
+  Zod-validate → script ownership pre-check → when `collectionId`
+  is non-null, collection ownership pre-check (`eq(collections.id,
+  collectionId)` AND `eq(collections.userId, userId)`) → update
+  `scripts.collection_id` + bump `updated_at` → return
+  `{ script: rowToSavedScript(updated) }`. `null` clears assignment.
+  Foreign or missing target collection → 403 (no leak). No tag,
+  star, or collection CRUD in this route. Spec 42's
+  `collectionId` search filter now has live data once clients
+  call this endpoint. Documented in `context/architecture.md` §
+  Data Contracts → "Script collection assignment route".
+  `npm run build` registers `ƒ /api/scripts/[scriptId]/collection`
+- Strategy Collections CRUD route (`45`): two route files mirror the
+  spec 37 / 41 narrow-route pattern exactly — `app/api/collections/
+  route.ts` owns `GET` + `POST` and `app/api/collections/
+  [collectionId]/route.ts` owns `PATCH` + `DELETE`. Schemas
+  `createCollectionSchema` and `renameCollectionSchema` (added in
+  `lib/api/validation.ts`) both wrap the spec-44
+  `collectionNameInputSchema` so name length / shape rules stay
+  centralized. New DB helpers in `lib/db/list-user-collections.ts`:
+  `listCollectionsForUser(userId)` (orderBy `createdAt` desc; no cap
+  because collection sets are coarse-grained), and
+  `findUserCollectionByNameInsensitive(userId, name, excludeId?)`
+  (single SQL with `lower(${collections.name}) = lower(${name})`
+  ANDed under `eq(collections.userId, userId)` plus optional
+  `ne(collections.id, excludeId)` for PATCH self-exclusion). Both
+  helpers re-exported from `lib/db/index.ts` so spec 47's UI can
+  import them. Route flow: session → parse id (PATCH/DELETE) →
+  user resolution (POST = `ensureDbUserForClerkId`, others =
+  `getDbUserIdByClerk` + 404 on missing) → Zod-validate →
+  `normalizeCollectionName` → app-layer duplicate guard
+  (409 on conflict) → ownership pre-check (PATCH/DELETE) → write →
+  `{ collection }` (or `{ collections }` for GET, `{ ok: true }` for
+  DELETE). All errors sanitized — only Zod's `error.issues` is
+  forwarded for body validation failures, the rest are
+  user-friendly strings. DELETE handles the existing
+  `ON DELETE no action` FK on `scripts.collection_id` with a
+  user-scoped unassign-then-delete sequence (`UPDATE scripts SET
+  collection_id = NULL, updated_at = NOW() WHERE user_id = ?
+  AND collection_id = ? AND collection_id IS NOT NULL`, then the
+  collection delete). Both writes scoped to caller's `userId` so
+  cross-user side effects are structurally impossible. neon-http
+  has no transaction surface, but the unassign step is idempotent
+  so a retry recovers from any partial-write window. Documented
+  in `context/architecture.md` § Data Contracts → "Collections
+  CRUD route". `npm run build` registers `ƒ /api/collections` +
+  `ƒ /api/collections/[collectionId]`. No script-assignment route
+  (spec 46), no picker UI (spec 47) in this step
+- Strategy Collections data contract (`44`): no migration — the
+  `collections` table (`id`, `user_id → users.id`,
+  `name varchar(100)`, `created_at`) and `scripts.collection_id`
+  foreign key both shipped in `0000_mute_rattler.sql`. Contract
+  additions stay tight: `SavedScript` gets required
+  `collectionId: number | null`, `rowToSavedScript()` maps
+  `row.collectionId ?? null`, `savedScriptSchema` parses legacy
+  entries via `z.number().int().nullable().default(null)`, and the
+  two builders default to `collectionId: null`. New `SavedCollection`
+  type added to `lib/types/index.ts` as the shared response shape for
+  spec 45; new `rowToSavedCollection()` mapper in
+  `lib/db/collection-mapper.ts` (re-exported from `lib/db/index.ts`)
+  keeps collection rows shape-consistent. All collection naming rules
+  — trim, min 1, max 100 chars (matches `varchar(100)` column),
+  preserve casing, case-insensitive duplicate check via
+  `isSameCollectionName()` — live in `lib/collections/collections.ts`
+  so the CRUD route (spec 45), assignment route (spec 46), and UI
+  (spec 47) can import a single source of truth
+  (`normalizeCollectionName`, `isSameCollectionName`,
+  `MAX_COLLECTION_NAME_LENGTH`, `MIN_COLLECTION_NAME_LENGTH`,
+  `collectionNameInputSchema`). Duplicate prevention is app-layer
+  only (no DB unique index yet) — documented as a future
+  migration on `(user_id, lower(name))`. No route, search, or UI
+  work in this step
+- Strategy Tags mutation route (`41`): dedicated narrow route
+  `PATCH /api/scripts/[scriptId]/tags` mirrors the spec 37 star route
+  exactly — `requireClerkSession` → `parseScriptId` → `getDbUserIdByClerk`
+  → `setScriptTagsSchema` (added to `lib/api/validation.ts` alongside
+  `starScriptSchema`) → ownership pre-check → `normalizeTags()` on the
+  parsed array → single `update().set({ tags, updatedAt }).returning()` →
+  `rowToSavedScript(updated)`. Normalization runs **server-side after
+  Zod**: Zod cannot dedupe or lower-case, so the route never trusts the
+  raw client payload — clients can also pre-normalize for UX, but the
+  server has the final word. Empty arrays are valid (clears all tags).
+  Status codes: 400 invalid id, 400 Zod issues, 401 unauth (via session
+  helper), 404 missing user, 403 non-owner, 500 update returned nothing.
+  Sanitized JSON errors only — no Zod error string leak beyond
+  `error.issues`. No search query, no chip-editor UI, no collection
+  changes in this step
+- Strategy Export source contract (`48`): no migration, no API route, no
+  UI in this step — the contract is purely in-app. `lib/export/source.ts`
+  is the new home for the export payload shape so the future markdown
+  serializer (spec 49) and copy/download actions (spec 50) can import a
+  single source of truth (`StrategyExportSource`,
+  `StrategyExportSourceModel`, `StrategyExportStructuredInputs`,
+  `DEFAULT_EXPORT_TITLE`, `buildStrategyExportSource`,
+  `buildExportSourceFromSavedScript`). Same pattern as spec 36 starred /
+  spec 40 tags / spec 44 collections data contracts — payload shape is
+  defined once, normalization happens at the contract boundary
+  (title fallback, trim prompt/breakdown, drop empty structured-input
+  values, resolve `model` against `GROK_MODELS`), and downstream specs
+  consume the canonical shape. The `script` body is intentionally
+  passed through verbatim (no whitespace normalization) because spec 49
+  owns fenced-code-block formatting; trimming here could remove
+  semantically meaningful leading comments or trailing newlines in
+  Pine Script. `updatedAt: string | null` is on the type but currently
+  always `null` — `SavedScript` does not surface `scripts.updated_at`
+  yet, so the field is reserved for forward compatibility (spec 49
+  can render it once the row mapper exposes it without breaking the
+  contract). No Zod schema: spec 48 has no API boundary, and the
+  builders are pure TS — Zod would just duplicate the type guard. If
+  spec 50 needs runtime validation (e.g. on a future server-side
+  export route), it can add a thin schema at that boundary
 - Clerk: custom auth pages, protected non-public routes, CSP tuned for Clerk Frontend API host
 - Neon/Drizzle: per-user script history wired; migrations `0000` + `0001` applied
 - Upstash: set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` in `.env.local` / Vercel
