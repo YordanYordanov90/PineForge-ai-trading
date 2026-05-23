@@ -4,6 +4,7 @@ import {
   healthScoreRequestSchema,
   healthScoreResultSchema,
 } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
 import { protectAiRoute } from '@/lib/api/protected-ai-route';
 import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { HEALTH_SCORE_SYSTEM } from '@/lib/ai/prompts/health-score';
@@ -52,18 +53,12 @@ export async function POST(req: Request) {
   const parsed = healthScoreRequestSchema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json(
-      { success: false, data: null, error: 'Invalid request.' },
-      { status: 400 },
-    );
+    return apiInvalidRequest();
   }
 
   const entitlement = resolveModelForPlan(guard.ctx.plan, parsed.data.model);
   if (!entitlement.ok) {
-    return Response.json(
-      { success: false, data: null, error: entitlement.message },
-      { status: 403 },
-    );
+    return apiError(entitlement.message, 403);
   }
 
   const missingKey = responseIfMissingXaiApiKey();
@@ -84,29 +79,14 @@ export async function POST(req: Request) {
 
     const validated = healthScoreResultSchema.safeParse(object);
     if (!validated.success) {
-      return Response.json(
-        {
-          success: false,
-          data: null,
-          error: 'Health score could not be validated. Please try again.',
-        },
-        { status: 502 },
+      return apiError(
+        'Health score could not be validated. Please try again.',
+        502,
       );
     }
 
-    return Response.json({
-      success: true,
-      data: validated.data,
-      error: null,
-    });
+    return apiSuccess(validated.data);
   } catch {
-    return Response.json(
-      {
-        success: false,
-        data: null,
-        error: 'Failed to analyze strategy health. Please try again.',
-      },
-      { status: 500 },
-    );
+    return apiError('Failed to analyze strategy health. Please try again.', 500);
   }
 }

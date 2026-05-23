@@ -1,46 +1,27 @@
 import { and, eq } from 'drizzle-orm';
 import { scripts } from '@/drizzle/schema';
-import { db, getDbUserIdByClerk, rowToSavedScript } from '@/lib/db';
-import { requireClerkSession } from '@/lib/auth/require-clerk-session';
+import { db, rowToSavedScript } from '@/lib/db';
 import { starScriptSchema } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
+import { protectDataRoute } from '@/lib/api/protected-data-route';
+import { resolveOwnedScriptRoute } from '@/lib/api/resolve-owned-script-route';
 
 type RouteContext = { params: Promise<{ scriptId: string }> };
 
-function parseScriptId(raw: string): number | null {
-  const id = Number.parseInt(raw, 10);
-  if (!Number.isFinite(id) || id < 1) return null;
-  return id;
-}
-
 export async function PATCH(req: Request, context: RouteContext) {
-  const session = await requireClerkSession();
-  if (!session.ok) return session.response;
+  const guard = await protectDataRoute();
+  if (!guard.ok) return guard.response;
 
   const { scriptId: scriptIdParam } = await context.params;
-  const scriptId = parseScriptId(scriptIdParam);
-  if (scriptId == null) {
-    return Response.json({ error: 'Invalid script id' }, { status: 400 });
-  }
+  const route = await resolveOwnedScriptRoute(guard.ctx.userId, scriptIdParam);
+  if (!route.ok) return route.response;
 
-  const userId = await getDbUserIdByClerk(session.userId);
-  if (userId == null) {
-    return Response.json({ error: 'User not found' }, { status: 404 });
-  }
+  const { userId, scriptId } = route;
 
   const body: unknown = await req.json().catch(() => null);
   const parsed = starScriptSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues }, { status: 400 });
-  }
-
-  const [existing] = await db
-    .select({ id: scripts.id })
-    .from(scripts)
-    .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
-    .limit(1);
-
-  if (!existing) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+    return apiInvalidRequest();
   }
 
   const [updated] = await db
@@ -50,8 +31,8 @@ export async function PATCH(req: Request, context: RouteContext) {
     .returning();
 
   if (!updated) {
-    return Response.json({ error: 'Failed to update script' }, { status: 500 });
+    return apiError('Failed to update script', 500);
   }
 
-  return Response.json({ script: rowToSavedScript(updated) });
+  return apiSuccess({ script: rowToSavedScript(updated) });
 }

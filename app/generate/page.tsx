@@ -10,8 +10,6 @@ export default async function GeneratePage() {
   const { userId } = await auth();
   let initialPlan = 'free';
 
-
-  console.log('userId', userId);
   if (userId) {
     const [user] = await db
       .select({ plan: users.plan })
@@ -20,7 +18,6 @@ export default async function GeneratePage() {
       .limit(1);
     initialPlan = user?.plan ?? 'free';
   }
-  
 
   return (
     <div className="pf-page relative min-h-screen">

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { apiError } from '@/lib/api/envelope';
 import { requireClerkSession } from '@/lib/auth/require-clerk-session';
 import { checkRateLimit } from '@/lib/rate-limit/check';
 
@@ -20,13 +21,7 @@ export function jsonApiError(
   message: string,
   extraHeaders?: HeadersInit,
 ): Response {
-  return Response.json(
-    { error: message },
-    {
-      status,
-      headers: extraHeaders,
-    },
-  );
+  return apiError(message, status, extraHeaders ? { headers: extraHeaders } : undefined);
 }
 
 export async function protectAiRoute(req: Request): Promise<ProtectedAiResult> {

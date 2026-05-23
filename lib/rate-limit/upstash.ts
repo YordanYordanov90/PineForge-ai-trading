@@ -29,3 +29,15 @@ export const proUserRatelimit = new Ratelimit({
   prefix: 'pineforge:pro',
   analytics: true,
 });
+
+// Data-route per-user limiter — defense-in-depth for CRUD endpoints
+// (collections, scripts, search, mutations). Plan-agnostic: data
+// operations are not a paid feature, only the AI generation cost is.
+// 120 requests per minute is generous for normal use (history reload,
+// bulk tag/star edits) but kills bot-like behavior.
+export const dataUserRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(120, '60 s'),
+  prefix: 'pineforge:data',
+  analytics: true,
+});

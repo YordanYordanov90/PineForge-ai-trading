@@ -6,33 +6,34 @@ import {
   listScriptsForUser,
   rowToSavedScript,
 } from '@/lib/db';
-import { requireClerkSession } from '@/lib/auth/require-clerk-session';
 import { createScriptSchema } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
+import { protectDataRoute } from '@/lib/api/protected-data-route';
 
 export async function GET() {
-  const session = await requireClerkSession();
-  if (!session.ok) return session.response;
+  const guard = await protectDataRoute();
+  if (!guard.ok) return guard.response;
 
-  const userId = await getDbUserIdByClerk(session.userId);
+  const userId = await getDbUserIdByClerk(guard.ctx.userId);
   if (userId == null) {
-    return Response.json({ scripts: [] });
+    return apiSuccess({ scripts: [] });
   }
 
   const rows = await listScriptsForUser(userId);
 
-  return Response.json({ scripts: rows.map(rowToSavedScript) });
+  return apiSuccess({ scripts: rows.map(rowToSavedScript) });
 }
 
 export async function POST(req: Request) {
-  const session = await requireClerkSession();
-  if (!session.ok) return session.response;
+  const guard = await protectDataRoute();
+  if (!guard.ok) return guard.response;
 
-  const userId = await ensureDbUserForClerkId(session.userId);
+  const userId = await ensureDbUserForClerkId(guard.ctx.userId);
 
   const body: unknown = await req.json().catch(() => null);
   const parsed = createScriptSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues }, { status: 400 });
+    return apiInvalidRequest();
   }
 
   const { title, content, version, parentId, model, accountBalance, metadata } =
@@ -53,8 +54,8 @@ export async function POST(req: Request) {
     .returning();
 
   if (!created) {
-    return Response.json({ error: 'Failed to save script' }, { status: 500 });
+    return apiError('Failed to save script', 500);
   }
 
-  return Response.json({ script: rowToSavedScript(created) });
+  return apiSuccess({ script: rowToSavedScript(created) });
 }

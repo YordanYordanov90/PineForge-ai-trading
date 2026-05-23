@@ -1,6 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { explainScriptSchema } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest } from '@/lib/api/envelope';
 import { jsonApiError, protectAiRoute } from '@/lib/api/protected-ai-route';
 import { DEFAULT_MODEL, EXPLAIN_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import {
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
   const parsed = explainScriptSchema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues }, { status: 400 });
+    return apiInvalidRequest();
   }
 
   const lock = await acquireStreamLock(guard.ctx.userId);
@@ -53,9 +54,6 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch {
     await lock.release();
-    return Response.json(
-      { error: 'Failed to explain script. Please try again.' },
-      { status: 500 },
-    );
+    return apiError('Failed to explain script. Please try again.', 500);
   }
 }

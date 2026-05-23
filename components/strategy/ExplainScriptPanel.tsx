@@ -22,6 +22,8 @@ type ExplainScriptPanelProps = {
   isTabActive: boolean;
   isScriptFinal: boolean;
   cancelKey: number;
+  /** Spec 50: surfaces Breakdown tab text for Markdown export. */
+  onBreakdownChange?: (text: string | null) => void;
 };
 
 type Phase = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
@@ -47,6 +49,7 @@ export function ExplainScriptPanel({
   isTabActive,
   isScriptFinal,
   cancelKey,
+  onBreakdownChange,
 }: ExplainScriptPanelProps) {
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -59,7 +62,16 @@ export function ExplainScriptPanel({
     inFlightRef.current?.abort();
     inFlightRef.current = null;
     startedRef.current.clear();
-  }, [cancelKey]);
+    if (mode === 'breakdown') {
+      onBreakdownChange?.(null);
+    }
+  }, [cancelKey, mode, onBreakdownChange]);
+
+  useEffect(() => {
+    if (mode !== 'breakdown' || !onBreakdownChange) return;
+    const trimmed = text.trim();
+    onBreakdownChange(trimmed.length > 0 ? trimmed : null);
+  }, [mode, text, onBreakdownChange]);
 
   useEffect(() => {
     const trimmed = script.trim();

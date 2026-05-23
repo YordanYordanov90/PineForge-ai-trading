@@ -20,6 +20,7 @@ a trading idea and seeing it on a chart.
 3. Support iterative refinement so traders evolve strategies without starting from scratch
 4. Phase 4: Build proper foundation (Clerk auth + Neon Postgres + Drizzle ORM + rate limiting)
 5. Phase 5: Add high-value workflow features that turn PineForge into a complete daily driver for active traders (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
+6. Phase 6: Forge Agent — an AI strategy workflow agent with tool calling, persistent memory, and orchestration over existing PineForge features, accessible on a dedicated `/forge` page
 
 ## Core User Flow
 
@@ -89,6 +90,39 @@ Implementation planning for the medium-value set is intentionally split into
 small feature specs under `context/features/` so schema/data reuse, routes,
 state, and UI can ship in narrow units.
 
+## Phase 6 — Forge Agent
+
+A dedicated AI strategy workflow agent on `/forge` that ties together every
+PineForge feature into one conversational surface. Forge is a **strategy
+workflow agent**, not a trading advisor — it helps users build, analyze, and
+organize Pine Script strategies faster by orchestrating existing PineForge
+capabilities through natural conversation.
+
+### Core Capabilities
+
+- **Tool calling** — the agent calls existing PineForge backend features as tools
+  (Health Score, Backtesting Summary, Alert Templates, script search, script
+  refinement) and presents results inline in the conversation
+- **Persistent memory** — short-term (per-conversation thread) and long-term
+  (cross-session user profile: preferred markets, timeframes, indicator patterns,
+  strategy history insights)
+- **Strategy research** — web search scoped to trading strategy and indicator
+  research (not market data, not price predictions, not buy/sell advice)
+- **Orchestration** — chains multiple tools in a single conversation turn
+  (e.g. generate → health score → backtest summary → alert templates)
+- **Guardrails** — clear refusal patterns for out-of-scope requests (financial
+  advice, live market data, trade execution); output validation on tool results
+
+### Not Included
+
+- Live market data or price feeds
+- Trade execution or broker connections
+- Buy/sell recommendations or portfolio tracking
+- Telegram / email notifications
+- Proactive or unprompted agent suggestions
+
+Feature specs live in `context/features/51–58`.
+
 ## Scope
 
 ### In Scope
@@ -97,6 +131,7 @@ state, and UI can ship in narrow units.
 - Client-side history via localStorage (Phase 1–3)
 - Phase 4: Clerk auth + Neon Postgres + Drizzle ORM + Upstash rate limiting + per-user history migration
 - Phase 5: High & Medium value workflow features (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
+- Phase 6: Forge Agent — AI strategy workflow agent with tool calling, memory, and orchestration (dedicated `/forge` page)
 
 ### Out of Scope
 
@@ -104,7 +139,7 @@ state, and UI can ship in narrow units.
 - Backtesting engine
 - TradingView live chart integration
 - Team collaboration features
-- General-purpose AI chat
+- General-purpose AI chat (note: the Forge Agent is a **scoped strategy workflow agent** with defined tools and guardrails, not an open-ended chatbot)
 - Pine Script IDE or version-controlled notebook
 
 ## Success Criteria

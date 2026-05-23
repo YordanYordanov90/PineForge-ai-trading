@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   AlertTriangle,
   Clock,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
+import type { BacktestSummaryResult } from '@/lib/api/validation';
 import type { GrokModel } from '@/lib/config/constants';
 import {
   useBacktestSummary,
@@ -36,6 +38,8 @@ type BacktestSummaryPanelProps = {
   structuredInputs: StructuredInputsValue;
   isScriptFinal: boolean;
   resetKey: number;
+  /** Spec 50: surfaces loaded result for Markdown export. */
+  onResultChange?: (result: BacktestSummaryResult | null) => void;
 };
 
 type SectionIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -93,8 +97,14 @@ export function BacktestSummaryPanel({
   structuredInputs,
   isScriptFinal,
   resetKey,
+  onResultChange,
 }: BacktestSummaryPanelProps) {
   const { phase, result, errorMessage, run, isLoading } = useBacktestSummary(resetKey);
+
+  useEffect(() => {
+    onResultChange?.(phase === 'success' && result ? result : null);
+  }, [phase, result, onResultChange]);
+
   const canRun =
     isScriptFinal && Boolean(script.trim()) && Boolean((prompt ?? '').trim());
 

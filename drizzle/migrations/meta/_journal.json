@@ -15,6 +15,13 @@
       "when": 1778937129343,
       "tag": "0001_unique_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779445313768,
+      "tag": "0002_groovy_scalphunter",
+      "breakpoints": true
     }
   ]
 }

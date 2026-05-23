@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import type { GrokModel } from '@/lib/config/constants';
-import type { AlertTemplateProvider } from '@/lib/api/validation';
+import type {
+  AlertTemplateProvider,
+  AlertTemplatesResult,
+} from '@/lib/api/validation';
 import { AlertTemplateCard } from '@/components/strategy/AlertTemplateCard';
 import {
   useAlertTemplates,
@@ -28,6 +31,8 @@ type AlertTemplatesPanelProps = {
   structuredInputs: StructuredInputsValue;
   isScriptFinal: boolean;
   resetKey: number;
+  /** Spec 50: surfaces loaded result for Markdown export. */
+  onResultChange?: (result: AlertTemplatesResult | null) => void;
 };
 
 function buildRunInput(props: AlertTemplatesPanelProps): AlertTemplatesRunInput {
@@ -48,9 +53,14 @@ export function AlertTemplatesPanel({
   structuredInputs,
   isScriptFinal,
   resetKey,
+  onResultChange,
 }: AlertTemplatesPanelProps) {
   const { phase, result, errorMessage, run, isLoading } = useAlertTemplates(resetKey);
   const [activeProvider, setActiveProvider] = useState<AlertTemplateProvider>('3commas');
+
+  useEffect(() => {
+    onResultChange?.(phase === 'success' && result ? result : null);
+  }, [phase, result, onResultChange]);
   const canRun =
     isScriptFinal && Boolean(script.trim()) && Boolean((prompt ?? '').trim());
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   Activity,
   AlertTriangle,
@@ -23,7 +24,16 @@ import { ExplainScriptPanel } from '@/components/strategy/ExplainScriptPanel';
 import { AlertTemplatesPanel } from '@/components/strategy/AlertTemplatesPanel';
 import { BacktestSummaryPanel } from '@/components/strategy/BacktestSummaryPanel';
 import { HealthScorePanel } from '@/components/strategy/HealthScorePanel';
+import { ExportMarkdownPanel } from '@/components/strategy/ExportMarkdownPanel';
 import { OutputActionBar } from '@/components/strategy/OutputActionBar';
+import type {
+  AlertTemplatesResult,
+  BacktestSummaryResult,
+  HealthScoreResult,
+} from '@/lib/api/validation';
+import { buildExportMarkdownFromContext } from '@/lib/export/build-export-markdown';
+import { downloadMarkdownFile } from '@/lib/export/download-markdown';
+import { DEFAULT_EXPORT_TITLE } from '@/lib/export/source';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import type { GrokModel } from '@/lib/config/constants';
 import { RefineChat } from '@/components/strategy/RefineChat';
@@ -116,6 +126,10 @@ type StrategyOutputCardProps = {
   onPrefillRefine?: (instruction: string) => void;
   refinePrefillInstruction?: string;
   refinePrefillNonce?: number;
+  /** Display title for Markdown export (history name or prompt excerpt). */
+  exportTitle?: string;
+  /** ISO createdAt when loaded from history; omitted for fresh drafts. */
+  exportCreatedAt?: string | null;
 };
 
 export function StrategyOutputCard({
@@ -161,9 +175,86 @@ export function StrategyOutputCard({
   onPrefillRefine,
   refinePrefillInstruction,
   refinePrefillNonce,
+  exportTitle,
+  exportCreatedAt = null,
 }: StrategyOutputCardProps) {
   const [successPulse, setSuccessPulse] = useState(false);
+  const [exportPanelOpen, setExportPanelOpen] = useState(false);
+  const [markdownCopied, setMarkdownCopied] = useState(false);
+  const [breakdownText, setBreakdownText] = useState<string | null>(null);
+  const [healthExportResult, setHealthExportResult] =
+    useState<HealthScoreResult | null>(null);
+  const [alertExportResult, setAlertExportResult] =
+    useState<AlertTemplatesResult | null>(null);
+  const [backtestExportResult, setBacktestExportResult] =
+    useState<BacktestSummaryResult | null>(null);
   const wasGeneratingRef = useRef(false);
+
+  useEffect(() => {
+    setBreakdownText(null);
+    setHealthExportResult(null);
+    setAlertExportResult(null);
+    setBacktestExportResult(null);
+    setExportPanelOpen(false);
+    setMarkdownCopied(false);
+  }, [explainCancelKey, healthScoreResetKey, backtestSummaryResetKey, alertTemplatesResetKey]);
+
+  const buildMarkdown = useCallback(() => {
+    return buildExportMarkdownFromContext({
+      title: exportTitle?.trim() || DEFAULT_EXPORT_TITLE,
+      prompt: strategyPrompt,
+      script: generatedScript,
+      model: selectedModel,
+      structuredInputs: {
+        ...structuredInputs,
+        balance: accountBalance,
+      },
+      breakdown: breakdownText,
+      createdAt: exportCreatedAt,
+      healthScore: healthExportResult,
+      alertTemplates: alertExportResult,
+      backtestSummary: backtestExportResult,
+    });
+  }, [
+    exportTitle,
+    strategyPrompt,
+    generatedScript,
+    selectedModel,
+    structuredInputs,
+    accountBalance,
+    breakdownText,
+    exportCreatedAt,
+    healthExportResult,
+    alertExportResult,
+    backtestExportResult,
+  ]);
+
+  const handleCopyMarkdown = useCallback(async () => {
+    const markdown = buildMarkdown();
+    if (!markdown.trim()) {
+      toast.error('Nothing to export yet. Generate a script first.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setMarkdownCopied(true);
+      toast.success('Markdown copied — paste into Notion or Obsidian.');
+      window.setTimeout(() => setMarkdownCopied(false), 1400);
+    } catch {
+      toast.error('Copy failed. Try Download .md instead.');
+    }
+  }, [buildMarkdown]);
+
+  const handleDownloadMarkdown = useCallback(() => {
+    const markdown = buildMarkdown();
+    if (!markdown.trim()) {
+      toast.error('Nothing to export yet. Generate a script first.');
+      return;
+    }
+    const title = exportTitle?.trim() || DEFAULT_EXPORT_TITLE;
+    downloadMarkdownFile(title, markdown);
+    toast.success('Markdown file downloaded.');
+  }, [buildMarkdown, exportTitle]);
 
   useEffect(() => {
     const finishedGenerate =
@@ -240,10 +331,12 @@ export function StrategyOutputCard({
                 isOutputBusy={isOutputBusy}
                 copied={copied}
                 webhookPanelOpen={webhookPanelOpen}
+                exportPanelOpen={exportPanelOpen}
                 onCopy={onCopy}
                 onDownload={onDownload}
                 onOpenInTradingView={onOpenInTradingView}
                 onToggleWebhookPanel={onToggleWebhookPanel}
+                onToggleExportPanel={() => setExportPanelOpen((open) => !open)}
               />
             )}
           </div>
@@ -252,6 +345,17 @@ export function StrategyOutputCard({
           Streams live while PineForge writes. Edit the Script tab directly when idle; use Compare to see edits vs
           the last generated output or the previous version. Paste into TradingView &rarr; Pine Editor &rarr; Add to chart.
         </CardDescription>
+        {exportPanelOpen && generatedScript && !isOutputBusy ? (
+          <ExportMarkdownPanel
+            copied={markdownCopied}
+            onCopy={() => void handleCopyMarkdown()}
+            onDownload={handleDownloadMarkdown}
+            includesBreakdown={Boolean(breakdownText)}
+            includesOptionalSections={Boolean(
+              healthExportResult || alertExportResult || backtestExportResult,
+            )}
+          />
+        ) : null}
         {webhookPanelOpen && generatedScript && !isOutputBusy && (
           <WebhookJsonPanel webhookUrl={webhookUrl} onWebhookUrlChange={onWebhookUrlChange} />
         )}
@@ -347,6 +451,7 @@ export function StrategyOutputCard({
                 isTabActive={outputTab === 'breakdown'}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 cancelKey={explainCancelKey}
+                onBreakdownChange={setBreakdownText}
               />
             </TabsContent>
             <TabsContent value="checklist" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -368,6 +473,7 @@ export function StrategyOutputCard({
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 resetKey={healthScoreResetKey}
                 onPrefillRefine={onPrefillRefine}
+                onResultChange={setHealthExportResult}
               />
             </TabsContent>
             <TabsContent value="backtest" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -379,6 +485,7 @@ export function StrategyOutputCard({
                 structuredInputs={structuredInputs}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 resetKey={backtestSummaryResetKey}
+                onResultChange={setBacktestExportResult}
               />
             </TabsContent>
             <TabsContent value="alerts" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -390,6 +497,7 @@ export function StrategyOutputCard({
                 structuredInputs={structuredInputs}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 resetKey={alertTemplatesResetKey}
+                onResultChange={setAlertExportResult}
               />
             </TabsContent>
             <TabsContent value="compare" forceMount className="mt-0 data-[state=inactive]:hidden">

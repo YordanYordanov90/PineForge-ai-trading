@@ -1,6 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { improvePromptSchema } from '@/lib/api/validation';
+import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
 import { protectAiRoute } from '@/lib/api/protected-ai-route';
 import { DEFAULT_MODEL } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   const parsed = improvePromptSchema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues }, { status: 400 });
+    return apiInvalidRequest();
   }
 
   const missingKey = responseIfMissingXaiApiKey();
@@ -59,11 +60,8 @@ export async function POST(req: Request) {
 
     const improvedPrompt = result.text.slice(0, MAX_IMPROVED_PROMPT_LENGTH);
 
-    return Response.json({ improvedPrompt });
+    return apiSuccess({ improvedPrompt });
   } catch {
-    return Response.json(
-      { error: 'Failed to improve prompt. Please try again.' },
-      { status: 500 },
-    );
+    return apiError('Failed to improve prompt. Please try again.', 500);
   }
 }
