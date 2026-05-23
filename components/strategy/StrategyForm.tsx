@@ -143,6 +143,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
             refinePrefillNonce={session.refinePrefillNonce}
             exportTitle={lineage.exportTitle}
             exportCreatedAt={lineage.exportCreatedAt}
+            forgeScriptId={parseForgeScriptId(lineage.lineageState?.rootId)}
           />
         </div>
       </>
@@ -151,3 +152,18 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
 );
 
 StrategyForm.displayName = 'StrategyForm';
+
+/**
+ * `lineageState.rootId` is typed as `string` because the localStorage
+ * history (Phase 1–3) used opaque ids; DB-backed rows convert their
+ * numeric id via `String(row.id)`. The Forge entry point only makes
+ * sense for DB-backed scripts (signed-in users) — anything that
+ * doesn't parse to a positive int falls back to `null` so the
+ * "Discuss with Forge" button hides on local-only entries.
+ */
+function parseForgeScriptId(rootId: string | undefined): number | null {
+  if (!rootId) return null;
+  const parsed = Number.parseInt(rootId, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}

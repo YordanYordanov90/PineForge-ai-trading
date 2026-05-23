@@ -109,16 +109,31 @@ in [`context/UI/`](UI/). Update the **Status** column when a spec ships.
 
 ## Current Phase
 
-Phase 5 nearly complete (specs 49–50 in progress). Phase 6 — Forge Agent —
-spec'd and ready to implement after Phase 5 ships.
+Phase 5 complete (Export 48–50 shipped). Phase 6 — Forge Agent —
+**complete**; all eight specs (`51`–`58`) shipped: Memory Schema,
+Tool Contracts, Conversation CRUD routes, Streaming Endpoint, Memory
+Extraction, `/forge` UI, and Guardrails.
 
 ## Current Goal
 
-Phase 5 medium-value features are wrapping up: Starred Scripts (`36`–`39`),
-Tags + Search (`40`–`43`), Collections (`44`–`47`) are complete. Export
-(`48`–`50`) is in progress. Next after Phase 5: Phase 6 Forge Agent
-(`51`–`58`). Deferred Phase 4 hardening (`context/fixes.md` Fix 3 / Fix 7 —
-weighted quotas, audit logs) remains optional.
+Phase 6 Forge Agent (`51`–`58`) is complete. Done: `52` (memory
+schema + Drizzle migration `0003` applied to Neon), `53` (tool contract
+scaffolding in `lib/agent/tools/`), `54` (conversation CRUD routes +
+DB helpers + ownership resolver), `55` (`POST /api/forge` streaming
+endpoint + system prompt + tool runners + persistence), `56` (memory
+extraction — `lib/agent/memory-extraction.ts` + the agent-memory
+upsert / debounce / script-count helpers + the `onFinish` hook in
+`/api/forge`), `57` (`/forge` page UI — `ForgeExperience` orchestrator,
+sidebar + chat + message list + tool-call cards + input + empty state;
+`useForgeConversations` hook; `agentMessagesToUIMessages` adapter for
+`useChat`; navbar Forge link + "Discuss with Forge" entry point on
+`/generate`), `58` (canonical `lib/agent/guardrails.ts` module —
+`FORGE_GUARDRAILS` block with refusal patterns, language constraints,
+tool-usage rules, and prompt-transparency rules; replaces the inline
+MVP block in `system-prompt.ts`; refine-script runner hardened with
+empty-output check to complete spec § Tool Result Validation). Next
+slice: optional Phase 4 hardening (`context/fixes.md` Fix 3 / Fix 7 —
+weighted quotas, audit logs) or polish work.
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -174,19 +189,19 @@ weighted quotas, audit logs) remains optional.
 - Strategy Collections / Folders — complete (`44`–`47`)
 - Export to Notion / Obsidian — in progress (`48`–`50`)
 
-## Phase 6 — Forge Agent (Planned After Phase 5)
+## Phase 6 — Forge Agent (In Progress)
 
 AI strategy workflow agent on `/forge` with tool calling, persistent memory,
 and orchestration over existing PineForge features. Specs:
 
 - `51` — Forge Agent overview (product spec, identity, scope, examples)
-- `52` — Memory schema (Drizzle tables + migration: `agent_conversations`, `agent_memory`)
-- `53` — Tool definitions (Zod schemas, descriptions, endpoint mappings)
-- `54` — Conversation CRUD routes (save/load/list/delete REST)
-- `55` — Agent streaming endpoint (`POST /api/forge` — system prompt, `streamText`, tool calling)
-- `56` — Memory extraction (background preference extraction from conversations)
-- `57` — `/forge` page UI (chat interface, tool call display, conversation sidebar)
-- `58` — Guardrails (refusal patterns, prompt injection defense, output validation)
+- `52` — Memory schema (Drizzle tables + migration: `agent_conversations`, `agent_memory`) ✅
+- `53` — Tool definitions (Zod schemas, descriptions, endpoint mappings) ✅
+- `54` — Conversation CRUD routes (save/load/list/delete REST) ✅
+- `55` — Agent streaming endpoint (`POST /api/forge` — system prompt, `streamText`, tool calling) ✅
+- `56` — Memory extraction (background preference extraction from conversations) ✅
+- `57` — `/forge` page UI (chat interface, tool call display, conversation sidebar) ✅
+- `58` — Guardrails (refusal patterns, prompt injection defense, output validation) ✅
 
 ## Completed
 
@@ -243,13 +258,19 @@ and orchestration over existing PineForge features. Specs:
 - `48-export-breakdown-source-contract.md` — single source of truth for what feeds the Notion / Obsidian export lives in `lib/export/source.ts`. Exports `StrategyExportSource` type (title, prompt, script, model `{ id, label }`, `structuredInputs` with `market`/`timeframe`/`direction`/`indicators`/`rr`/`balance`, `breakdown`, `createdAt`, `updatedAt`), helper types `StrategyExportSourceModel` + `StrategyExportStructuredInputs`, the `DEFAULT_EXPORT_TITLE` fallback, and two pure builders: `buildStrategyExportSource(input)` for the active generator path and `buildExportSourceFromSavedScript(saved, { breakdown? })` for the history path. Builders are deterministic and synchronous — no AI calls, no DB writes, no DOM access — so they are safe on either client or server, and same input always yields the same payload (per spec § Rules). Title falls back to `DEFAULT_EXPORT_TITLE` ("Untitled strategy") on empty input; `prompt` and `breakdown` are trimmed; `model` is resolved against `GROK_MODELS` so the serializer (spec 49) does not have to re-resolve constants; `structuredInputs` filters out empty strings, empty arrays, and `undefined` so spec 49 can use simple truthy checks; `script` is preserved verbatim (no whitespace normalization here — spec 49 owns fenced-code formatting); `breakdown` is `null` when the user has not loaded the Breakdown tab yet; `updatedAt` is reserved as `null` for forward compatibility with `scripts.updated_at` (currently not surfaced by `SavedScript`). No Zod schema (no API boundary at this step — spec 50 may add validation if needed). Contract is read-only here — the markdown serializer lives in spec 49 (`lib/export/strategy-markdown.ts`) and the copy/download actions live in spec 50. Documented in `context/architecture.md` § Data Contracts → "Strategy Export Source". `npm run build` passes ✅
 - `49-export-markdown-serializer.md` — `lib/export/strategy-markdown.ts` exports `assembleStrategyExportMarkdown(source, options?)` + `StrategyExportMarkdownOptions` + `exportHasMetadata(source)`. Consumes spec-48 `StrategyExportSource`; optional `options` carries already-loaded `healthScore`, `alertTemplates`, and `backtestSummary` (no new AI). Stable section order: `#` title → `## Strategy Metadata` (bullet list: model, market, timeframe, direction, R:R, balance, indicators, created/updated as UTC `YYYY-MM-DD`) → `## Original Prompt` (blockquote, line breaks preserved) → `## Breakdown` (only when non-null; body verbatim) → `## Pine Script` (fenced `pine` block; fence length auto-expands if script contains triple backticks) → optional `## Health Score` / `## Alert Templates` (per-provider `###` + fenced `json` for `messageJson`) / `## Backtesting Summary` (reuses spec-33 `markdown` field + optional `###` title). Deterministic: inline bullet whitespace collapsed, document `.trim()`'d, no Notion/Obsidian-specific variants. No UI, no download route, no Notion API. Documented in `context/architecture.md` § "Strategy Export Markdown Serializer". `npm run build` passes ✅
 - `50-export-actions-ui.md` — `/generate` output workflow: `FileText` toggle in `OutputActionBar` opens `ExportMarkdownPanel` (Notion/Obsidian copy + **Copy Markdown** / **Download .md**). Client-only download via `lib/export/download-markdown.ts` (Blob + anchor, sanitized filename). Assembly via `lib/export/build-export-markdown.ts` → spec-48 source + spec-49 serializer. `StrategyOutputCard` collects breakdown (`ExplainScriptPanel.onBreakdownChange`), optional Health/Alerts/Backtest results (`onResultChange` on panels — no export-time AI). `StrategyForm` passes `exportTitle` + `exportCreatedAt` (set on save/load, cleared on new generate). Panel hints when Breakdown not loaded; resets on generate/refine/history load. No OAuth, no Notion API, no backend route. `npm run build` passes ✅
+- `53-forge-agent-tools.md` — Phase 6 tool-contract scaffolding. Seven contract files in new `lib/agent/tools/` directory — one file per tool (`search-user-scripts.ts`, `get-script-details.ts`, `run-health-score.ts`, `run-backtest-summary.ts`, `generate-alert-templates.ts`, `refine-script.ts`, `search-strategy-knowledge.ts`) plus shared `types.ts` (`AgentToolContext`, `AgentToolExecutor`, `AgentToolContract`) and aggregating `index.ts` (re-exports every contract, exposes `FORGE_TOOL_NAMES`, `ForgeToolName`, `forgeToolContracts` registry keyed by tool name, and `isForgeToolName()` runtime guard). Each tool file exports the Zod input schema (from the spec verbatim), the LLM-facing description, a sanitized `<NAME>_ERROR` constant, TS `Input`/`Output` aliases, and a typed `<Name>Executor` alias so spec 55 can wire `tool({ description, inputSchema, execute })` without schema drift. `AgentToolContext` carries `userId` (DB integer), `clerkId`, `plan`, `model` (`GrokModelId`), and `signal` (`AbortSignal`) — none of these fields appear in any LLM-facing input schema per spec § Security Notes. Outputs reuse existing strict types where the tool wraps an existing endpoint (`HealthScoreResult`, `BacktestSummaryResult`, `AlertTemplatesResult`, `SavedScript`) so spec 57's UI renders tool results with the same panels the manual flow uses, no shape translation. `search_user_scripts` cap on `tags` is `floor(MAX_TAGS_PER_SCRIPT / 2)` so the agent can't blow URL budgets; each tag length matches the storage contract's `MAX_TAG_LENGTH`. `run_backtest_summary` keeps `market`/`timeframe` as free-text (not enums) because the agent surfaces conversational values like `"BTC/USDT"`; spec 55's executor maps to the underlying enum or drops them. `search_strategy_knowledge` is provider-agnostic — the description explicitly forbids current prices, market news, sentiment, and buy/sell signals; the sanitized missing-provider fallback `"Strategy research is not available right now."` is exported as `SEARCH_STRATEGY_KNOWLEDGE_UNAVAILABLE_MESSAGE` so spec 55 doesn't drift from the spec copy. `refine_script` documentation calls out that the executor (spec 55) must count it against the user's daily AI quota and acquire the same per-user stream concurrency lock as a manual refine. Per spec § Scope Limits: contracts only — `execute` functions, the AI SDK `tool({...})` composition, and the final `forgeTools` map are spec 55. No CRUD routes (spec 54), no UI (spec 57), no guardrail logic (spec 58). Documented in `context/architecture.md` § Forge Agent Architecture → "Forge Agent Tool Contracts (spec 53)". `npm run build` passes ✅
+- `52-forge-agent-memory-schema.md` — Phase 6 foundation. Two new Drizzle tables in `drizzle/schema.ts`: `agent_conversations` (`id`, `user_id → users.id` not-null, optional `title varchar(200)`, `messages jsonb notNull default '[]'` typed as `AgentMessage[]`, optional `script_id → scripts.id`, `created_at`, `updated_at`) and `agent_memory` (`id`, `user_id → users.id`, `profile jsonb notNull default '{}'` typed as `AgentUserProfile`, `updated_at`). Indexes: `agent_conversations_user_id_updated_at_idx` (composite, `user_id` + `updated_at DESC`) for the conversation-list sort path; `agent_memory_user_id_unique_idx` (UNIQUE) so spec 56's extraction upsert can target one row per user. New types in `lib/types/agent.ts` — `AgentMessageRole`, `AgentMessage` (role, content, optional `toolCalls` + `toolResults`, per-turn `createdAt`), `AgentToolCall` (`id`, `name`, `args`), `AgentToolResult` (`toolCallId`, `name`, `result`, optional `isError`), `AgentUserProfile` (all optional: preferred markets / timeframes / indicators, risk tolerance, strategy patterns, average health score, total strategies generated, bounded `insights[]`, `lastExtractedAt`), `SavedConversation` client shape. Re-exported from `lib/types/index.ts` so consumers keep importing from `@/lib/types`. New `lib/db/agent-mapper.ts` exports `rowToAgentConversation()` (returns `SavedConversation` with safe `??` coalescing for `messages`/`createdAt`/`updatedAt`) and `rowToAgentMemory()` (returns `AgentUserProfile` directly — `id`/`userId`/`updatedAt` deliberately not surfaced because spec 55 injects the profile into the system prompt and spec 57 never renders a "memory row"). Re-exported from `lib/db/index.ts`. Drizzle migration `0003_awesome_thundra.sql` generated (two `CREATE TABLE`, three FK constraints, one composite index, one unique index — no changes to existing tables). Scope per spec: no CRUD routes (54), no streaming endpoint (55), no extraction logic (56), no UI (57). `npm run build` passes ✅
+- `54-forge-conversation-crud.md` — Phase 6 REST shell over `agent_conversations` (spec 52). Two route files mirror the spec 45 / 46 narrow-route style: `app/api/forge/conversations/route.ts` (GET list + POST create) and `app/api/forge/conversations/[conversationId]/route.ts` (GET detail + PATCH rename + DELETE). New schemas in `lib/api/validation.ts`: `createConversationSchema` (`{ scriptId: z.number().int().positive().nullable().optional() }`) and `updateConversationSchema` (`{ title: z.string().trim().min(1).max(200) }`). New DB helpers in `lib/db/agent-conversations.ts` (re-exported from `lib/db/index.ts`): `listConversationsForUser(userId)` selects `id`/`title`/`scriptId`/`createdAt`/`updatedAt` only (no `messages` — heavy for the sidebar feed) ordered by `updated_at desc`, capped at `MAX_CONVERSATIONS_PER_USER`; `getConversationForUser(userId, conversationId)` returns the full row including messages via owner-scoped SELECT; `createConversation(userId, scriptId)` runs FIFO eviction when the user is at the cap (oldest by `updated_at asc` deleted before insert), verifies script ownership pre-insert when `scriptId` is non-null (returns `{ ok: false, reason: 'script-not-owned' }` on foreign/missing), and inserts with empty messages; `updateConversationTitle(userId, conversationId, title)` owner-scoped update that bumps `updated_at`; `deleteConversation(userId, conversationId)` owner-scoped delete (no FKs reference the table); `appendMessages(conversationId, userId, newMessages)` for spec 55 — uses raw `sql\`messages || ${jsonb}::jsonb\`` for atomic jsonb append, bumps `updated_at`, owner-scoped via `id` + `user_id` in WHERE. New mapper `rowToAgentConversationSummary()` in `lib/db/agent-mapper.ts` returns `SavedConversation` with `messages: []` so the list view payload stays consistent with the detail view type without lying about unloaded messages. New `MAX_CONVERSATIONS_PER_USER = 50` constant in `lib/config/constants.ts` (matches spec 52's storage cap). New ownership resolver `lib/api/resolve-owned-conversation-route.ts` (parallels `resolve-owned-collection-route.ts` / `resolve-owned-script-route.ts`) — 400 invalid id, 404 missing DB user / missing row, 403 row exists but owned by another user; spec 54 enumerates 403/404 as distinct outcomes for the detail routes so the resolver intentionally surfaces both (vs. the script/collection resolvers which collapse them to a single 403). Route flow mirrors spec 45 / 46: `protectDataRoute` → resolver (PATCH/DELETE/GET-detail) → `getDbUserIdByClerk` (GET list, soft-empty) or `ensureDbUserForClerkId` (POST, auto-provision) → Zod-validate → helper → `apiSuccess({ conversation })` or `{ conversations }` or `{ ok: true }`. Sanitized JSON errors only. Per spec § Scope Limits: no message streaming, no memory extraction, no UI, no individual message editing. `npm run build` passes (routes register as `ƒ /api/forge/conversations` + `ƒ /api/forge/conversations/[conversationId]`) ✅
+- `55-forge-agent-streaming-endpoint.md` — Phase 6 streaming brain. New `app/api/forge/route.ts` POST handler wires the spec-53 tool contracts to the real LLM via Vercel AI SDK `streamText` and persists each turn into the spec-54 `agent_conversations` row. Pre-flight chain mirrors the spec § Flow exactly: `protectAiRoute` (auth + rate limit + plan) → `forgeMessageSchema.safeParse` → `getDbUserIdByClerk` → `getConversationForUser` (404 covers both missing and foreign — pre-stream leak surface is negligible) → `MAX_MESSAGES_PER_CONVERSATION` cap (200, sanitized spec copy on 400) → `resolveModelForPlan(plan, undefined)` (DEFAULT_MODEL for both plans in v1) → `responseIfMissingXaiApiKey` → `acquireStreamLock(clerkUserId)` (409 if held). System prompt assembled via new `lib/agent/system-prompt.ts` `buildForgeSystemPrompt(profile, scriptContext?)` — pure & deterministic, four ordered sections (identity / long-term memory / active script / guardrails). The guardrails block is a minimum-viable placeholder for spec 58 (refusal patterns + prompt-injection-as-data rule + sanitize-tool-errors rule). Long-term memory is read via new `lib/db/agent-memory.ts` `getAgentMemoryForUser(userId)` (re-exported from `lib/db/index.ts`) — owner-scoped, returns `{}` until spec 56 starts populating profiles, so the memory section is omitted entirely on a fresh user. Optional active-script context is loaded via owner-scoped `eq(scripts.id, ?) AND eq(scripts.user_id, userId)` and folded through `rowToSavedScript()` into the prompt; truncated to 2000 chars (the agent always has `get_script_details` for the full body). Tool composition lives in `lib/agent/build-forge-tools.ts` `buildForgeTools(ctx)` — pairs each spec-53 contract with a runner from `lib/agent/tool-runners.ts`, wraps every `execute` in try/catch that returns the contract's sanitized `errorMessage`. The `AgentToolContext` (`userId`/`clerkId`/`plan`/`model`/`signal`) is captured via JS closure scope — the AI SDK's `experimental_context` is intentionally **not** used so the security-critical `userId` can't leak into a tool input payload. Tool runners (`lib/agent/tool-runners.ts`) are in-process equivalents of the existing AI routes: `runHealthScoreInline` / `runBacktestSummaryInline` / `runGenerateAlertTemplatesInline` / `runRefineScriptInline` reuse the route's existing system prompts (`HEALTH_SCORE_SYSTEM`, `BACKTEST_SUMMARY_SYSTEM`, `ALERT_TEMPLATES_SYSTEM`, `PINE_GENERATE_SYSTEM_PROMPT`) + token budgets + Zod schemas (loose intake → strict re-validate where applicable) + the same `normalizeAlertTemplatesOutput` / `assembleBacktestSummaryMarkdown` helpers. `runSearchUserScripts` and `runGetScriptDetails` are direct DB reads (no AI). Every runner forwards the parent stream's `AbortSignal` so client disconnects cancel sub-LLM calls immediately. `runRefineScriptInline` deliberately skips `acquireStreamLock` because the parent Forge stream already holds the user's lock — a second acquire would deadlock. `search_strategy_knowledge` ships v1 without a provider — the executor returns `{ results: [], query, unavailable: SEARCH_STRATEGY_KNOWLEDGE_UNAVAILABLE_MESSAGE }` so the LLM gets a structured response and paraphrases the spec-defined "research not available right now" copy. `streamText` is configured with `stopWhen: stepCountIs(FORGE_AGENT_MAX_STEPS)` (5 — caps the tool loop per spec § Flow), `temperature: 0.4` (slightly looser than the 0.2 used for structured-output routes since the agent is in conversation mode), `system` + `messages` (no `prompt` — `messages` carries the full thread), and `abortSignal: req.signal`. Conversation history is converted to `ModelMessage[]` via text-only `agentHistoryToModelMessages()` — assistant turns drop `toolCalls`, tool messages are skipped entirely (the assistant's text already paraphrases tool output, and replaying exact tool-call/tool-result pairs adds provider-specific edge cases without much benefit). Persistence (`lib/agent/persist-turn.ts`): three helpers — `buildUserAgentMessage(content)` (spec-52 shape with ISO `createdAt`); `stepsToAgentMessages(steps)` folds each AI SDK `StepResult` into one assistant message (text + structured `toolCalls`) and (when present) one follow-up tool message; `generateConversationTitle(firstMessage, model, signal)` runs only on first exchange (when `conversation.title` is null) via a single `generateText` call (`temperature: 0.2`, `maxOutputTokens: 40`, sanitises quotes / "Title:" prefixes / falls back to first 60 chars on error). All three helpers run inside `streamText`'s `onFinish` so the client receives the stream first; `appendMessages()` from spec 54 atomically jsonb-appends both user + reconstructed assistant/tool messages. Lock release runs in `onFinish`, `onError`, and the outer try/catch — three independent paths so a stream slot is never orphaned. Returns `result.toUIMessageStreamResponse()` (SSE-shaped UI Message Stream that spec 57's chat client will consume; tool calls + results + text deltas interleaved). New constants in `lib/config/constants.ts`: `MAX_MESSAGES_PER_CONVERSATION = 200`, `FORGE_AGENT_MAX_STEPS = 5`. New schema `forgeMessageSchema` (`{ conversationId: positive int, message: trimmed string 1–4000 }`) + `ForgeMessageRequest` type in `lib/api/validation.ts`. v1 quota model: every Forge POST counts as one AI action via `protectAiRoute` (free users get 3 Forge turns/day shared with other AI routes); per-tool sub-call quota deduction is deferred per the spec's "tracks tool-call quota consumption" note until we know which tools fire most often in practice. Per spec § Scope Limits: no memory extraction (spec 56 — `getAgentMemoryForUser` always returns `{}` until that ships), no UI (spec 57), no standalone guardrails module (spec 58 — inline placeholder in system prompt), no real-time tool-progress streaming beyond what the AI SDK emits natively, no per-tool quota deduction. `npm run build` passes (route registers as `ƒ /api/forge`) ✅
+- `57-forge-agent-ui.md` — Phase 6 user-facing surface. `/forge` is now an auth-gated RSC page at `app/forge/page.tsx` (added to `proxy.ts` `isProtectedRoute` matcher alongside `/generate(.*)`) that hydrates the client with three server-loaded payloads: `initialPlan` (from `users.plan`, defaults `'free'`), `initialConversations: SavedConversation[]` (via the spec-54 `listConversationsForUser` helper), and an optional `seedScript: SavedScript | null` parsed from `?scriptId=<id>` and owner-checked against `scripts.user_id` (foreign or missing → silent `null`, never surfaces as an error). Loading skeleton at `app/forge/loading.tsx` mirrors the final two-panel layout so the navbar shell + sidebar grid don't shift in. Top-level client orchestrator `components/forge/ForgeExperience.tsx` wraps everything in `UserPlanProvider` (so `ModelSelector` parity carries over), owns the `activeId` + `sidebarOpen` + `hydrationToken` state, and renders the navbar (PineForge wordmark + Forge accent badge + `ModeToggle` + `UserButton`), a desktop two-panel grid (`280px` sidebar + `flex-1` chat) plus a mobile Sheet drawer over `lg:hidden` (same pattern as Script History on `/generate`). The `hydrationToken` is the load-bearing piece of UX: a monotonically-increasing counter bumped *only* on intentional navigation (sidebar conversation click, active-conversation delete) — the chat panel's hydration `useEffect` depends solely on the token (not on `activeConversationId`), so creating a new conversation mid-send no longer triggers a re-fetch that would race the user's pending message via `useChat`. `ForgeChat.tsx` is the chat orchestrator: it adapts the `@ai-sdk/react` `useChat` hook to the spec-55 `POST /api/forge` contract by passing a `DefaultChatTransport` whose `prepareSendMessagesRequest` repackages the SDK's payload into `{ conversationId, message }` (the server expects exactly that shape, not the SDK's `UIMessage` envelope). A `conversationIdRef` mirrors `activeConversationId` so `handleSubmit` can synchronously write the freshly-created conversation id into the transport's closure on the very first send — without it, the first message would either 400 (no id) or fire-and-forget against a stale id. `lib/agent/ui-messages.ts` is the persisted ↔ UI bridge: `agentMessagesToUIMessages(history)` walks the spec-52 `AgentMessage[]` thread and folds each assistant text message together with its trailing `tool` follow-up message into a single AI SDK `UIMessage` whose `parts` interleave `{ type: 'text' }` and `{ type: 'tool', toolName, state, input, output, errorText }` fragments — that's what `ForgeMessageList` renders on every hydrate, so reloads look identical to the live stream. `useForgeConversations` hook in `hooks/useForgeConversations.ts` is the sidebar's single source of truth: list, create, rename, delete, touch helpers all wire to the spec-54 routes with optimistic UI + rollback on failure (rename returns the previous title, delete restores the row in place). `ForgeConversationSidebar.tsx` renders the list (active row gets the emerald rim + `aria-current`), inline-rename (Enter commits / Escape reverts, same pattern as Script History rename), and a delete dialog (`AlertDialog`); the sidebar's "New chat" button just clears `activeId` so the empty state shows — actual creation is lazy-fired by `ForgeChat.handleSubmit` so empty conversations never pollute the list. `ForgeMessageList.tsx` is `role="log" aria-live="polite"`, auto-scrolls on new content via a sentinel `<div ref>` and a `MutationObserver` so streamed deltas don't fight the scroll lock, renders user bubbles (right-aligned, `bg-zinc-800/60`) vs assistant text (left-aligned, no bubble, light markdown via the spec-defined `<strong>` / `<em>` / `<code>` whitelist — no `dangerouslySetInnerHTML`, all text stays inert), and threads the in-flight typing indicator behind the last assistant message while `status === 'streaming'`. `ForgeToolCallCard.tsx` renders the in-line tool invocation as a collapsible card with a per-tool icon map (`Shield` health, `FlaskConical` backtest, `Bell` alerts, `Search` script search, `Code` get_script_details, `Pencil` refine, `Globe` strategy research) plus four states — `pending` (spinner + spec copy), `running` (same), `output-available` (one-line summary derived per-tool: `"Score: 7/10"` / `"Found 3 scripts"` / `"3 templates"` / `"Backtest summary ready"` / etc., expandable to the full structured payload), and `output-error` (amber rim + sanitized error text); the expandable region uses `aria-expanded` + `aria-controls` and reuses `Pre` with a JSON pretty-print for the raw input/output blob. `ForgeInput.tsx` is the composer: auto-resize textarea (rows 1→4 then internal scroll), `Enter` submits / `Shift+Enter` newline (matches the generator), client-side `FORGE_MAX_MESSAGE_LENGTH = 4000` cap matches the spec-55 `forgeMessageSchema`, soft amber tint at 3500 chars, character count tied to `aria-describedby`, disabled-with-banner copy when the conversation hits the spec-55 200-message cap, and a `Stop` button (calls `useChat`'s `stop()`) replaces the Send button while streaming. `ForgeEmptyState.tsx` ships the four spec-defined suggestion chips ("Analyze my last strategy" / "Help me build a BTC scalping strategy" / "Compare my starred scripts" / "What indicators work for 15m crypto?") — each chip directly invokes `handleSubmit(text)` rather than prefilling the textarea, so the new-conversation creation path stays single-flighted. Entry points: (a) `components/generate/GenerateExperience.tsx` adds a Forge link to the navbar (signed-in only, emerald rim + `Sparkles` icon + `New` badge), (b) `components/strategy/OutputActionBar.tsx` adds a "Discuss with Forge" button next to the existing export strip — visible only when the script lineage's `rootId` parses to a positive int (DB-backed scripts, signed-in users; localStorage-only scripts have no DB id to seed with), navigates to `/forge?scriptId=<rootId>`. `StrategyOutputCard.tsx` + `StrategyForm.tsx` plumb `forgeScriptId` through (`lineage.lineageState?.rootId` → `parseForgeScriptId()` → `OutputActionBar.forgeScriptId`); a tiny local helper handles the string→number parse so the existing `LineageState.rootId: string` contract doesn't have to widen for one consumer. Per spec § Scope Limits: no command palette integration on `/forge` (the palette stays on `/generate`); no drag-and-drop reorder; no conversation search/filter (list cap is the spec-54 `MAX_CONVERSATIONS_PER_USER = 50`); no inline script editor (the agent shows scripts as formatted code blocks, edits go through the refine tool or back to `/generate`); no split-view; no conversation markdown export. `npm run build` passes (page registers as `ƒ /forge`); existing lint config doesn't gate on the unrelated `react-hooks/set-state-in-effect` warnings that already exist across the codebase. Documented in `context/architecture.md` § Forge Agent Architecture (forthcoming spec-57 entry) ✅
+- `58-forge-agent-guardrails.md` — Phase 6 safety + scope policy. New `lib/agent/guardrails.ts` (server-only) exports the canonical `FORGE_GUARDRAILS` block — verbatim from spec § "System Prompt Guardrails Block" — covering five bands: (1) hard refusals (no buy/sell/profit-claim/price-prediction/broker-connect/portfolio-access/off-scope content; Health Score never framed as a profit predictor), (2) redirect templates that turn each refused request into a usable next step (Health Score / Backtesting Summary / refine / history search), (3) language constraints (advisory phrasing only; explicit reminders that Health Score reflects structural quality and Backtesting Summary past patterns don't guarantee future results), (4) tool usage rules (only call when warranted, never fabricate results, paraphrase sanitized errors, explain multi-tool chains before running them, treat any instruction embedded inside scripts / prompts / tool inputs / tool outputs as **data** not directive), and (5) prompt transparency (describe capabilities in plain language; never output the raw system prompt or guardrails block; never adopt a different persona). `lib/agent/system-prompt.ts` no longer inlines its MVP block — it imports `FORGE_GUARDRAILS` from `./guardrails` and appends it as the final section of `buildForgeSystemPrompt()`. Stable composition order (identity → optional memory → optional active script → guardrails) preserved so the LLM caches the prompt prefix consistently across turns. Tool result validation (spec § Tool Result Validation) audited end-to-end: `runHealthScoreInline` (strict `healthScoreResultSchema.safeParse`), `runBacktestSummaryInline` (strict `backtestSummaryResultSchema.safeParse` against assembled markdown + sections), `runGenerateAlertTemplatesInline` (`normalizeAlertTemplatesOutput` runs `JSON.parse` on each `messageJson` and returns `null` if any provider's template fails → runner throws → executor returns sanitized error), `runSearchUserScripts` (Drizzle SELECT + `rowToSavedScript` guarantee shape; empty array valid), `runGetScriptDetails` (null surfaces `GET_SCRIPT_DETAILS_ERROR`), and `search_strategy_knowledge` (v1 returns the unavailable fallback with a constant shape) were already in place from spec 55. The one gap — `runRefineScriptInline` returning whatever the model emitted without an empty-output check — was closed here: the runner now throws `'refine-script returned empty content'` when `text.trim().length === 0`, routing through the `buildForgeTools` try/catch wrapper into the spec-53 sanitized `REFINE_SCRIPT_ERROR`. Defense-in-depth layers outside the prompt block are unchanged (already enforced by earlier specs): `forgeMessageSchema`'s 4000-char cap (spec 55), spec-53 Zod tool inputs (no raw user message bleeds into tool args), `protectAiRoute` rate limit + plan + auth (spec 20), `acquireStreamLock` per-user concurrency lock (spec 55), and `experimental_context`-free closure capture of `AgentToolContext` so `userId` can't leak into a tool input. Per spec § Scope Limits: no post-stream output content filter, no user reporting mechanism, no admin monitoring dashboard, no per-user / per-plan guardrail variants — the block is static and identical for every Forge turn. Documented in `context/architecture.md` § Forge Agent Architecture → "Forge Agent guardrails (spec 58)". `npm run build` passes ✅
 
 ## In Progress
 
 ## Next Up
 
-- Finish Phase 5: `49`–`50` Export to Notion / Obsidian (in progress)
-- Phase 6: Forge Agent (`51`–`58`) — implement in spec order
+- Phase 6 Forge Agent (`51`–`58`) is complete. No active spec in
+  Phase 6.
 - Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
 
@@ -418,6 +439,158 @@ and orchestration over existing PineForge features. Specs:
   spec-36 starred / spec-40 tags / spec-44 collections data-contract
   pattern — a contract-only step that lets later specs (49 markdown
   serializer, 50 client actions) depend on one canonical payload.
+- **Forge Agent tool contracts** (spec 53): new `lib/agent/` namespace
+  per `context/architecture.md` § System Boundaries ("`lib/agent/` —
+  Agent internals: system prompt, tool definitions, memory helpers").
+  Seven tool files in `lib/agent/tools/` — one per tool, mirroring the
+  spec's one-section-per-tool structure so future edits land in the
+  obvious place. Aggregating `index.ts` exposes `forgeToolContracts`
+  (read-only registry keyed by tool name) and `FORGE_TOOL_NAMES`
+  (string-literal tuple) so spec 55's streaming endpoint can iterate
+  cleanly while spec 58 gets a single source of truth for the
+  "known tool names" allowlist. `AgentToolContext` is intentionally
+  the only place auth-scoped data lives — `userId`, `clerkId`,
+  `plan`, `model`, `signal`. The LLM never sees these because they
+  aren't part of any `inputSchema`; spec 55's executors receive them
+  as a separate context parameter. Output types reuse the strict
+  schemas spec 27/29/33 already publish (`HealthScoreResult`,
+  `AlertTemplatesResult`, `BacktestSummaryResult`) plus the existing
+  `SavedScript` model — so the agent's tool results round-trip
+  through the same UI panels the manual flow uses with no shape
+  translation. The deliberate divergence: `run_backtest_summary`
+  keeps `market`/`timeframe` as free-text (not enums) because the
+  agent gets these from conversation and the executor (spec 55) is
+  responsible for mapping/dropping unsupported values before
+  invoking the shared handler. `search_strategy_knowledge` is
+  provider-agnostic (Tavily / Serper / Brave choice deferred to
+  spec 55) and the sanitized missing-provider fallback message is
+  exported as a constant so the executor can't drift from the
+  spec-defined copy. Spec 53 is contracts only — `execute`
+  functions, the AI SDK `tool({...})` composition, and the final
+  `forgeTools` map land in spec 55.
+- **Forge Agent streaming endpoint** (spec 55): `POST /api/forge` is
+  the brain that wires every prior Phase 6 spec into a working chat
+  turn. Single handler — conversation creation stays on
+  `POST /api/forge/conversations` (spec 54), so this route only
+  appends turns to an existing thread (`forgeMessageSchema` rejects
+  the no-conversationId case at 400). The pre-stream IO chain runs
+  in dependency order so each guard short-circuits before the next:
+  `protectAiRoute` → schema parse → DB-user lookup →
+  `getConversationForUser` → 200-message cap → model resolution →
+  `XAI_API_KEY` env check → `acquireStreamLock`. Memory (spec 56's
+  output) is read via the new `getAgentMemoryForUser()` helper —
+  read-only here, so the streaming endpoint ships before extraction
+  exists; the empty-`{}` path collapses the system-prompt memory
+  section cleanly until spec 56 starts populating profiles. The
+  active-script context (`/forge?scriptId=<id>`) is verified
+  owner-scoped at prompt build time and silently dropped on missing
+  / foreign rows because the conversation row's ownership is
+  already locked in — there's no need to surface a "your script was
+  deleted" error. Tool composition is split across three modules so
+  each concern is a single file: contracts in `lib/agent/tools/`
+  (spec 53), in-process executors in `lib/agent/tool-runners.ts`,
+  and the `tool({...})` wiring in `lib/agent/build-forge-tools.ts`.
+  The runner module is the canonical extraction of "the same logic
+  the route handler uses, minus HTTP" for health-score / backtest /
+  alerts / refine — they reuse the existing system prompts, token
+  budgets, Zod schemas, and normalize/assemble helpers, so the
+  agent's tool output is bit-for-bit identical to what the manual
+  `/api/health-score` etc. would produce. The `experimental_context`
+  parameter on `streamText` is **deliberately unused** — instead,
+  every executor closes over the typed `AgentToolContext` via JS
+  scope, so `userId` can never accidentally end up in a tool's
+  input payload (the AI SDK's untyped context bag would make that
+  audit harder). Refine-inside-agent skips its own
+  `acquireStreamLock` because the parent already holds the user's
+  lock — a second acquire would deadlock. History → ModelMessage
+  conversion is text-only in v1: the stored AgentMessage tool-call
+  / tool-result payloads are dropped on replay because the
+  assistant's text response in each step already paraphrases tool
+  output, and replaying exact id-matched pairs adds provider edge
+  cases (id format mismatch, content-array vs string content) for
+  little gain. Persistence (`onFinish`) reconstructs an assistant
+  AgentMessage per step (with structured `toolCalls` preserved for
+  spec 57's UI) plus one follow-up tool AgentMessage when results
+  exist; spec 54's atomic-jsonb `appendMessages()` writes both the
+  user message and the reconstructed thread in a single owner-scoped
+  UPDATE. First-turn auto-title runs only when
+  `conversation.title === null`, via a tight `generateText` call
+  (sanitised + 60-char clamp + fallback to first 60 chars of the
+  user message), then `updateConversationTitle()` from spec 54
+  bumps the title and `updated_at` so the conversation floats to
+  the top of the sidebar. Lock release fires in `onFinish` /
+  `onError` / outer try/catch — three independent paths so a stream
+  slot is never orphaned. v1 deliberately does not double-charge
+  for tool sub-calls (the spec's "tracks tool-call quota
+  consumption" line is deferred); each Forge POST is exactly one
+  AI action against the user's daily quota. The route returns
+  `result.toUIMessageStreamResponse()` so spec 57's chat UI can
+  consume the SSE-shaped UI Message Stream directly.
+- **Forge Agent conversation CRUD** (spec 54): two route files —
+  `app/api/forge/conversations/route.ts` (GET list + POST create) and
+  `app/api/forge/conversations/[conversationId]/route.ts` (GET detail
+  + PATCH rename + DELETE) — mirror the spec 45 / 46 narrow-route
+  pattern. Every helper in `lib/db/agent-conversations.ts` is
+  owner-scoped: both `id` and `user_id` participate in every WHERE
+  clause so cross-user reads/writes are structurally impossible even
+  if the route resolver were bypassed. List query selects only
+  `id`/`title`/`scriptId`/`createdAt`/`updatedAt` — never the
+  `messages` jsonb column — because the sidebar feed never renders
+  thread bodies and loading 50 full threads at once would blow up
+  payload size. Detail loads happen via `getConversationForUser()`
+  which selects the full row. POST handles two protections in one
+  helper call (`createConversation`): (1) script ownership pre-check
+  when `scriptId` is non-null so the agent can never attach a
+  foreign script as initial context (403, no row-existence leak),
+  and (2) FIFO eviction when the user is already at the
+  `MAX_CONVERSATIONS_PER_USER = 50` cap — oldest by `updated_at asc`
+  is deleted before insert, no pinned conversations in v1. PATCH only
+  accepts `title` (v1 — message body is owned exclusively by spec 55's
+  streaming endpoint); the rename bumps `updated_at` so the
+  conversation floats to the top of the list. DELETE is a straight
+  row removal because `agent_conversations` is a leaf table (nothing
+  references its id at the FK layer). `appendMessages()` is a
+  pre-built helper for spec 55 — uses `sql\`messages || ${json}::jsonb\``
+  for an atomic jsonb append + `updated_at` bump in a single
+  owner-scoped UPDATE, so the streaming endpoint doesn't need to load
+  the full thread to write one turn. Ownership resolver
+  `resolve-owned-conversation-route.ts` deliberately diverges from
+  the script/collection resolvers — it surfaces 403 vs 404 as
+  distinct outcomes per the spec (instead of collapsing into 403),
+  because agent conversation ids are not enumerable from the client
+  (no public list endpoint that returns ids from other accounts)
+  so the existence-leak surface is negligible compared with the UX
+  benefit. `rowToAgentConversationSummary()` returns
+  `SavedConversation` with `messages: []` so the list-view payload
+  stays the same client type as the detail view without claiming the
+  conversation has zero messages — the empty array signals "messages
+  not loaded for this view". POST uses `ensureDbUserForClerkId` so a
+  freshly-signed-in user can start chatting before the background
+  user sync resolves; GET / PATCH / DELETE use `getDbUserIdByClerk`
+  with the same soft-empty / 404 semantics as the collections route.
+- **Forge Agent memory schema** (spec 52): two new tables in
+  `drizzle/schema.ts`. `agent_conversations` stores per-thread state as a
+  single jsonb `messages` array (not one row per message) so a thread is
+  always loaded in one read — caps live in higher specs (200 messages /
+  conv via streaming endpoint, 50 conv / user via FIFO eviction in CRUD).
+  Composite index `(user_id, updated_at DESC)` matches the "list my
+  conversations" sort path. `agent_memory` is one row per user (UNIQUE
+  index on `user_id`) so the spec-56 extraction upsert can target
+  `ON CONFLICT (user_id) DO UPDATE` cleanly. Both `messages` and
+  `profile` are `notNull().default('[]'/{}')` so reads never coalesce
+  null and the `$type<>()` cast makes the mappers safe without `any`.
+  Schema also imports `AgentMessage` / `AgentUserProfile` from
+  `lib/types/agent.ts` — the contract lives in `lib/types/` so RSC,
+  client, and DB layers share one source of truth without forcing
+  Drizzle to leak into the client bundle. Mappers in
+  `lib/db/agent-mapper.ts` (`rowToAgentConversation` returns a
+  `SavedConversation`; `rowToAgentMemory` returns just the
+  `AgentUserProfile` — the row metadata is intentionally hidden because
+  spec 55 injects the profile and spec 57 never displays a "memory
+  row"). Migration `0003_awesome_thundra.sql` adds the two tables, FKs
+  (`user_id → users.id`, optional `script_id → scripts.id` on
+  conversations), composite + unique indexes; no changes to existing
+  tables.
 - **Collections CRUD route**: `GET / POST /api/collections` and
   `PATCH / DELETE /api/collections/[collectionId]` follow the spec
   37 / 41 narrow-route style — narrow, single-purpose, owner-scoped.
@@ -722,6 +895,271 @@ and orchestration over existing PineForge features. Specs:
   builders are pure TS — Zod would just duplicate the type guard. If
   spec 50 needs runtime validation (e.g. on a future server-side
   export route), it can add a thin schema at that boundary
+- Forge Agent tool contracts (`53`): no execute, no API route, no AI
+  SDK `tool()` composition in this step — that's spec 55. Seven
+  contract files in new `lib/agent/tools/` directory plus shared
+  `types.ts` + aggregating `index.ts`. Each contract file exports
+  the LLM-facing description, Zod input schema (matches the spec
+  verbatim — including `.describe()` on every field so the schema
+  is self-documenting in the JSON-schema spec 55 hands the LLM), a
+  sanitized `<NAME>_ERROR` constant for the executor to return on
+  failure, and TS `Input`/`Output` aliases + a typed `<Name>Executor`
+  alias so spec 55's `tool({ description, inputSchema, execute })`
+  calls stay strict at the I/O boundary. `forgeToolContracts`
+  registry uses `as const satisfies Record<ForgeToolName,
+  AgentToolContract<unknown, unknown>>` so adding a tool to the map
+  forces a corresponding entry in `FORGE_TOOL_NAMES` — exhaustiveness
+  is type-checked. `isForgeToolName()` runtime guard exposed for
+  spec 58's guardrails before any execute runs on an LLM-provided
+  tool name. Privacy invariant baked into the file headers: the
+  executor for `search_strategy_knowledge` must only pass the
+  `query` string to the search provider — never `userId`,
+  conversation history, or any other auth-context value. Bounded
+  inputs: `search_user_scripts` caps `tags` at `floor(MAX_TAGS_PER_SCRIPT / 2)` and each tag at `MAX_TAG_LENGTH`
+  (re-uses the spec-40 constants from `lib/scripts/tags.ts`),
+  `script` ceilings across `run_health_score` /
+  `run_backtest_summary` / `generate_alert_templates` /
+  `refine_script` match the existing 20k underlying-endpoint
+  bounds, `instruction` on `refine_script` matches the 1k bound on
+  `refineScriptSchema`. `npm run build` passes (no new routes —
+  contracts are pure TS).
+- Forge Agent memory extraction (`56`): post-exchange background
+  process that turns recent Forge conversations into the structured
+  `AgentUserProfile` injected by spec 55's system prompt. New module
+  `lib/agent/memory-extraction.ts` owns the full flow — Zod schema
+  (`agentUserProfileSchema`, matches the spec verbatim), system +
+  user prompt builders (`MEMORY_EXTRACTION_SYSTEM`,
+  `buildMemoryExtractionUserPrompt`), trigger checks
+  (`MIN_USER_MESSAGES_FOR_EXTRACTION = 4`, `EXTRACTION_DEBOUNCE_MS =
+  3_600_000`, `RECENT_CONVERSATIONS_LIMIT = 3`), merge logic
+  (`mergeProfiles` + private `uniqueMerge` / `mergeInsights`), and
+  the conditional entry point `maybeExtractAndPersistMemory()` that
+  the streaming endpoint's `onFinish` calls fire-and-forget. Three
+  new DB helpers in `lib/db/agent-memory.ts` —
+  `upsertAgentMemory(userId, profile)` uses
+  `onConflictDoUpdate(target: agentMemory.userId)` against the spec-52
+  `agent_memory_user_id_unique_idx`, `getMemoryLastUpdated(userId)`
+  selects only `updated_at` so the 1-hour debounce is a single
+  cheap round-trip on every Forge turn, and `getScriptCountForUser(userId)`
+  runs `count(*)::int` for the denormalized
+  `totalStrategiesGenerated` field (spec § Output Schema —
+  "computed from a simple count(*) on the user's scripts table, not
+  extracted from conversations"). One new conversation helper —
+  `listRecentConversationsWithMessages(userId, limit)` in
+  `lib/db/agent-conversations.ts` — returns full thread bodies (the
+  sidebar list path's `listConversationsForUser` deliberately drops
+  the `messages` jsonb to stay cheap; the extractor needs them).
+  All four re-exported from `lib/db/index.ts`. Trigger logic
+  evaluates *post-turn* user-message count: the route folds the new
+  user message + reconstructed assistant/tool turns into the
+  conversation snapshot before invoking the extractor, so the very
+  fourth user message becomes the first eligible turn. Extraction
+  call uses `generateObject` (cheaper than `streamText`),
+  `temperature: 0` (deterministic), `maxOutputTokens: 800`
+  (profile is small), and **no abort signal** — extraction runs
+  *after* the user's stream completes, so coupling to
+  `req.signal` would sometimes terminate the call as the request
+  is being finalised. Failure modes (LLM throws, validation fails,
+  upsert throws) are swallowed and returned as
+  `{ ran: false, reason }` — extraction is fire-and-forget
+  maintenance and must never surface in the chat UI; a failed run
+  simply leaves the existing profile in place and the next eligible
+  turn retries. Merge rules per spec § Merge Logic: arrays are
+  case-insensitive union with FIFO eviction at the cap (markets 10,
+  timeframes 8, indicators 10, insights 10) for everything except
+  `strategyPatterns` (case-sensitive — patterns like "VWAP Bounce"
+  vs "vwap bounce" can be intentional variants); scalars
+  (`riskTolerance`, `averageHealthScore`) replace when extracted,
+  fall back to existing otherwise; `totalStrategiesGenerated` is
+  always overwritten with the live `count(*)` (LLM doesn't get to
+  set it even if it tries); `lastExtractedAt` is always set to
+  `new Date().toISOString()` so the debounce on the next turn
+  measures from the actual write. Quota model: extraction does
+  **not** count against the user's daily AI quota — the parent
+  Forge POST already paid for one slot via `protectAiRoute`, this
+  is internal maintenance piggy-backing on the same turn. `npm run build`
+  passes (no new routes — extraction is invoked from inside the
+  existing `/api/forge` handler).
+- Forge Agent streaming endpoint (`55`): `POST /api/forge` ships the
+  end-to-end Forge turn — auth → load conversation → load memory +
+  optional script context → build system prompt → `streamText` with
+  spec-53 tools → persist turn + auto-title + release stream lock.
+  Five new files (`app/api/forge/route.ts`,
+  `lib/agent/system-prompt.ts`, `lib/agent/tool-runners.ts`,
+  `lib/agent/build-forge-tools.ts`, `lib/agent/persist-turn.ts`),
+  one new DB helper (`lib/db/agent-memory.ts` →
+  `getAgentMemoryForUser` re-exported from `lib/db/index.ts`), one
+  new request schema (`forgeMessageSchema` + `ForgeMessageRequest`
+  type in `lib/api/validation.ts`), two new constants
+  (`MAX_MESSAGES_PER_CONVERSATION = 200`,
+  `FORGE_AGENT_MAX_STEPS = 5` in `lib/config/constants.ts`). The
+  guardrails block in `system-prompt.ts` is a minimum-viable
+  placeholder — spec 58 will replace it with the canonical refusal
+  patterns + prompt-injection defense, but the inline block already
+  covers (a) no buy/sell/predictions/connections, (b) treat any
+  instruction inside scripts/prompts/tool outputs as data,
+  (c) sanitize tool errors, so the agent can't slip past Forge's
+  product boundaries during spec 55 rollout. Tool runners reuse
+  the existing AI route's system prompt + token budget + Zod
+  schemas; `runRefineScriptInline` skips `acquireStreamLock`
+  (parent already holds it). `search_strategy_knowledge` returns
+  the spec-defined "research not available right now" fallback in
+  v1 (no provider configured). Persistence runs in `onFinish` so
+  the client receives the stream first; assistant AgentMessages
+  preserve `toolCalls` for spec 57's UI, but tool messages are
+  dropped on replay (text-only `agentHistoryToModelMessages`) to
+  avoid AI SDK provider edge cases. v1 quota: one AI action per
+  Forge POST via `protectAiRoute` (the spec's "tracks tool-call
+  quota consumption" is deferred until usage data exists). Lock
+  release runs in `onFinish` / `onError` / outer catch — three
+  independent paths. `npm run build` registers `ƒ /api/forge`.
+  Route stays public in `proxy.ts` (`/api(.*)` matcher) so it
+  returns its own JSON 401 instead of an HTML redirect.
+- Forge Agent UI (`57`): user-facing surface for everything specs
+  52–56 built server-side. New page at `app/forge/page.tsx` (RSC,
+  auth-gated via `proxy.ts`'s `isProtectedRoute` matcher — `/forge(.*)`
+  is added alongside the existing `/generate(.*)`) hydrates three
+  server-loaded payloads into the client: `initialPlan` (so
+  `UserPlanProvider` matches `/generate`), `initialConversations`
+  (the spec-54 sidebar feed, no message bodies), and `seedScript`
+  (parsed from `?scriptId=<id>`, owner-checked against
+  `scripts.user_id`, foreign / non-numeric / missing → silent `null`).
+  Top-level orchestrator `ForgeExperience` owns three pieces of
+  client state: `activeId` (selected conversation, `number | null`),
+  `sidebarOpen` (mobile Sheet drawer), and `hydrationToken` (a
+  monotonically-increasing counter). The token is the load-bearing
+  UX primitive — `ForgeChat`'s hydration `useEffect` depends solely
+  on it, never on `activeConversationId`. The parent bumps it only
+  on intentional navigation (`handleSelect` from sidebar, `handleDelete`
+  when the active row goes away), so creating a new conversation
+  mid-send via `handleSubmit` doesn't trigger a re-hydration cycle
+  that would race the user's in-flight `useChat` message — the
+  same `activeId` state update *would* re-fetch and wipe the
+  pending message if hydration listened to id changes directly.
+  `ForgeChat` adapts `@ai-sdk/react`'s `useChat` to the spec-55
+  `POST /api/forge` contract via a `DefaultChatTransport` whose
+  `prepareSendMessagesRequest` rewrites the SDK's
+  `{ messages, body }` envelope into `{ conversationId, message }` —
+  the server doesn't speak the SDK's `UIMessage` shape, and using
+  the transport hook is the supported escape hatch. `conversationIdRef`
+  mirrors `activeConversationId` so `handleSubmit` can write the
+  freshly-created conversation id into the transport's closure
+  *synchronously* on first send — without it, the React state
+  update wouldn't have flushed by the time the SDK reads the body.
+  Persisted-to-UI conversion lives in `lib/agent/ui-messages.ts`
+  (`agentMessagesToUIMessages`) — it walks the spec-52 thread once,
+  folding each assistant text message with its trailing `tool`
+  follow-up into a single AI SDK `UIMessage` whose `parts` array
+  interleaves `{ type: 'text' }` and `{ type: 'tool', toolName,
+  state, input, output, errorText }` fragments. Hydrated reloads
+  therefore render identically to a live stream — the same
+  `ForgeMessageList` consumes both. `useForgeConversations` hook
+  (`hooks/useForgeConversations.ts`) wraps the spec-54 routes with
+  optimistic UI: rename returns previous title on rollback, delete
+  restores the row in place, create prepends, touch bumps to top
+  (called from `ForgeChat.onConversationActivity` after each
+  successful turn so the sidebar order matches `updated_at desc`
+  without a refetch). `ForgeConversationSidebar` reads from the
+  hook, renders the active row with an emerald rim +
+  `aria-current="page"`, inline-renames on double-click or kebab
+  menu, and confirms deletes via `AlertDialog`. The "New chat"
+  button just clears `activeId` so the empty state shows; actual
+  POST `/api/forge/conversations` is *lazy-fired* by
+  `ForgeChat.handleSubmit` on the first send so empty
+  conversations never pollute the list. Tool-call rendering lives
+  in `ForgeToolCallCard.tsx` — per-tool icon map (`Shield` health,
+  `FlaskConical` backtest, `Bell` alerts, `Search` script search,
+  `Code` get_script_details, `Pencil` refine, `Globe` research),
+  four states (`pending` + `running` show spinner + spec copy;
+  `output-available` shows a one-line per-tool summary —
+  `"Score: 7/10"`, `"Found N scripts"`, `"N templates"`,
+  `"Backtest summary ready"` — expandable to the full structured
+  payload; `output-error` shows the sanitized executor error in an
+  amber-rimmed card), `aria-expanded` + `aria-controls` on the
+  toggle. `ForgeInput.tsx` is the composer: auto-resize textarea
+  (4 visible rows then internal scroll), `Enter` submits /
+  `Shift+Enter` newline, `FORGE_MAX_MESSAGE_LENGTH = 4000` matches
+  the spec-55 `forgeMessageSchema` so client + server bounds
+  agree, soft amber tint past 3500 chars, character count tied to
+  `aria-describedby`, disabled-with-banner state when the
+  conversation hits the spec-55 200-message cap, `Stop` button
+  (calls `useChat.stop()`) replaces Send while streaming.
+  `ForgeEmptyState.tsx` ships the four spec-defined suggestion
+  chips and routes each click directly through
+  `handleSubmit(text)` rather than prefilling the textarea — keeps
+  the new-conversation creation path single-flighted (one source
+  of truth for "create + send"). Entry points: navbar Forge link
+  in `GenerateExperience.tsx` (signed-in only, emerald rim +
+  `Sparkles` + `New` badge); "Discuss with Forge" button in
+  `OutputActionBar.tsx` shows only when the lineage rootId parses
+  to a positive int (DB-backed scripts only — localStorage-only
+  entries have no DB id to seed with). `StrategyForm.tsx` →
+  `StrategyOutputCard.tsx` → `OutputActionBar.tsx` plumb
+  `forgeScriptId` through; a local `parseForgeScriptId()` helper
+  handles the `LineageState.rootId: string` → `number | null`
+  parse at the call site so the lineage type contract doesn't
+  have to widen for one consumer. Loading skeleton at
+  `app/forge/loading.tsx` mirrors the final layout so the navbar
+  shell + sidebar grid don't reflow. Per spec § Scope Limits: no
+  command palette on `/forge`; no drag-and-drop reorder; no
+  conversation search (list cap is the spec-54
+  `MAX_CONVERSATIONS_PER_USER = 50`); no inline script editor; no
+  split-view; no markdown export of conversations. `npm run build`
+  passes; `/forge` registers as a dynamic route; only two new
+  lint findings were introduced and both have been fixed (a
+  setState-in-useEffect on the unused prefill path of
+  `ForgeInput` — removed the prefill mechanism entirely since
+  suggestions submit directly; and a literal `// Forge` comment
+  inside JSX text in `ForgeExperience` — wrapped in `{ }`
+  expression).
+- Forge Agent conversation CRUD (`54`): no UI, no streaming, no memory
+  extraction — pure REST shell over the spec-52 `agent_conversations`
+  table. Two route files (`app/api/forge/conversations/route.ts` and
+  `[conversationId]/route.ts`) plus one DB helper module
+  (`lib/db/agent-conversations.ts`), one ownership resolver
+  (`lib/api/resolve-owned-conversation-route.ts`), two Zod schemas
+  (`createConversationSchema`, `updateConversationSchema`), one new
+  summary mapper (`rowToAgentConversationSummary`), and one new
+  constant (`MAX_CONVERSATIONS_PER_USER`). `listConversationsForUser`
+  intentionally selects a narrowed column set so the sidebar GET
+  ships with `messages: []` for every row — full thread bodies only
+  materialize when the user opens a specific conversation via the
+  detail GET. `createConversation` is a single-helper protect-point
+  for two concerns (script ownership pre-check + FIFO eviction at
+  the 50-conversation cap) so the route stays a thin orchestrator.
+  `appendMessages` is exposed now (not deferred to spec 55) so the
+  streaming endpoint can wire append → spec 55 owns the
+  per-conversation 200-message cap before calling, and the helper
+  uses atomic jsonb `||` so it never has to load + rewrite the whole
+  thread to add one turn. Resolver diverges from script/collection
+  resolvers — 403 vs 404 are distinct outcomes per spec rather than
+  collapsed into 403, because conversation ids are not enumerable
+  from any public endpoint. `npm run build` registers
+  `ƒ /api/forge/conversations` + `ƒ /api/forge/conversations/[conversationId]`.
+- Forge Agent memory schema (`52`): no UI, no API route, no extraction
+  logic — schema + types + mappers only. Two new tables in
+  `drizzle/schema.ts` (`agent_conversations` with FKs to `users.id` and
+  optional `scripts.id`; `agent_memory` with FK to `users.id` and a
+  `UNIQUE` constraint on `user_id` so spec 56's upsert can target one
+  row per user via `ON CONFLICT (user_id) DO UPDATE`). Composite index
+  `(user_id, updated_at DESC)` on conversations matches the spec-54
+  list path. `messages` (`AgentMessage[]`) and `profile`
+  (`AgentUserProfile`) are typed via `.$type<>()` + `notNull().default()`
+  so reads never coalesce null and the mappers stay `any`-free. All
+  agent types live in `lib/types/agent.ts` (`AgentMessage`,
+  `AgentMessageRole`, `AgentToolCall`, `AgentToolResult`,
+  `AgentUserProfile`, `SavedConversation`) and are re-exported from
+  `lib/types/index.ts` so RSC / client / DB layers share one contract
+  with no Drizzle leakage. `lib/db/agent-mapper.ts` exports
+  `rowToAgentConversation()` (full `SavedConversation` with safe `??`
+  coalescing on `messages` / timestamps) and `rowToAgentMemory()` (just
+  the profile — row metadata deliberately not surfaced because spec 55
+  injects the profile and spec 57 never displays a "memory row"). Both
+  re-exported from `lib/db/index.ts`. Drizzle migration
+  `0003_awesome_thundra.sql` generated (`CREATE TABLE` + 3 FKs + 1
+  composite index + 1 unique index; zero changes to existing tables).
+  Remote `db:migrate` deferred — required before spec 54/55 endpoints
+  go live. `npm run build` passes
 - Clerk: custom auth pages, protected non-public routes, CSP tuned for Clerk Frontend API host
 - Neon/Drizzle: per-user script history wired; migrations `0000` + `0001` applied
 - Upstash: set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` in `.env.local` / Vercel

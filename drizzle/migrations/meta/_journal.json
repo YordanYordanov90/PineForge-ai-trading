@@ -22,6 +22,13 @@
       "when": 1779445313768,
       "tag": "0002_groovy_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779543611034,
+      "tag": "0003_awesome_thundra",
+      "breakpoints": true
     }
   ]
 }

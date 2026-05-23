@@ -12,6 +12,28 @@ export {
   formatAccountBalance,
 } from './script-mapper';
 export { rowToSavedCollection } from './collection-mapper';
+export {
+  rowToAgentConversation,
+  rowToAgentConversationSummary,
+  rowToAgentMemory,
+  type AgentConversationSummaryRow,
+} from './agent-mapper';
+export {
+  listConversationsForUser,
+  listRecentConversationsWithMessages,
+  getConversationForUser,
+  createConversation,
+  updateConversationTitle,
+  deleteConversation,
+  appendMessages,
+  type CreateConversationResult,
+} from './agent-conversations';
+export {
+  getAgentMemoryForUser,
+  getMemoryLastUpdated,
+  upsertAgentMemory,
+  getScriptCountForUser,
+} from './agent-memory';
 export { listScriptsForUser } from './list-user-scripts';
 export {
   searchScriptsForUser,

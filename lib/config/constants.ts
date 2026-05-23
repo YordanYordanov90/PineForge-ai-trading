@@ -50,6 +50,32 @@ export const DEFAULT_MODEL = 'grok-4-1-fast-non-reasoning' as const;
 
 export const MAX_HISTORY_ENTRIES = 50;
 
+/**
+ * Forge Agent conversation storage cap per user — keep in sync with the
+ * memory schema spec (`52`) and CRUD spec (`54`). The CRUD POST handler
+ * runs FIFO eviction (delete the oldest by `updated_at`) when a user is
+ * already at the cap.
+ */
+export const MAX_CONVERSATIONS_PER_USER = 50;
+
+/**
+ * Forge Agent per-conversation message cap (spec 52 + 55). When a
+ * thread reaches this many messages the streaming endpoint returns
+ * 400 with a friendly "start a new conversation" message rather than
+ * appending — keeps prompt budget predictable and the conversation
+ * row from growing unbounded.
+ */
+export const MAX_MESSAGES_PER_CONVERSATION = 200;
+
+/**
+ * Maximum tool-call steps the Forge Agent can take in a single turn
+ * (spec 55 § Flow → "maxSteps: 5"). The agent uses these steps to
+ * call up to 5 tools before it must respond with text — prevents
+ * infinite tool loops while leaving room for orchestration chains
+ * (e.g. health → backtest → alerts on the same script).
+ */
+export const FORGE_AGENT_MAX_STEPS = 5;
+
 /** Full-script refinements need a higher ceiling than initial generate (900). */
 export const REFINE_MAX_OUTPUT_TOKENS = 2000;
 
