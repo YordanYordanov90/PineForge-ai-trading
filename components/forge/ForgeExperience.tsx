@@ -53,6 +53,7 @@ export function ForgeExperience({
   const [activeId, setActiveId] = useState<number | null>(null);
   const [hydrationToken, setHydrationToken] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
   const { isLoaded, isSignedIn } = useAuth();
   const clerkAppearance = useClerkAppearance();
   const { prefix, accent } = brandLogoParts();
@@ -145,6 +146,17 @@ export function ForgeExperience({
     ],
   );
 
+  const handleScrollOffset = useCallback((offset: number) => {
+    setParallaxOffset(offset);
+  }, []);
+
+  const parallaxStyle = useMemo(
+    () => ({
+      backgroundPosition: `${parallaxOffset * 0.02}px ${parallaxOffset * 0.015}px`,
+    }),
+    [parallaxOffset],
+  );
+
   // Close the mobile sidebar when the route transitions to streaming
   // — keeps the conversation in view while the response arrives.
   useEffect(() => {
@@ -160,7 +172,8 @@ export function ForgeExperience({
       <div className="relative flex h-svh flex-1 flex-col">
         <div
           aria-hidden
-          className="forge-terminal-grid forge-noise pointer-events-none absolute inset-0 opacity-60"
+          className="forge-terminal-grid forge-noise pointer-events-none absolute inset-0 opacity-60 will-change-[background-position]"
+          style={parallaxStyle}
         />
 
         <header className="relative z-10 border-b border-emerald-500/20 bg-white/75 px-4 py-2.5 shadow-[0_1px_0_0_oklch(0.7_0.17_160/0.08)] backdrop-blur-md sm:px-6 dark:border-emerald-500/15 dark:bg-zinc-950/80 dark:shadow-[0_1px_24px_-8px_oklch(0.7_0.17_160/0.25)]">
@@ -253,6 +266,7 @@ export function ForgeExperience({
               seedScript={showSeedBanner ? seedScript : null}
               onCreateConversation={handleCreateConversation}
               onConversationActivity={handleConversationActivity}
+              onScrollOffset={handleScrollOffset}
             />
           </main>
         </div>

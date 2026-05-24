@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import type { RefObject } from 'react';
 import type { UIMessage } from 'ai';
 import { cn } from '@/lib/utils';
+import { ForgeAssistantMarkdown } from '@/components/forge/ForgeAssistantMarkdown';
 import { ForgeToolCallCard } from '@/components/forge/ForgeToolCallCard';
+import {
+  ForgeTypingIndicator,
+  getActiveLoadingToolLabel,
+} from '@/components/forge/ForgeTypingIndicator';
 
 /**
  * Renders the active conversation's messages (spec 57 § Message
@@ -11,21 +17,30 @@ import { ForgeToolCallCard } from '@/components/forge/ForgeToolCallCard';
  *
  * - User messages: right-aligned industrial chamfered bubble.
  * - Assistant messages: left-aligned with terminal prefix and accent rail.
- * - Auto-scrolls to the bottom whenever messages change *or* the chat
- *   transitions out of streaming.
+ * - Auto-scrolls to the bottom when the user is already near the end.
  */
 
 type ForgeMessageListProps = {
   messages: UIMessage[];
   isStreaming: boolean;
+  bottomRef: RefObject<HTMLDivElement | null>;
+  userAwayFromBottomRef: RefObject<boolean>;
 };
 
-export function ForgeMessageList({ messages, isStreaming }: ForgeMessageListProps) {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
+export function ForgeMessageList({
+  messages,
+  isStreaming,
+  bottomRef,
+  userAwayFromBottomRef,
+}: ForgeMessageListProps) {
   useEffect(() => {
+    if (userAwayFromBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, bottomRef, userAwayFromBottomRef]);
+
+  const activeToolLabel = isStreaming
+    ? getActiveLoadingToolLabel(messages)
+    : null;
 
   return (
     <div
@@ -39,16 +54,7 @@ export function ForgeMessageList({ messages, isStreaming }: ForgeMessageListProp
       ))}
 
       {isStreaming ? (
-        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-          <span
-            className="inline-block size-2.5 animate-pulse bg-emerald-500 dark:bg-emerald-400"
-            aria-hidden
-          />
-          <span>
-            Forge is thinking
-            <span className="animate-pulse">_</span>
-          </span>
-        </div>
+        <ForgeTypingIndicator activeToolLabel={activeToolLabel} />
       ) : null}
 
       <div ref={bottomRef} />
@@ -104,15 +110,11 @@ function renderAssistantPart(part: UIMessage['parts'][number], idx: number) {
   if (part.type === 'text') {
     const { text, state } = part as { text: string; state?: 'streaming' | 'done' };
     return (
-      <p
+      <ForgeAssistantMarkdown
         key={idx}
-        className={cn(
-          'whitespace-pre-wrap break-words',
-          state === 'streaming' && 'forge-streaming-text',
-        )}
-      >
-        {text}
-      </p>
+        text={text}
+        isStreaming={state === 'streaming'}
+      />
     );
   }
 

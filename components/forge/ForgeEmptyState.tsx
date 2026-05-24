@@ -3,6 +3,13 @@
 import { BarChart3, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const FORGE_BOOT_LINES = [
+  '[OK] Memory loaded',
+  '[OK] Tools online',
+  '[OK] Strategies indexed',
+  '[OK] Agent ready',
+] as const;
+
 const FORGE_SUGGESTIONS: ReadonlyArray<{ label: string; prompt: string }> = [
   {
     label: 'Analyze my last strategy',
@@ -50,18 +57,36 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
         </div>
       </div>
 
-      <p className="forge-fade-up mt-6 font-mono text-[10px] uppercase tracking-[0.35em] text-emerald-600 dark:text-emerald-400/80">
+      <ul
+        aria-hidden
+        className="mt-6 flex flex-col items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-600/80 dark:text-emerald-400/70"
+      >
+        {FORGE_BOOT_LINES.map((line, index) => (
+          <li
+            key={line}
+            className="forge-boot-line"
+            style={{ animationDelay: `${index * 120}ms` }}
+          >
+            {line}
+          </li>
+        ))}
+      </ul>
+
+      <p
+        className="forge-fade-up mt-5 font-mono text-[10px] uppercase tracking-[0.35em] text-emerald-600 dark:text-emerald-400/80"
+        style={{ animationDelay: '520ms' }}
+      >
         [ Forge Agent Online ]
       </p>
       <h2
         className="forge-fade-up pf-heading mt-3 text-balance font-heading text-3xl font-semibold tracking-tight sm:text-4xl"
-        style={{ animationDelay: '60ms' }}
+        style={{ animationDelay: '580ms' }}
       >
         Start a conversation with Forge
       </h2>
       <p
         className="forge-fade-up pf-muted mt-3 max-w-md text-sm leading-relaxed"
-        style={{ animationDelay: '120ms' }}
+        style={{ animationDelay: '640ms' }}
       >
         Forge orchestrates Health Score, Backtesting, Alerts, and your
         script history. Ask anything about your strategies.
@@ -75,7 +100,7 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
           <li
             key={s.label}
             className="forge-fade-up"
-            style={{ animationDelay: `${180 + index * 70}ms` }}
+            style={{ animationDelay: `${700 + index * 70}ms` }}
           >
             <button
               type="button"

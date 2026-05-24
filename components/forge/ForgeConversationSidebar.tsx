@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
@@ -26,6 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { groupConversationsByTime } from '@/lib/forge/conversation-groups';
 import type { SavedConversation } from '@/lib/types';
 
 /**
@@ -68,6 +70,11 @@ export function ForgeConversationSidebar({
   );
   const [isSavingRename, setIsSavingRename] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const groupedConversations = useMemo(
+    () => groupConversationsByTime(conversations),
+    [conversations],
+  );
 
   const startEditing = useCallback((c: SavedConversation) => {
     setEditingId(c.id);
@@ -121,50 +128,59 @@ export function ForgeConversationSidebar({
             // no sessions yet
           </p>
         ) : (
-          <ul role="list" className="flex flex-col gap-0.5 overflow-y-auto pr-1">
-            {conversations.map((c) => {
-              const isActive = c.id === activeConversationId;
-              const isEditing = editingId === c.id;
-              const title = c.title?.trim() || 'New conversation';
+          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+            {groupedConversations.map((group) => (
+              <section key={group.label}>
+                <h3 className="pf-muted mb-1.5 px-2 font-mono text-[9px] uppercase tracking-[0.25em]">
+                  {group.label}
+                </h3>
+                <ul role="list" className="flex flex-col gap-0.5">
+                  {group.conversations.map((c) => {
+                    const isActive = c.id === activeConversationId;
+                    const isEditing = editingId === c.id;
+                    const title = c.title?.trim() || 'New conversation';
 
-              return (
-                <li key={c.id}>
-                  <div
-                    className={cn(
-                      'group/forge-conversation relative rounded-sm border border-transparent py-2 pl-3 pr-2 transition-colors',
-                      isActive
-                        ? 'border-l-2 border-l-emerald-500 bg-emerald-500/[0.08] shadow-[inset_4px_0_12px_-4px_oklch(0.7_0.17_160/0.35)] dark:bg-emerald-500/[0.12]'
-                        : 'border-l-2 border-l-transparent hover:border-l-zinc-300 hover:bg-zinc-100/70 dark:hover:border-l-zinc-700 dark:hover:bg-zinc-900/60',
-                    )}
-                  >
-                    {isEditing ? (
-                      <ConversationRenameRow
-                        value={editingValue}
-                        onChange={setEditingValue}
-                        onSubmit={commitRename}
-                        onCancel={cancelEditing}
-                        busy={isSavingRename}
-                      />
-                    ) : (
-                      <ConversationButton
-                        title={title}
-                        relative={formatRelativeTime(c.updatedAt)}
-                        isActive={isActive}
-                        onClick={() => onSelectConversation(c.id)}
-                      />
-                    )}
+                    return (
+                      <li key={c.id}>
+                        <div
+                          className={cn(
+                            'group/forge-conversation relative rounded-sm border border-transparent py-2 pl-3 pr-2 transition-[border-color,background-color,box-shadow] duration-200',
+                            isActive
+                              ? 'border-l-2 border-l-emerald-500 bg-emerald-500/[0.08] shadow-[inset_4px_0_12px_-4px_oklch(0.7_0.17_160/0.35)] dark:bg-emerald-500/[0.12]'
+                              : 'border-l-2 border-l-transparent hover:border-l-zinc-300 hover:bg-zinc-100/70 dark:hover:border-l-zinc-700 dark:hover:bg-zinc-900/60',
+                          )}
+                        >
+                          {isEditing ? (
+                            <ConversationRenameRow
+                              value={editingValue}
+                              onChange={setEditingValue}
+                              onSubmit={commitRename}
+                              onCancel={cancelEditing}
+                              busy={isSavingRename}
+                            />
+                          ) : (
+                            <ConversationButton
+                              title={title}
+                              relative={formatRelativeTime(c.updatedAt)}
+                              isActive={isActive}
+                              onClick={() => onSelectConversation(c.id)}
+                            />
+                          )}
 
-                    {!isEditing ? (
-                      <ConversationActions
-                        onRename={() => startEditing(c)}
-                        onDelete={() => setPendingDelete(c)}
-                      />
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                          {!isEditing ? (
+                            <ConversationActions
+                              onRename={() => startEditing(c)}
+                              onDelete={() => setPendingDelete(c)}
+                            />
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </div>
 

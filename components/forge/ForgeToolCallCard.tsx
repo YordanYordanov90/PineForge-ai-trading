@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -14,22 +14,11 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
+import {
+  FORGE_TOOL_LABELS,
+  prettifyForgeToolName,
+} from '@/lib/forge/tool-labels';
 import { cn } from '@/lib/utils';
-
-/**
- * Visual surface for a single Forge Agent tool invocation (spec 57 §
- * Tool Call Display). Renders three states off the AI SDK's tool part
- * `state` field:
- *
- *  - `input-streaming` / `input-available` → loading row with spinner
- *  - `output-available` → collapsed summary, expandable to full result
- *  - `output-error` → amber banner with the sanitized error string
- *
- * Tool name → icon mapping mirrors spec 57's reference list (Health
- * Score = Shield, Backtest = FlaskConical, Alerts = Bell, etc.). New
- * tools default to a generic Wrench so the UI never breaks on an
- * unknown name.
- */
 
 type ForgeToolCallState =
   | 'loading'
@@ -43,16 +32,6 @@ type ForgeToolCallCardProps = {
   input?: unknown;
   output?: unknown;
   errorText?: string;
-};
-
-const TOOL_LABELS: Record<string, string> = {
-  search_user_scripts: 'Script Search',
-  get_script_details: 'Script Details',
-  run_health_score: 'Health Score',
-  run_backtest_summary: 'Backtest Summary',
-  generate_alert_templates: 'Alert Templates',
-  refine_script: 'Refine Script',
-  search_strategy_knowledge: 'Strategy Research',
 };
 
 const TOOL_ICONS: Record<string, LucideIcon> = {
@@ -73,24 +52,57 @@ export function ForgeToolCallCard({
   errorText,
 }: ForgeToolCallCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const label = TOOL_LABELS[toolName] ?? prettifyToolName(toolName);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const wasLoadingRef = useRef(state === 'loading');
+
+  const label = FORGE_TOOL_LABELS[toolName] ?? prettifyForgeToolName(toolName);
   const Icon = TOOL_ICONS[toolName] ?? Wrench;
   const summary = buildSummary(toolName, state, output, errorText);
   const isLoading = state === 'loading';
   const isError = state === 'output-error';
   const canExpand = state === 'output-available' && output !== undefined;
 
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((Date.now() - startedAt) / 1000);
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (wasLoadingRef.current && state === 'output-available') {
+      setJustCompleted(true);
+      const timeout = window.setTimeout(() => setJustCompleted(false), 600);
+      return () => window.clearTimeout(timeout);
+    }
+    wasLoadingRef.current = isLoading;
+    return undefined;
+  }, [isLoading, state]);
+
   return (
     <div
       className={cn(
-        'my-3 rounded-xl border bg-zinc-50/70 px-3 py-2 text-sm shadow-sm',
+        'forge-fade-up relative my-3 overflow-hidden rounded-xl border bg-zinc-50/70 px-3 py-2 text-sm shadow-sm',
         isError
           ? 'border-amber-500/40 bg-amber-500/[0.07] dark:bg-amber-500/[0.08]'
           : 'border-zinc-200/80 dark:border-zinc-800/70 dark:bg-zinc-900/50',
+        justCompleted && 'forge-tool-complete-flash',
       )}
       role="region"
       aria-label={`Tool call: ${label}`}
     >
+      {isLoading ? (
+        <div aria-hidden className="forge-tool-progress absolute inset-x-0 top-0 h-0.5" />
+      ) : null}
+
       <button
         type="button"
         onClick={() => canExpand && setExpanded((open) => !open)}
@@ -130,6 +142,12 @@ export function ForgeToolCallCard({
             {summary}
           </span>
         </span>
+
+        {isLoading ? (
+          <span className="shrink-0 font-mono text-[10px] tabular-nums text-emerald-600 dark:text-emerald-400">
+            {elapsedSeconds.toFixed(1)}s
+          </span>
+        ) : null}
 
         {canExpand ? (
           <ChevronRight
@@ -182,24 +200,15 @@ function safeJson(payload: unknown): string {
   }
 }
 
-function prettifyToolName(name: string): string {
-  return name
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-/**
- * Builds the one-line summary shown in the collapsed card. Tool-aware
- * so the user gets useful context without expanding — e.g. "Score:
- * 7/10" instead of a generic "Completed".
- */
 function buildSummary(
   toolName: string,
   state: ForgeToolCallState,
   output: unknown,
   errorText?: string,
 ): string {
-  if (state === 'loading') return `Running ${TOOL_LABELS[toolName] ?? prettifyToolName(toolName)}…`;
+  const label = FORGE_TOOL_LABELS[toolName] ?? prettifyForgeToolName(toolName);
+
+  if (state === 'loading') return `Running ${label}…`;
   if (state === 'output-error') return errorText ?? 'Tool error.';
   if (state === 'output-denied') return 'Tool execution denied.';
 

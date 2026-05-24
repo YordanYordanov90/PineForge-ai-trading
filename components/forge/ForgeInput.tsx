@@ -1,27 +1,45 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { ArrowUp, Loader2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-/**
- * Composer input for the Forge chat (spec 57 § `ForgeInput`).
- *
- * Tactical command-console styling: mono input, inset glow on focus,
- * mechanical send control.
- */
-
 const FORGE_MAX_MESSAGE_LENGTH = 4000;
 const SOFT_CHAR_WARNING = 3500;
+const TEXTAREA_MAX_HEIGHT_PX = 160;
+
+const FORGE_SLASH_COMMANDS: ReadonlyArray<{
+  cmd: string;
+  prompt: string;
+}> = [
+  {
+    cmd: '/health',
+    prompt:
+      'Run a Health Score on my latest strategy and summarize the results.',
+  },
+  {
+    cmd: '/backtest',
+    prompt: 'Create a backtest plan for my most recent strategy.',
+  },
+  {
+    cmd: '/alerts',
+    prompt: 'Generate alert templates for my latest strategy.',
+  },
+];
 
 type ForgeInputProps = {
   onSubmit: (message: string) => void;
   onStop?: () => void;
   isStreaming: boolean;
   disabled?: boolean;
-  /** Set when the conversation has hit `MAX_MESSAGES_PER_CONVERSATION`. */
   reachedMessageCap?: boolean;
 };
 
@@ -43,6 +61,17 @@ export function ForgeInput({
     trimmedLength > 0 &&
     value.length <= FORGE_MAX_MESSAGE_LENGTH;
 
+  const resizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, TEXTAREA_MAX_HEIGHT_PX)}px`;
+  }, []);
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [value, resizeTextarea]);
+
   const handleSubmit = () => {
     if (!canSubmit) return;
     const trimmed = value.trim();
@@ -56,6 +85,11 @@ export function ForgeInput({
       event.preventDefault();
       handleSubmit();
     }
+  };
+
+  const injectPrompt = (prompt: string) => {
+    setValue(prompt);
+    textareaRef.current?.focus();
   };
 
   if (reachedMessageCap) {
@@ -77,7 +111,7 @@ export function ForgeInput({
       }}
       className={cn(
         'flex w-full flex-col gap-2 rounded-sm border border-zinc-200/80 bg-white/90 p-3 backdrop-blur',
-        'shadow-sm transition-shadow',
+        'shadow-sm transition-[border-color,box-shadow] duration-200',
         'focus-within:border-emerald-500/50 focus-within:shadow-[inset_0_0_15px_oklch(0.7_0.17_160/0.15)]',
         'dark:border-zinc-800/70 dark:bg-zinc-900/80',
       )}
@@ -96,15 +130,37 @@ export function ForgeInput({
             setValue(event.target.value.slice(0, FORGE_MAX_MESSAGE_LENGTH))
           }
           onKeyDown={handleKeyDown}
-          rows={2}
+          rows={1}
           disabled={disabled}
           aria-label="Message Forge"
           aria-describedby="forge-input-helper"
           placeholder="Ask Forge anything about your strategies…"
           className={cn(
-            'pf-input min-h-[3.25rem] max-h-40 flex-1 resize-none border-0 bg-transparent font-mono text-sm text-emerald-800 shadow-none focus-visible:ring-0 dark:text-emerald-300/95',
+            'pf-input min-h-[2.75rem] max-h-40 flex-1 resize-none overflow-y-auto border-0 bg-transparent font-mono text-sm text-emerald-800 shadow-none focus-visible:ring-0 dark:text-emerald-300/95',
           )}
         />
+      </div>
+
+      <div
+        className="flex flex-wrap gap-1.5 px-1"
+        aria-label="Quick command hints"
+      >
+        {FORGE_SLASH_COMMANDS.map((item) => (
+          <button
+            key={item.cmd}
+            type="button"
+            disabled={disabled || isStreaming}
+            onClick={() => injectPrompt(item.prompt)}
+            className={cn(
+              'rounded-sm border border-zinc-200/80 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider',
+              'text-emerald-700 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10',
+              'dark:border-zinc-700/70 dark:text-emerald-400 dark:hover:bg-emerald-500/10',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          >
+            {item.cmd}
+          </button>
+        ))}
       </div>
 
       <div
