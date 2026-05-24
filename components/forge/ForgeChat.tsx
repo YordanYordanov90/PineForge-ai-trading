@@ -20,6 +20,7 @@ import type { SavedConversation, SavedScript } from '@/lib/types';
 import { ForgeEmptyState } from '@/components/forge/ForgeEmptyState';
 import { ForgeInput } from '@/components/forge/ForgeInput';
 import { ForgeMessageList } from '@/components/forge/ForgeMessageList';
+import { ForgeScrollToBottomFab } from '@/components/forge/ForgeScrollToBottomFab';
 
 /**
  * Forge chat panel (spec 57 § ForgeChat).
@@ -28,45 +29,17 @@ import { ForgeMessageList } from '@/components/forge/ForgeMessageList';
  * the `POST /api/forge` streaming endpoint via a custom
  * `DefaultChatTransport` that swaps the SDK's default `{ messages }`
  * body shape for the spec-55 `{ conversationId, message }` payload.
- *
- * State machine:
- *  - No active conversation: render `ForgeEmptyState`. Suggestion
- *    chips create a conversation on demand and seed the first
- *    message.
- *  - Active conversation: hydrate `messages` from `GET
- *    /api/forge/conversations/[id]`, then let `useChat` take over.
- *  - Streaming finished: notify the parent so the sidebar can bump
- *    `updated_at` (the server already persists the canonical thread
- *    in spec 55's `onFinish`, so we never write here).
- *
- * On unmount / conversation switch we call `stop()` so an in-flight
- * stream is aborted instead of writing to a stale conversation row.
  */
 
 type ForgeChatProps = {
   activeConversationId: number | null;
-  /**
-   * Monotonically-increasing token bumped by the parent whenever the
-   * user *intentionally* navigates to an existing conversation (e.g.
-   * sidebar click). When this changes, the chat panel aborts any
-   * in-flight stream and re-hydrates from the server. We never bump
-   * this when a fresh conversation is created mid-send — the chat
-   * already owns the user's pending message via `useChat` and a
-   * hydration cycle would wipe it.
-   */
   hydrationToken: number;
-  /** Optional script context attached to a *new* conversation only. */
   seedScript: SavedScript | null;
-  /**
-   * Returned conversation (with empty messages) after a suggestion
-   * chip or empty-state action creates one. The parent uses this to
-   * push the new conversation onto the sidebar and select it.
-   */
   onCreateConversation: (
     scriptId: number | null,
   ) => Promise<SavedConversation | null>;
-  /** Bumps the sidebar entry's `updated_at` after a turn settles. */
   onConversationActivity: (id: number) => void;
+  onScrollOffset?: (offset: number) => void;
 };
 
 export function ForgeChat({
@@ -75,20 +48,21 @@ export function ForgeChat({
   seedScript,
   onCreateConversation,
   onConversationActivity,
+  onScrollOffset,
 }: ForgeChatProps) {
   const [hydratedMessages, setHydratedMessages] = useState<UIMessage[]>([]);
   const [hydrating, setHydrating] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   const [persistedCount, setPersistedCount] = useState(0);
+  const [showScrollFab, setShowScrollFab] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const userAwayFromBottomRef = useRef(false);
 
   const conversationIdRef = useRef<number | null>(activeConversationId);
   conversationIdRef.current = activeConversationId;
 
-  // Spec 55 takes `{ conversationId, message }` rather than the AI
-  // SDK's default `{ messages }` shape, so we override the request
-  // body. The latest user message is the only one the server needs —
-  // the rest of the thread is stored server-side. Sending less data
-  // also tightens the rate-limit + prompt-injection surface.
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -131,11 +105,6 @@ export function ForgeChat({
     }
   }, [error, stop]);
 
-  // Hydrate messages whenever the parent bumps the token. We do *not*
-  // hydrate on activeConversationId changes alone because creating a
-  // new conversation via the empty-state chip changes the id mid-send
-  // and we'd otherwise abort the in-flight stream and wipe the
-  // pending message.
   useEffect(() => {
     if (hydrationToken === 0) return;
 
@@ -201,19 +170,11 @@ export function ForgeChat({
     return () => {
       cancelled = true;
     };
-    // `setMessages` / `stop` are stable refs from useChat — we only
-    // want to re-hydrate when the parent explicitly bumps the token.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrationToken]);
 
-  // Stop any in-flight stream on unmount so we don't write partial
-  // results to a stale conversation row when the user navigates away.
   useEffect(() => () => void stop(), [stop]);
 
-  // Approximate the per-conversation message cap. We start from the
-  // server-persisted count and conservatively add the in-flight UI
-  // messages that haven't been persisted yet (one user message → one
-  // assistant message minimum).
   const localMessageCount = Math.max(
     persistedCount,
     persistedCount + Math.max(0, messages.length - hydratedMessages.length),
@@ -230,10 +191,6 @@ export function ForgeChat({
       if (conversationIdRef.current == null) {
         const created = await onCreateConversation(seedScriptDbId);
         if (!created) return;
-        // Write the freshly-created id straight into the ref so the
-        // transport's `prepareSendMessagesRequest` closure picks up
-        // the right conversation on this very send — the parent's
-        // `activeId` state update won't have flushed to props yet.
         conversationIdRef.current = created.id;
       }
       await sendMessage({ text });
@@ -241,53 +198,80 @@ export function ForgeChat({
     [onCreateConversation, seedScriptDbId, sendMessage],
   );
 
-  if (activeConversationId == null && !seedScript) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto">
-          <ForgeEmptyState
-            disabled={isStreaming}
-            onSuggest={(prompt) => void handleSubmit(prompt)}
-          />
-        </div>
-        <div className="border-t border-emerald-500/15 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6 dark:border-emerald-500/10 dark:bg-zinc-950/80">
-          <div className="mx-auto w-full max-w-3xl">
-            <ForgeInput
-              onSubmit={(text) => void handleSubmit(text)}
-              isStreaming={isStreaming}
-              onStop={() => void stop()}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+    const away = distanceFromBottom > 120;
+    userAwayFromBottomRef.current = away;
+    setShowScrollFab(away);
+    onScrollOffset?.(el.scrollTop);
+  }, [onScrollOffset]);
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    userAwayFromBottomRef.current = false;
+    setShowScrollFab(false);
+  }, []);
+
+  const showMessageList =
+    activeConversationId != null &&
+    !hydrating &&
+    !hydrationError &&
+    messages.length > 0;
+
+  const inputDisabled =
+    (activeConversationId != null || seedScript != null) &&
+    (hydrating || Boolean(hydrationError));
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto">
-        {seedScript && activeConversationId == null ? (
-          <SeedScriptBanner script={seedScript} />
-        ) : null}
-
-        {hydrating ? (
-          <div className="pf-muted flex items-center justify-center gap-2 py-12 text-sm">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            Loading conversation…
-          </div>
-        ) : hydrationError ? (
-          <div className="mx-auto mt-12 max-w-md rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
-            {hydrationError}
-          </div>
-        ) : messages.length === 0 ? (
+    <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto scroll-smooth"
+      >
+        {activeConversationId == null && !seedScript ? (
           <ForgeEmptyState
             disabled={isStreaming}
             onSuggest={(prompt) => void handleSubmit(prompt)}
           />
         ) : (
-          <ForgeMessageList messages={messages} isStreaming={isStreaming} />
+          <>
+            {seedScript && activeConversationId == null ? (
+              <SeedScriptBanner script={seedScript} />
+            ) : null}
+
+            {hydrating ? (
+              <div className="pf-muted flex items-center justify-center gap-2 py-12 text-sm">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Loading conversation…
+              </div>
+            ) : hydrationError ? (
+              <div className="mx-auto mt-12 max-w-md rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+                {hydrationError}
+              </div>
+            ) : messages.length === 0 ? (
+              <ForgeEmptyState
+                disabled={isStreaming}
+                onSuggest={(prompt) => void handleSubmit(prompt)}
+              />
+            ) : (
+              <ForgeMessageList
+                messages={messages}
+                isStreaming={isStreaming}
+                bottomRef={bottomRef}
+                userAwayFromBottomRef={userAwayFromBottomRef}
+              />
+            )}
+          </>
         )}
+        {!showMessageList ? <div ref={bottomRef} aria-hidden /> : null}
       </div>
+
+      <ForgeScrollToBottomFab visible={showScrollFab} onClick={scrollToBottom} />
 
       <div className="border-t border-emerald-500/15 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6 dark:border-emerald-500/10 dark:bg-zinc-950/80">
         <div className="mx-auto w-full max-w-3xl">
@@ -295,7 +279,7 @@ export function ForgeChat({
             onSubmit={(text) => void handleSubmit(text)}
             onStop={() => void stop()}
             isStreaming={isStreaming}
-            disabled={hydrating || Boolean(hydrationError)}
+            disabled={inputDisabled}
             reachedMessageCap={reachedCap}
           />
         </div>
@@ -350,13 +334,6 @@ function readConversationPayload(
   return conversation as SavedConversation;
 }
 
-/**
- * `SavedScript.id` is a string at the type layer because the localStorage-backed
- * history (Phase 1–3) used opaque ids. DB-backed rows convert their numeric id
- * to a string via `String(row.id)` (see `rowToSavedScript`). For Forge seeding
- * we need the numeric DB id back; anything non-numeric (legacy localStorage
- * row) silently falls through to `null` so we don't 403 the create call.
- */
 function parseSavedScriptId(id: string | undefined): number | null {
   if (!id) return null;
   const parsed = Number.parseInt(id, 10);
