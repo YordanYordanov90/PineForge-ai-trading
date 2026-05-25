@@ -23,18 +23,18 @@ export default function AuthLayout({
             href="/"
             className="group flex min-w-0 shrink items-center gap-2 transition-opacity hover:opacity-90 sm:gap-2.5"
           >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-emerald-500/35 bg-emerald-500/15 shadow-[0_0_0_1px_rgba(16,185,129,0.12)] transition-shadow group-hover:border-emerald-400/50 group-hover:shadow-[0_0_20px_-4px_rgba(16,185,129,0.35)]">
-              <Zap className="size-4 text-emerald-400" aria-hidden />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neon-500/35 bg-neon-500/15 shadow-[0_0_0_1px_rgba(200,255,0,0.12)] transition-shadow group-hover:border-neon-400/50 group-hover:shadow-[0_0_20px_-4px_rgba(200,255,0,0.35)]">
+              <Zap className="size-4 text-neon-400" aria-hidden />
             </div>
             <span className="pf-heading font-heading text-base font-bold leading-none tracking-tight sm:text-lg">
-              {prefix}<span className="text-emerald-500 dark:text-emerald-400">{accent}</span>
+              {prefix}<span className="text-neon-500 dark:text-neon-400">{accent}</span>
             </span>
           </Link>
           <ModeToggle />
         </div>
       </header>
       <div
-        className="relative z-10 h-px w-full bg-gradient-to-r from-transparent via-emerald-500/45 to-transparent"
+        className="relative z-10 h-px w-full bg-gradient-to-r from-transparent via-neon-500/45 to-transparent"
         aria-hidden
       />
 

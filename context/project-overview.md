@@ -123,6 +123,131 @@ capabilities through natural conversation.
 
 Feature specs live in `context/features/51–58`.
 
+## Phase 7 — Depth & Polish
+
+Phase 7 deepens the existing workflow surface without adding external dependencies,
+new data sources, or scope violations. Every item stays within PineForge's core
+identity: a focused strategy workflow tool for TradingView traders.
+
+### Priority 1 — Strategy Templates Library (`59`)
+
+A curated `/templates` page (or section within `/generate`) shipping 20–50
+hand-crafted Pine Script templates organised by trading style, market, and
+complexity. Not user-generated — quality-controlled by the product.
+
+- One-click "Use as base" loads a template into the generator for customisation
+- Each template ships with a pre-computed Health Score, Backtest Summary, and
+  Alert Templates so users see the full output before they even edit anything
+- Tags: `beginner`, `trend`, `mean-reversion`, `breakout`, `scalping`, `swing`,
+  `multi-timeframe`
+- Free users get a subset; Pro users get the full library (upgrade lever)
+- SEO opportunity: public template detail pages rank for Pine Script strategy terms
+- Natural evolution of the 8 existing template pills — same concept at full depth
+
+### Priority 2 — Strategy Assumptions Block (`60`)
+
+Every generated script gains an explicit **Assumptions** section in the Breakdown
+tab. The generation prompt is extended to produce: "This strategy assumes: trending
+market, liquid asset, no major news events, spread < X pips."
+
+- Health Score references assumptions when flagging risks
+- Reduces the #1 user complaint ("why did this fail?") by surfacing expected conditions
+- Trivial implementation: a prompt addition + a new named section in the breakdown
+
+### Priority 3 — Research → Generate Pipeline (`61`)
+
+Make Forge's existing web-search tool a first-class "Research" workflow with a
+direct handoff into the generator.
+
+- New conversation type `research` (distinct icon + label in the sidebar)
+- Forge synthesises the research thread into a structured generation prompt
+- "Generate from this research" button pre-fills `/generate` with: description,
+  recommended indicators, timeframe, market — all derived from the research
+- Creates a 2-step workflow: research → generate (increases session depth)
+- Research threads are already saved as conversations; this gives them a new role
+
+### Priority 4 — Strategy DNA Fingerprint (`62`)
+
+Every script in history gets a small procedural visual fingerprint — a deterministic
+SVG badge encoding its characteristics: indicators used, timeframe, direction,
+complexity, risk profile.
+
+- Displayed beside each script entry in the history drawer
+- Generated client-side from script metadata (no AI, no new API calls)
+- Makes long history lists visually scannable without reading titles
+- Nobody else does this — memorable differentiator aligned with terminal identity
+
+### Priority 5 — Strategy Comparison Reports (`63`)
+
+User selects 2–3 scripts from their library → Forge produces a structured
+comparison report.
+
+- Covers: entry logic differences, risk profile, market condition suitability,
+  timeframe alignment, and a "Coverage Map" (which conditions each strategy handles)
+- Output: a new artifact type (`report`) saved alongside scripts
+- v2 adds "Portfolio thinking": do these strategies overlap or complement each other?
+- Leverages existing Forge memory, tool infrastructure, and collections
+
+### Priority 6 — Strategy Variants Quick-Generate (`64`)
+
+After generation, an optional "Generate 3 variants" action produces:
+
+- Variant A: tighter stops, faster signals
+- Variant B: wider stops, fewer false signals
+- Variant C: alternative indicator for the same concept (e.g. EMA → VWAP)
+
+Each variant saves as a separate script with lineage back to the original.
+Free users get 1 variant; Pro users get all 3 (upgrade lever).
+
+### Priority 7 — Quality Progression Tracker (`65`)
+
+A lightweight personal dashboard showing how a user's strategies improve over time.
+
+- Average Health Score trend (weekly)
+- Most common risk themes from past Health Scores
+- Refinement iteration counts per script
+- Forge memory insight: "You've shifted from simple EMA to multi-indicator
+  approaches over the last month"
+- Pure aggregation over existing data — no new infrastructure
+
+### Priority 8 — Strategy Snapshot Export (`66`)
+
+A premium export producing a self-contained, beautifully formatted HTML file
+containing the full strategy record:
+
+- Syntax-highlighted Pine Script
+- Health Score card
+- Backtest Summary
+- Alert Templates
+- Generation metadata
+- Comparison diff (if refined)
+- QR code back-linking to PineForge
+
+Pro-only feature. Built on top of the existing markdown serialiser (spec `49`).
+
+### Priority 9 — Contextual "Did You Know" Tips in Forge (`67`)
+
+After tool results surface inside Forge, contextually relevant Pine Script tips
+appear — triggered by tool output, never proactively.
+
+- After Health Score flags "no volume filter": tip fires suggesting the fix
+- After RSI strategy generates: tip mentions a common RSI calibration for the
+  selected timeframe
+- Memory prevents repeating tips the user has already seen
+- Stays strictly reactive (no proactive suggestions), consistent with guardrails
+
+### Priority 10 — Keyboard Power User Mode (`68`)
+
+Extends the existing Ctrl+K / Ctrl+Enter / Ctrl+T shortcut system into a
+fully keyboard-navigable experience matching the terminal identity.
+
+- Numbered output tab shortcuts (1=Script, 2=Breakdown, 3=Health, etc.)
+- Vim-style history navigation (j/k to move, Enter to load, d to delete)
+- Tab-indexed flow through all generator inputs
+- Contextual status-bar hints showing available shortcuts for the current panel
+
+---
+
 ## Scope
 
 ### In Scope
@@ -132,15 +257,18 @@ Feature specs live in `context/features/51–58`.
 - Phase 4: Clerk auth + Neon Postgres + Drizzle ORM + Upstash rate limiting + per-user history migration
 - Phase 5: High & Medium value workflow features (TradingView deep link, Health Score, Alert Templates, Backtest Plans, Starred scripts, Tags, Collections, Notion export)
 - Phase 6: Forge Agent — AI strategy workflow agent with tool calling, memory, and orchestration (dedicated `/forge` page)
+- Phase 7: Depth & polish — Templates Library, Assumptions Block, Research→Generate, DNA Fingerprint, Comparison Reports, Variants, Quality Tracker, Snapshot Export, Contextual Tips, Keyboard Power Mode
 
 ### Out of Scope
 
 - Live trading execution or broker integration
 - Backtesting engine
 - TradingView live chart integration
-- Team collaboration features
-- General-purpose AI chat (note: the Forge Agent is a **scoped strategy workflow agent** with defined tools and guardrails, not an open-ended chatbot)
+- Team collaboration or community features
+- General-purpose AI chat (the Forge Agent is a **scoped strategy workflow agent** with defined tools and guardrails)
 - Pine Script IDE or version-controlled notebook
+- Daily/scheduled proactive reports or unprompted agent suggestions
+- Live market data or price feeds
 
 ## Success Criteria
 

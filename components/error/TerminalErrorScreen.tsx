@@ -5,7 +5,7 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { TerminalAmbientBackground } from '@/components/ui/terminal-ambient-background';
 import { cn } from '@/lib/utils';
 
-export type TerminalErrorAccent = 'emerald' | 'rose';
+export type TerminalErrorAccent = 'neon' | 'rose';
 
 export type TerminalErrorScreenProps = {
   kind: '404' | 'error';
@@ -88,12 +88,12 @@ export function TerminalErrorScreen({
       <header className="pf-nav relative z-10 border-b backdrop-blur-md">
         <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/15">
-              <Zap className="size-4 text-emerald-400" aria-hidden />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neon-500/25 bg-neon-500/15">
+              <Zap className="size-4 text-neon-400" aria-hidden />
             </div>
             <span className="pf-heading font-heading text-base font-bold leading-none tracking-tight sm:text-lg">
               {prefix}
-              <span className="text-emerald-500 dark:text-emerald-400">{brandAccent}</span>
+              <span className="text-neon-500 dark:text-neon-400">{brandAccent}</span>
             </span>
           </Link>
           <ModeToggle />
@@ -105,7 +105,7 @@ export function TerminalErrorScreen({
           <p className="font-mono text-[10px] font-medium tracking-[0.25em] text-zinc-500 uppercase sm:text-xs">
             PINEFORGE :: ROUTE //{routeCode}
             <span
-              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px bg-emerald-500/90 align-baseline animate-blink-cursor dark:bg-emerald-400"
+              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px bg-neon-500/90 align-baseline animate-blink-cursor dark:bg-neon-400"
               aria-hidden
             />
           </p>
@@ -115,14 +115,14 @@ export function TerminalErrorScreen({
               'terminal-scanlines mx-auto mt-8 rounded-2xl border px-6 py-10 sm:px-10 sm:py-12',
               isRose
                 ? 'border-rose-500/30 bg-zinc-950/60 dark:bg-zinc-950/70'
-                : 'border-emerald-500/25 bg-zinc-950/50 dark:bg-zinc-950/60',
+                : 'border-neon-500/25 bg-zinc-950/50 dark:bg-zinc-950/60',
             )}
           >
             {glyph ? (
               <p
                 className={cn(
                   'font-heading text-7xl font-extrabold tracking-tighter sm:text-8xl lg:text-9xl',
-                  isRose ? 'text-rose-400/90' : 'text-emerald-500/90 dark:text-emerald-400/95',
+                  isRose ? 'text-rose-400/90' : 'text-neon-500/90 dark:text-neon-400/95',
                 )}
               >
                 {glyph}
@@ -136,7 +136,7 @@ export function TerminalErrorScreen({
             <p
               className={cn(
                 'mt-3 font-mono text-xs tracking-[0.2em] uppercase sm:text-sm',
-                isRose ? 'text-rose-400/90' : 'text-emerald-600 dark:text-emerald-400/90',
+                isRose ? 'text-rose-400/90' : 'text-neon-600 dark:text-neon-400/90',
               )}
             >
               {metaLine}
@@ -191,7 +191,7 @@ export function TerminalErrorPrimaryButton({
     <button
       type={type}
       onClick={onClick}
-      className="motion-btn-press w-full rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-all hover:bg-emerald-400 sm:w-auto"
+      className="motion-btn-press w-full rounded-full bg-neon-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-all hover:bg-neon-400 sm:w-auto"
     >
       {children}
     </button>
@@ -208,7 +208,7 @@ export function TerminalErrorPrimaryLink({
   return (
     <Link
       href={href}
-      className="motion-btn-press w-full rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-all hover:bg-emerald-400 sm:w-auto"
+      className="motion-btn-press w-full rounded-full bg-neon-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-all hover:bg-neon-400 sm:w-auto"
     >
       {children}
     </Link>

@@ -20,14 +20,14 @@ function renderLine(line: string) {
     const [head, ...rest] = line.split('=');
     return (
       <span>
-        <span className="text-emerald-300">{head}</span>
+        <span className="text-neon-300">{head}</span>
         {rest.length > 0 && (
           <span className="text-zinc-300">={rest.join('=')}</span>
         )}
       </span>
     );
   }
-  return <span className="text-emerald-300/90">{line}</span>;
+  return <span className="text-neon-300/90">{line}</span>;
 }
 
 export function LandingExamples() {
@@ -64,8 +64,8 @@ export function LandingExamples() {
               className={cn(
                 'motion-btn-press rounded-full border px-3 py-1.5 font-mono text-xs font-medium transition-colors sm:px-4 sm:text-sm',
                 activeId === ex.id
-                  ? 'terminal-active-pill border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
-                  : 'border-zinc-300 bg-white/70 text-zinc-600 hover:border-emerald-500/30 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400',
+                  ? 'terminal-active-pill border-neon-500/50 text-neon-700 dark:text-neon-300'
+                  : 'border-zinc-300 bg-white/70 text-zinc-600 hover:border-neon-500/30 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400',
               )}
             >
               {ex.label}
@@ -73,7 +73,7 @@ export function LandingExamples() {
           ))}
         </div>
 
-        <div className="pf-terminal-window terminal-code-surface relative overflow-hidden rounded-xl backdrop-blur-md transition-shadow duration-500 hover:shadow-xl dark:hover:shadow-emerald-900/25 sm:rounded-2xl">
+        <div className="pf-terminal-window terminal-code-surface relative overflow-hidden rounded-xl backdrop-blur-md transition-shadow duration-500 hover:shadow-xl dark:hover:shadow-neon-900/25 sm:rounded-2xl">
           <div className="flex items-center gap-2 border-b border-zinc-800/50 bg-zinc-900/60 px-3 py-2.5 sm:px-5 sm:py-3">
             <div className="flex gap-1.5">
               <div className="size-2 rounded-full bg-zinc-700 sm:size-2.5" />
@@ -87,7 +87,7 @@ export function LandingExamples() {
             <button
               type="button"
               onClick={handleCopy}
-              className="motion-btn-press flex cursor-pointer items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/30 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
+              className="motion-btn-press flex cursor-pointer items-center gap-1 rounded-md border border-neon-500/20 bg-neon-500/10 px-2 py-0.5 text-[10px] text-neon-400 transition-colors hover:bg-neon-500/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-400/30 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
               aria-label={`Copy ${active.label} example`}
             >
               <Copy className="size-2.5 sm:size-3" />
@@ -100,17 +100,17 @@ export function LandingExamples() {
               <code className="font-mono">
                 {active.lines.map((line, i) => (
                   <div key={`${active.id}-${i}`} className="flex truncate">
-                    <span className="mr-3 inline-block w-4 shrink-0 select-none text-right text-emerald-500/30 sm:mr-6 sm:w-5">
+                    <span className="mr-3 inline-block w-4 shrink-0 select-none text-right text-neon-500/30 sm:mr-6 sm:w-5">
                       {i + 1}
                     </span>
                     <span className="truncate">{renderLine(line)}</span>
                   </div>
                 ))}
                 <div className="flex">
-                  <span className="mr-3 inline-block w-4 shrink-0 select-none text-right text-emerald-500/30 sm:mr-6 sm:w-5">
+                  <span className="mr-3 inline-block w-4 shrink-0 select-none text-right text-neon-500/30 sm:mr-6 sm:w-5">
                     {active.lines.length + 1}
                   </span>
-                  <span className="animate-pulse text-emerald-400">▎</span>
+                  <span className="animate-pulse text-neon-400">▎</span>
                 </div>
               </code>
             </pre>

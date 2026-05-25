@@ -144,7 +144,7 @@ export function StructuredInputs({ value, onChange }: StructuredInputsProps) {
               step="0.5"
               value={value.rr ?? defaultRrString}
               onChange={(e) => onChange({ ...value, rr: e.target.value })}
-              className="w-full accent-emerald-500"
+              className="w-full accent-neon-500"
             />
           </div>
         </div>

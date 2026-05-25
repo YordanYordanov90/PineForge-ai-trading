@@ -32,13 +32,13 @@ export function GeneratorFaultPanel({
       <div
         className={cn(
           'pf-card terminal-scanlines w-full max-w-lg rounded-2xl border p-6 text-center sm:p-8',
-          isError ? 'border-rose-500/30' : 'border-emerald-500/20',
+          isError ? 'border-rose-500/30' : 'border-neon-500/20',
         )}
       >
         <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
           // GENERATOR :: {isError ? 'FAULT' : 'NOT_FOUND'}
           <span
-            className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px bg-emerald-500/90 align-baseline animate-blink-cursor"
+            className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px bg-neon-500/90 align-baseline animate-blink-cursor"
             aria-hidden
           />
         </p>
@@ -48,11 +48,11 @@ export function GeneratorFaultPanel({
             'mx-auto mt-5 inline-flex h-12 w-12 items-center justify-center rounded-full border',
             isError
               ? 'border-rose-500/40 bg-rose-500/10'
-              : 'border-emerald-500/35 bg-emerald-500/10',
+              : 'border-neon-500/35 bg-neon-500/10',
           )}
         >
           <AlertTriangle
-            className={cn('h-6 w-6', isError ? 'text-rose-300' : 'text-emerald-400')}
+            className={cn('h-6 w-6', isError ? 'text-rose-300' : 'text-neon-400')}
             aria-hidden
           />
         </div>
@@ -70,7 +70,7 @@ export function GeneratorFaultPanel({
           {primaryAction ?? (
             <Link
               href={primaryHref}
-              className="motion-btn-press w-full rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-zinc-950 transition-all hover:bg-emerald-400 sm:w-auto"
+              className="motion-btn-press w-full rounded-full bg-neon-500 px-6 py-3 text-sm font-bold text-zinc-950 transition-all hover:bg-neon-400 sm:w-auto"
             >
               {primaryLabel}
             </Link>

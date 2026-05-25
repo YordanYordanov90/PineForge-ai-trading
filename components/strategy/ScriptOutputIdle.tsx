@@ -11,13 +11,13 @@ type ScriptOutputIdleProps = {
 export function ScriptOutputIdle({ onSuggestionClick }: ScriptOutputIdleProps) {
   return (
     <div className="relative flex flex-col items-center justify-center px-6 py-14 text-center">
-      <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-950/80 dark:shadow-[0_0_24px_-8px_rgba(16,185,129,0.35)]">
-        <Terminal className="h-6 w-6 text-emerald-600 dark:text-emerald-500/70" />
+      <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-neon-200/80 bg-neon-50 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-950/80 dark:shadow-[0_0_24px_-8px_rgba(200,255,0,0.35)]">
+        <Terminal className="h-6 w-6 text-neon-600 dark:text-neon-500/70" />
       </div>
-      <p className="font-mono text-[11px] uppercase tracking-widest text-emerald-700 dark:text-emerald-500/80">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-neon-700 dark:text-neon-500/80">
         $
         <span
-          className="animate-blink-cursor ml-px inline-block h-3 w-1.5 bg-emerald-500/70 align-middle"
+          className="animate-blink-cursor ml-px inline-block h-3 w-1.5 bg-neon-500/70 align-middle"
           aria-hidden
         />
         <span className="ml-1.5">awaiting script</span>

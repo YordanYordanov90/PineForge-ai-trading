@@ -245,7 +245,7 @@ export function ExplainScriptPanel({
     >
       {text}
       {phase === 'streaming' && (
-        <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-emerald-400/80 align-middle" />
+        <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-neon-400/80 align-middle" />
       )}
     </div>
   );

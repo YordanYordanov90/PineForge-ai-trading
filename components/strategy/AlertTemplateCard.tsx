@@ -68,7 +68,7 @@ export function AlertTemplateCard({ template, isActive, onSelect }: AlertTemplat
           className={cn(
             'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
             isActive
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+              ? 'border-neon-500/40 bg-neon-500/10 text-neon-700 dark:text-neon-300'
               : 'border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-500',
           )}
         >
@@ -86,11 +86,11 @@ export function AlertTemplateCard({ template, isActive, onSelect }: AlertTemplat
               size="sm"
               onClick={() => void handleCopy()}
               aria-label={`Copy ${template.label} JSON`}
-              className="border-zinc-300 bg-white text-zinc-900 hover:border-emerald-500/30 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100 dark:hover:text-emerald-300"
+              className="border-zinc-300 bg-white text-zinc-900 hover:border-neon-500/30 hover:bg-neon-50 hover:text-neon-800 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100 dark:hover:text-neon-300"
             >
               {copied ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <Check className="h-3.5 w-3.5 text-neon-400" />
                   Copied!
                 </span>
               ) : (

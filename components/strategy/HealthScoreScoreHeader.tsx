@@ -7,8 +7,8 @@ import {
 import { cn } from '@/lib/utils';
 
 function scoreTone(score: number): string {
-  if (score >= 8) return 'text-emerald-600 dark:text-emerald-300';
-  if (score >= 6) return 'text-emerald-700 dark:text-emerald-400/90';
+  if (score >= 8) return 'text-neon-600 dark:text-neon-300';
+  if (score >= 6) return 'text-neon-700 dark:text-neon-400/90';
   if (score >= 4) return 'text-amber-700 dark:text-amber-300';
   return 'text-rose-700 dark:text-rose-300';
 }

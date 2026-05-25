@@ -68,14 +68,14 @@ export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
                       isFirst && 'rounded-l-md',
                       isLast && 'rounded-r-md',
                       isSelected &&
-                        cn('ring-1 ring-emerald-500/50 ring-inset', terminalActiveInset),
+                        cn('ring-1 ring-neon-500/50 ring-inset', terminalActiveInset),
                       !isSelected &&
                         !isLocked &&
                         'pf-model-option',
                       !isSelected &&
                         isRecommended &&
                         !isLocked &&
-                        'ring-1 ring-emerald-500/20 ring-inset',
+                        'ring-1 ring-neon-500/20 ring-inset',
                       isLocked && 'cursor-not-allowed opacity-60',
                     )}
                   >
@@ -88,7 +88,7 @@ export function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
                     <span
                       className={cn(
                         'text-[10px] leading-none tabular-nums',
-                        isSelected ? 'text-emerald-400/85' : 'text-zinc-500',
+                        isSelected ? 'text-neon-400/85' : 'text-zinc-500',
                       )}
                     >
                       {model.speedHint}

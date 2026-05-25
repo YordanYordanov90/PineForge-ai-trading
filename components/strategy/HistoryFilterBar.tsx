@@ -61,7 +61,7 @@ export function HistoryFilterBar({
               key={tag}
               type="button"
               onClick={() => onToggleTagFilter(tag)}
-              className="inline-flex items-center gap-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:border-emerald-400/40 dark:text-emerald-300"
+              className="inline-flex items-center gap-0.5 rounded border border-neon-500/40 bg-neon-500/10 px-1.5 py-0.5 font-mono text-[10px] text-neon-700 transition-colors hover:bg-neon-500/15 dark:border-neon-400/40 dark:text-neon-300"
               aria-label={`Remove filter ${tag}`}
             >
               #{tag}

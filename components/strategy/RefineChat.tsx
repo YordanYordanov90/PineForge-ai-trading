@@ -72,7 +72,7 @@ export function RefineChat({
       className={cn('scroll-mt-4', pfRefinePanel)}
     >
       <div className={cn('mb-3 flex items-center gap-2', pfRefineHeading)}>
-        <MessageSquareText className="h-4 w-4 text-emerald-600 dark:text-emerald-500/80" aria-hidden />
+        <MessageSquareText className="h-4 w-4 text-neon-600 dark:text-neon-500/80" aria-hidden />
         Refine this script with PineForge
       </div>
       <form className="space-y-3" onSubmit={handleSubmit}>
@@ -100,7 +100,7 @@ export function RefineChat({
             onChange={(e) => setInstruction(e.target.value.slice(0, MAX_INSTRUCTION))}
             rows={3}
             disabled={disabled || busy}
-            className="pf-input resize-none focus-visible:ring-emerald-400/30"
+            className="pf-input resize-none focus-visible:ring-neon-400/30"
             aria-invalid={len > MAX_INSTRUCTION}
           />
         </div>
@@ -109,7 +109,7 @@ export function RefineChat({
           size="sm"
           disabled={!canSubmit}
           aria-busy={busy}
-          className="bg-emerald-500/90 text-zinc-950 hover:bg-emerald-400 disabled:opacity-50"
+          className="bg-neon-500/90 text-zinc-950 hover:bg-neon-400 disabled:opacity-50"
         >
           {busy ? (
             <span className="inline-flex items-center gap-2">

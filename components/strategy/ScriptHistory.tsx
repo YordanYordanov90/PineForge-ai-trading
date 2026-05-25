@@ -85,7 +85,7 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
           variant="outline"
           size="sm"
           className={cn(
-            'pf-nav-muted border-zinc-700/70 focus-visible:ring-emerald-400/30 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300',
+            'pf-nav-muted border-zinc-700/70 focus-visible:ring-neon-400/30 dark:hover:border-neon-500/40 dark:hover:bg-neon-500/10 dark:hover:text-neon-300',
             open && terminalActivePressed,
           )}
           aria-label="Open script history"

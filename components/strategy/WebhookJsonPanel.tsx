@@ -55,11 +55,11 @@ export function WebhookJsonPanel({ webhookUrl, onWebhookUrlChange }: WebhookJson
             variant="outline"
             size="sm"
             onClick={handleCopyJson}
-            className="border-zinc-700 bg-zinc-900/80 text-zinc-100 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
+            className="border-zinc-700 bg-zinc-900/80 text-zinc-100 hover:bg-neon-500/10 hover:text-neon-300 hover:border-neon-500/30"
           >
             {jsonCopied ? (
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <Check className="h-3.5 w-3.5 text-neon-400" />
                 Copied!
               </span>
             ) : (
@@ -70,7 +70,7 @@ export function WebhookJsonPanel({ webhookUrl, onWebhookUrlChange }: WebhookJson
             )}
           </Button>
         </div>
-        <pre className="max-h-[min(360px,45vh)] overflow-auto rounded-lg border border-zinc-800/70 bg-black/55 p-3 font-mono text-[11px] leading-relaxed text-emerald-100/90 sm:text-xs">
+        <pre className="max-h-[min(360px,45vh)] overflow-auto rounded-lg border border-zinc-800/70 bg-black/55 p-3 font-mono text-[11px] leading-relaxed text-neon-100/90 sm:text-xs">
           {formatted}
         </pre>
       </div>

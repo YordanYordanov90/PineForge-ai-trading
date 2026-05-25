@@ -141,8 +141,8 @@ export function HistoryEntry({
                     className={cn(
                       'rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors',
                       active
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/40 dark:text-emerald-300'
-                        : 'border-zinc-300 text-zinc-500 hover:border-emerald-500/40 hover:text-emerald-600 dark:border-zinc-700/80 dark:text-zinc-400 dark:hover:text-emerald-300',
+                        ? 'border-neon-500/40 bg-neon-500/10 text-neon-700 dark:border-neon-400/40 dark:text-neon-300'
+                        : 'border-zinc-300 text-zinc-500 hover:border-neon-500/40 hover:text-neon-600 dark:border-zinc-700/80 dark:text-zinc-400 dark:hover:text-neon-300',
                     )}
                     aria-pressed={active}
                     aria-label={

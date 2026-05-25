@@ -20,12 +20,12 @@ export function LandingProofBar() {
         >
           {item.live ? (
             <span className="relative flex size-2 shrink-0" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-500 opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-neon-500" />
             </span>
           ) : (
             <span
-              className="size-1.5 shrink-0 rounded-full bg-emerald-500/70"
+              className="size-1.5 shrink-0 rounded-full bg-neon-500/70"
               aria-hidden
             />
           )}

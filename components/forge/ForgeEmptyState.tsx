@@ -43,15 +43,15 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
       <div className="relative forge-fade-up">
         <div
           aria-hidden
-          className="forge-pulse-ring absolute -inset-3 rounded-sm border border-emerald-500/25"
+          className="forge-pulse-ring absolute -inset-3 rounded-sm border border-neon-500/25"
         />
-        <div className="relative flex size-16 items-center justify-center gap-1 rounded-sm border border-emerald-500/35 bg-zinc-900/80 shadow-[inset_0_0_24px_oklch(0.7_0.17_160/0.12)] dark:bg-zinc-950/90">
+        <div className="relative flex size-16 items-center justify-center gap-1 rounded-sm border border-neon-500/35 bg-zinc-900/80 shadow-[inset_0_0_24px_oklch(0.7_0.17_160/0.12)] dark:bg-zinc-950/90">
           <Terminal
-            className="size-7 text-emerald-500 dark:text-emerald-400"
+            className="size-7 text-neon-500 dark:text-neon-400"
             aria-hidden
           />
           <BarChart3
-            className="size-5 text-emerald-500/70 dark:text-emerald-400/70"
+            className="size-5 text-neon-500/70 dark:text-neon-400/70"
             aria-hidden
           />
         </div>
@@ -59,7 +59,7 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
 
       <ul
         aria-hidden
-        className="mt-6 flex flex-col items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-600/80 dark:text-emerald-400/70"
+        className="mt-6 flex flex-col items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-neon-600/80 dark:text-neon-400/70"
       >
         {FORGE_BOOT_LINES.map((line, index) => (
           <li
@@ -73,7 +73,7 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
       </ul>
 
       <p
-        className="forge-fade-up mt-5 font-mono text-[10px] uppercase tracking-[0.35em] text-emerald-600 dark:text-emerald-400/80"
+        className="forge-fade-up mt-5 font-mono text-[10px] uppercase tracking-[0.35em] text-neon-600 dark:text-neon-400/80"
         style={{ animationDelay: '520ms' }}
       >
         [ Forge Agent Online ]
@@ -110,15 +110,15 @@ export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
               onClick={() => onSuggest(s.prompt)}
               className={cn(
                 'group/forge-chip relative w-full overflow-hidden rounded-sm border border-zinc-200/80 bg-white/60 px-4 py-3 text-left text-sm transition-all',
-                'before:absolute before:inset-y-0 before:left-0 before:w-0 before:bg-emerald-500/80 before:transition-[width] before:duration-200',
-                'hover:border-emerald-500/40 hover:bg-emerald-500/[0.04] hover:before:w-0.5',
-                'dark:border-zinc-800/70 dark:bg-zinc-900/50 dark:hover:bg-emerald-500/[0.08]',
+                'before:absolute before:inset-y-0 before:left-0 before:w-0 before:bg-neon-500/80 before:transition-[width] before:duration-200',
+                'hover:border-neon-500/40 hover:bg-neon-500/[0.04] hover:before:w-0.5',
+                'dark:border-zinc-800/70 dark:bg-zinc-900/50 dark:hover:bg-neon-500/[0.08]',
                 'disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
               <span className="relative flex items-start gap-2 font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 <span
-                  className="shrink-0 text-emerald-600 transition-colors group-hover/forge-chip:text-emerald-500 dark:text-emerald-400"
+                  className="shrink-0 text-neon-600 transition-colors group-hover/forge-chip:text-neon-500 dark:text-neon-400"
                   aria-hidden
                 >
                   &gt;

@@ -273,7 +273,7 @@ export function ForgeChat({
 
       <ForgeScrollToBottomFab visible={showScrollFab} onClick={scrollToBottom} />
 
-      <div className="border-t border-emerald-500/15 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6 dark:border-emerald-500/10 dark:bg-zinc-950/80">
+      <div className="border-t border-neon-500/15 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6 dark:border-neon-500/10 dark:bg-zinc-950/80">
         <div className="mx-auto w-full max-w-3xl">
           <ForgeInput
             onSubmit={(text) => void handleSubmit(text)}
@@ -291,12 +291,12 @@ export function ForgeChat({
 function SeedScriptBanner({ script }: { script: SavedScript }) {
   return (
     <div className="mx-auto mt-6 w-full max-w-3xl px-4 sm:px-0">
-      <div className="flex items-start gap-3 rounded-sm border border-emerald-500/30 border-l-2 border-l-emerald-500 bg-emerald-500/[0.05] p-3 dark:bg-emerald-500/[0.08]">
-        <div className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400">
+      <div className="flex items-start gap-3 rounded-sm border border-neon-500/30 border-l-2 border-l-neon-500 bg-neon-500/[0.05] p-3 dark:bg-neon-500/[0.08]">
+        <div className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-neon-500/30 bg-neon-500/10 text-neon-500 dark:text-neon-400">
           <ScrollText className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-200">
+          <p className="text-sm font-medium text-neon-700 dark:text-neon-200">
             Forge has loaded your script: {script.name || 'Untitled strategy'}
           </p>
           <p className="pf-muted mt-0.5 text-xs leading-relaxed">

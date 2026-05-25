@@ -54,10 +54,10 @@ function Token({ part }: { part: { t: string; c: string } }) {
       : part.c === 'kw'
         ? 'text-blue-400'
         : part.c === 'str'
-          ? 'text-emerald-200'
+          ? 'text-neon-200'
           : part.c === 'num'
             ? 'text-orange-300'
-            : 'text-emerald-300/90';
+            : 'text-neon-300/90';
   return <span className={cls}>{part.t}</span>;
 }
 
@@ -99,7 +99,7 @@ export function LandingHeroTerminal() {
 
   return (
     <div ref={ref} className="relative w-full max-w-md flex-1 sm:max-w-lg lg:perspective-[2000px]">
-      <div className="absolute inset-0 rounded-3xl bg-linear-to-tr from-emerald-500/20 to-transparent blur-2xl" />
+      <div className="absolute inset-0 rounded-3xl bg-linear-to-tr from-neon-500/20 to-transparent blur-2xl" />
       <div
         className={cn(
           'pf-terminal-window group relative h-full overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-[5deg] lg:hover:rotate-y-0 lg:hover:rotate-x-0',
@@ -110,21 +110,21 @@ export function LandingHeroTerminal() {
           <div className="flex gap-1.5 sm:gap-2">
             <div className="size-2.5 rounded-full bg-rose-500/80 sm:size-3" />
             <div className="size-2.5 rounded-full bg-amber-500/80 sm:size-3" />
-            <div className="size-2.5 rounded-full bg-emerald-500/80 sm:size-3" />
+            <div className="size-2.5 rounded-full bg-neon-500/80 sm:size-3" />
           </div>
           <div className="mx-auto flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 sm:gap-2 sm:text-xs">
             <Activity className="size-2.5 sm:size-3" /> strategy.pine
           </div>
         </div>
         <div className="terminal-code-surface relative p-3 font-mono text-[10px] leading-relaxed sm:p-6 sm:text-sm">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px)] bg-size-[100%_24px]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(200,255,0,0.03)_1px,transparent_1px)] bg-size-[100%_24px]" />
           <div
             className={cn(
               'mb-3 text-zinc-400 sm:mb-4',
               visible && !reduceMotion && 'landing-hero-prompt',
             )}
           >
-            <span className="text-emerald-500">❯</span> User:{' '}
+            <span className="text-neon-500">❯</span> User:{' '}
             <span className="truncate text-zinc-200">{PROMPT}</span>
           </div>
           <div className="space-y-0.5 sm:space-y-1">
@@ -156,7 +156,7 @@ export function LandingHeroTerminal() {
               visible && !reduceMotion && 'landing-hero-status',
             )}
           >
-            <span className="text-emerald-500">●</span> live • 0.3s • 24 tokens
+            <span className="text-neon-500">●</span> live • 0.3s • 24 tokens
           </p>
         </div>
       </div>

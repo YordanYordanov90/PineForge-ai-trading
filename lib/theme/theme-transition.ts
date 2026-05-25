@@ -13,9 +13,9 @@ const FADE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 const CLIP_START = 'polygon(0% 0%, 0% 0%, 0% 0%)';
 const CLIP_END = 'polygon(0% 0%, 260% 0%, 0% 260%)';
 
-/** Incoming theme fill — matches `.pf-page` solid base */
+/** Incoming theme fill — matches `.pf-page` gradient base */
 const THEME_BG: Record<AppTheme, string> = {
-  dark: '#09090b',
+  dark: '#0a0a0a',
   light: '#f7faf8',
 };
 

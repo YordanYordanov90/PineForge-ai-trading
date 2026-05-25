@@ -110,14 +110,14 @@ export function ForgeConversationSidebar({
   return (
     <>
       <div className="flex h-full flex-col gap-3">
-        <p className="px-1 font-mono text-[10px] uppercase tracking-[0.25em] text-emerald-600/80 dark:text-emerald-400/70">
+        <p className="px-1 font-mono text-[10px] uppercase tracking-[0.25em] text-neon-600/80 dark:text-neon-400/70">
           ~/conversations
         </p>
         <Button
           type="button"
           onClick={onCreateConversation}
           disabled={isCreating}
-          className="w-full justify-start gap-2 rounded-sm bg-emerald-500/90 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-emerald-400 disabled:opacity-50"
+          className="w-full justify-start gap-2 rounded-sm bg-neon-500/90 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-neon-400 disabled:opacity-50"
         >
           <MessageSquarePlus className="size-4" aria-hidden />
           {isCreating ? 'Starting…' : 'New chat'}
@@ -146,7 +146,7 @@ export function ForgeConversationSidebar({
                           className={cn(
                             'group/forge-conversation relative rounded-sm border border-transparent py-2 pl-3 pr-2 transition-[border-color,background-color,box-shadow] duration-200',
                             isActive
-                              ? 'border-l-2 border-l-emerald-500 bg-emerald-500/[0.08] shadow-[inset_4px_0_12px_-4px_oklch(0.7_0.17_160/0.35)] dark:bg-emerald-500/[0.12]'
+                              ? 'border-l-2 border-l-neon-500 bg-neon-500/[0.08] shadow-[inset_4px_0_12px_-4px_oklch(0.7_0.17_160/0.35)] dark:bg-neon-500/[0.12]'
                               : 'border-l-2 border-l-transparent hover:border-l-zinc-300 hover:bg-zinc-100/70 dark:hover:border-l-zinc-700 dark:hover:bg-zinc-900/60',
                           )}
                         >
@@ -241,7 +241,7 @@ function ConversationButton({
     >
       <span className="flex w-full min-w-0 items-center gap-1.5">
         <span
-          className="shrink-0 font-mono text-emerald-600/70 dark:text-emerald-400/60"
+          className="shrink-0 font-mono text-neon-600/70 dark:text-neon-400/60"
           aria-hidden
         >
           ├─
@@ -250,7 +250,7 @@ function ConversationButton({
           className={cn(
             'block min-w-0 flex-1 truncate text-sm font-medium',
             isActive
-              ? 'text-emerald-700 dark:text-emerald-300'
+              ? 'text-neon-700 dark:text-neon-300'
               : 'text-zinc-800 dark:text-zinc-200',
           )}
         >
