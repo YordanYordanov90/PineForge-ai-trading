@@ -34,7 +34,7 @@ export default function ForgeLoading() {
             <p className="font-mono text-[10px] tracking-[0.25em] text-zinc-500 uppercase sm:text-xs">
               PINEFORGE :: ROUTE //FORGE
               <span
-                className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px animate-blink-cursor bg-emerald-500/90 align-baseline dark:bg-emerald-400"
+                className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px animate-blink-cursor bg-neon-500/90 align-baseline dark:bg-neon-400"
                 aria-hidden
               />
             </p>

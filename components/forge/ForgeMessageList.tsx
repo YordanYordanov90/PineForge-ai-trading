@@ -84,11 +84,11 @@ function ForgeMessage({ message }: { message: UIMessage }) {
   return (
     <article
       className={cn(
-        'max-w-[92%] space-y-2 border-l-2 border-emerald-500/80 bg-gradient-to-r from-emerald-500/[0.07] to-transparent py-1 pl-4',
-        'dark:from-emerald-500/10',
+        'max-w-[92%] space-y-2 border-l-2 border-neon-500/80 bg-gradient-to-r from-neon-500/[0.07] to-transparent py-1 pl-4',
+        'dark:from-neon-500/10',
       )}
     >
-      <header className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-600/90 dark:text-emerald-400/80">
+      <header className="font-mono text-[10px] uppercase tracking-[0.2em] text-neon-600/90 dark:text-neon-400/80">
         [SYS] :: {formatMessageTime()}
       </header>
       <div className="space-y-1.5 text-sm leading-relaxed text-zinc-800 dark:text-zinc-100">

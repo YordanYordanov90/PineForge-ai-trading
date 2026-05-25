@@ -41,21 +41,21 @@ export function TerminalOutputChrome({
       <div className="flex shrink-0 items-center gap-1">
         <span className="size-1.5 rounded-full bg-rose-500/40" />
         <span className="size-1.5 rounded-full bg-amber-500/40" />
-        <span className="size-1.5 rounded-full bg-emerald-500/40" />
+        <span className="size-1.5 rounded-full bg-neon-500/40" />
       </div>
       <span className={cn('min-w-0 truncate', pfOutputMuted)}>{TAB_PATH[activeTab]}</span>
       <span className="ml-auto flex shrink-0 items-center gap-2">
         {isStreaming ? (
-          <span className="inline-flex items-center gap-1.5 text-emerald-400/90">
+          <span className="inline-flex items-center gap-1.5 text-neon-400/90">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-neon-400" />
             </span>
             streaming
           </span>
         ) : null}
         {showValid ? (
-          <span className="inline-flex items-center gap-1 text-emerald-400/85">
+          <span className="inline-flex items-center gap-1 text-neon-400/85">
             <ShieldCheck className="size-3" />
             valid
           </span>

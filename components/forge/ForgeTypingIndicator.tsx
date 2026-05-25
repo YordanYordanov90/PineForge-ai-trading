@@ -67,7 +67,7 @@ export function ForgeTypingIndicator({
 
   return (
     <div
-      className="flex items-center gap-3 font-mono text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
+      className="flex items-center gap-3 font-mono text-xs uppercase tracking-widest text-neon-600 dark:text-neon-400"
       role="status"
       aria-live="polite"
     >

@@ -71,8 +71,8 @@ export function TerminalPriceTicker({
             ? "text-zinc-500"
             : r.delta >= 0
               ? isGenerate
-                ? "text-emerald-500/70"
-                : "text-emerald-400"
+                ? "text-neon-500/70"
+                : "text-neon-400"
               : isGenerate
                 ? "text-rose-500/70"
                 : "text-rose-400"

@@ -121,8 +121,8 @@ export function ForgeToolCallCard({
             isError
               ? 'border-amber-500/40 bg-amber-500/15 text-amber-500 dark:text-amber-400'
               : isLoading
-                ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-500 dark:text-emerald-400'
-                : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400',
+                ? 'border-neon-500/30 bg-neon-500/15 text-neon-500 dark:text-neon-400'
+                : 'border-neon-500/25 bg-neon-500/10 text-neon-500 dark:text-neon-400',
           )}
         >
           {isLoading ? (
@@ -144,7 +144,7 @@ export function ForgeToolCallCard({
         </span>
 
         {isLoading ? (
-          <span className="shrink-0 font-mono text-[10px] tabular-nums text-emerald-600 dark:text-emerald-400">
+          <span className="shrink-0 font-mono text-[10px] tabular-nums text-neon-600 dark:text-neon-400">
             {elapsedSeconds.toFixed(1)}s
           </span>
         ) : null}

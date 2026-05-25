@@ -29,7 +29,7 @@ export function ExportMarkdownPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-start gap-2.5">
           <FileText
-            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400/90"
+            className="mt-0.5 h-4 w-4 shrink-0 text-neon-600 dark:text-neon-400/90"
             aria-hidden
           />
           <div className="min-w-0 space-y-1">
@@ -57,12 +57,12 @@ export function ExportMarkdownPanel({
             type="button"
             variant="outline"
             size="sm"
-            className="border-zinc-300 bg-white hover:bg-emerald-500/10 dark:border-zinc-700 dark:bg-zinc-950/40"
+            className="border-zinc-300 bg-white hover:bg-neon-500/10 dark:border-zinc-700 dark:bg-zinc-950/40"
             onClick={onCopy}
             aria-label={copied ? 'Markdown copied' : 'Copy Markdown to clipboard'}
           >
             {copied ? (
-              <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" aria-hidden />
+              <Check className="mr-1.5 h-3.5 w-3.5 text-neon-500" aria-hidden />
             ) : (
               <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
             )}
@@ -72,7 +72,7 @@ export function ExportMarkdownPanel({
             type="button"
             variant="outline"
             size="sm"
-            className="border-zinc-300 bg-white hover:bg-emerald-500/10 dark:border-zinc-700 dark:bg-zinc-950/40"
+            className="border-zinc-300 bg-white hover:bg-neon-500/10 dark:border-zinc-700 dark:bg-zinc-950/40"
             onClick={onDownload}
             aria-label="Download Markdown file"
           >

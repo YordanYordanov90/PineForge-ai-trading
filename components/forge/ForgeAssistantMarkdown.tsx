@@ -32,7 +32,7 @@ const markdownComponents: Components = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-emerald-600 underline underline-offset-2 hover:text-emerald-500 dark:text-emerald-400"
+      className="text-neon-600 underline underline-offset-2 hover:text-neon-500 dark:text-neon-400"
     >
       {children}
     </a>
@@ -41,13 +41,13 @@ const markdownComponents: Components = {
     const isBlock = className?.includes('language-');
     if (isBlock) {
       return (
-        <code className="block font-mono text-[11px] leading-relaxed text-emerald-300/95">
+        <code className="block font-mono text-[11px] leading-relaxed text-neon-300/95">
           {children}
         </code>
       );
     }
     return (
-      <code className="rounded-sm bg-black/55 px-1 py-0.5 font-mono text-[0.85em] text-emerald-300/95">
+      <code className="rounded-sm bg-black/55 px-1 py-0.5 font-mono text-[0.85em] text-neon-300/95">
         {children}
       </code>
     );
@@ -58,7 +58,7 @@ const markdownComponents: Components = {
     </pre>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="my-2 border-l-2 border-emerald-500/40 pl-3 text-zinc-600 italic dark:text-zinc-400">
+    <blockquote className="my-2 border-l-2 border-neon-500/40 pl-3 text-zinc-600 italic dark:text-zinc-400">
       {children}
     </blockquote>
   ),

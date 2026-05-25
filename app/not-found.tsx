@@ -17,7 +17,7 @@ export default function NotFound() {
       title="SIGNAL LOST"
       metaLine="// TICKER NOT FOUND"
       description="This route is not listed on the exchange. Return to the terminal or open the generator."
-      accent="emerald"
+      accent="neon"
       primaryAction={
         <TerminalErrorPrimaryLink href="/">Return to home</TerminalErrorPrimaryLink>
       }

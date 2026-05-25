@@ -10,7 +10,7 @@ export function ScriptOutputStreaming({ script }: ScriptOutputStreamingProps) {
   return (
     <div className={CODE_BLOCK_CLASS}>
       <p
-        className="mb-3 font-mono text-[10px] uppercase tracking-widest text-emerald-500/70"
+        className="mb-3 font-mono text-[10px] uppercase tracking-widest text-neon-500/70"
         aria-hidden
       >
         pineforge stream · {script.length} chars
@@ -20,7 +20,7 @@ export function ScriptOutputStreaming({ script }: ScriptOutputStreamingProps) {
           {script}
           <span
             className={cn(
-              'animate-blink-cursor ml-0.5 inline-block h-4 w-2 bg-emerald-400 align-text-bottom',
+              'animate-blink-cursor ml-0.5 inline-block h-4 w-2 bg-neon-400 align-text-bottom',
               terminalCursorStream,
             )}
           />

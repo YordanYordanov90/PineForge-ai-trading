@@ -59,7 +59,7 @@ export function LandingFAQ() {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-heading text-base font-semibold text-zinc-900 marker:content-none dark:text-zinc-100 sm:p-6 sm:text-lg [&::-webkit-details-marker]:hidden">
                 {item.question}
                 <span
-                  className="shrink-0 font-mono text-lg text-emerald-600 transition-transform group-open:rotate-45 dark:text-emerald-400"
+                  className="shrink-0 font-mono text-lg text-neon-600 transition-transform group-open:rotate-45 dark:text-neon-400"
                   aria-hidden
                 >
                   +

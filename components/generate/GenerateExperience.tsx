@@ -56,7 +56,7 @@ export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="pf-badge inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-neon-400 shadow-[0_0_0_4px_rgba(200,255,0,0.12)]" />
               Pine Script v5 · Alerts + SL/TP · Copy‑ready output
             </div>
             <h1 className="pf-heading mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -71,14 +71,14 @@ export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
             {isLoaded && isSignedIn ? (
               <Link
                 href="/forge"
-                className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-1.5 text-xs font-medium text-emerald-700 backdrop-blur-sm transition-all hover:border-emerald-500/50 hover:bg-emerald-500/15 dark:text-emerald-300"
+                className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neon-500/30 bg-neon-500/[0.06] px-3 py-1.5 text-xs font-medium text-neon-700 backdrop-blur-sm transition-all hover:border-neon-500/50 hover:bg-neon-500/15 dark:text-neon-300"
                 aria-label="Open Forge agent"
               >
                 <Sparkles className="size-3.5" aria-hidden />
                 Forge
                 <span
                   aria-hidden
-                  className="ml-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300"
+                  className="ml-1 rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-neon-700 dark:text-neon-300"
                 >
                   New
                 </span>

@@ -14,33 +14,33 @@ const clerkElementsDark: ClerkAppearance['elements'] = {
     '!text-zinc-50 font-heading text-2xl !leading-tight tracking-tight sm:text-3xl sm:tracking-tighter drop-shadow-sm',
   headerSubtitle: '!text-zinc-500 text-sm leading-relaxed',
   socialButtonsBlockButton:
-    'relative z-[1] rounded-lg border border-zinc-600/45 bg-zinc-950/30 !text-zinc-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-all hover:border-emerald-400/40 hover:bg-emerald-500/10',
+    'relative z-[1] rounded-lg border border-zinc-600/45 bg-zinc-950/30 !text-zinc-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-all hover:border-neon-400/40 hover:bg-neon-500/10',
   socialButtonsBlockButtonText: '!text-zinc-200 text-sm font-medium',
   dividerLine: 'bg-gradient-to-r from-transparent via-zinc-500/35 to-transparent',
   dividerText: '!text-zinc-500 text-xs uppercase tracking-widest',
   formFieldLabel: '!text-zinc-400 text-sm font-medium',
   formFieldInput:
-    'relative z-[1] rounded-lg border border-white/[0.08] !bg-zinc-950/40 !text-zinc-100 placeholder:!text-zinc-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-colors focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/25',
+    'relative z-[1] rounded-lg border border-white/[0.08] !bg-zinc-950/40 !text-zinc-100 placeholder:!text-zinc-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-colors focus:border-neon-400/60 focus:ring-2 focus:ring-neon-400/25',
   formFieldHintText: '!text-zinc-500',
   formFieldErrorText: '!text-rose-200 text-sm font-medium leading-snug',
   formFieldError: 'rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5',
   formButtonPrimary:
-    'relative z-[1] rounded-lg bg-emerald-400 font-semibold !text-zinc-950 shadow-lg shadow-emerald-500/35 ring-1 ring-emerald-300/30 transition-all hover:bg-emerald-300 hover:shadow-emerald-400/45 hover:ring-emerald-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 active:scale-[0.98]',
+    'relative z-[1] rounded-lg bg-neon-400 font-semibold !text-zinc-950 shadow-lg shadow-neon-500/35 ring-1 ring-neon-300/30 transition-all hover:bg-neon-300 hover:shadow-neon-400/45 hover:ring-neon-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/50 active:scale-[0.98]',
   footerActionText: '!text-zinc-500',
   footerActionLink:
-    '!text-emerald-200 !font-semibold hover:!text-emerald-100 hover:underline underline-offset-2 transition-colors',
+    '!text-neon-200 !font-semibold hover:!text-neon-100 hover:underline underline-offset-2 transition-colors',
   footer:
     'relative z-[1] rounded-b-xl border-t border-white/[0.06] bg-zinc-950/25 backdrop-blur-md',
   identityPreviewText: '!text-zinc-300',
-  identityPreviewEditButton: '!text-emerald-200 hover:!text-emerald-100 transition-colors',
-  formFieldAction: '!text-emerald-200 hover:!text-emerald-100 text-sm font-medium transition-colors',
+  identityPreviewEditButton: '!text-neon-200 hover:!text-neon-100 transition-colors',
+  formFieldAction: '!text-neon-200 hover:!text-neon-100 text-sm font-medium transition-colors',
   otpCodeFieldInput:
     'relative z-[1] !border-white/[0.08] !bg-zinc-950/40 !text-zinc-100 backdrop-blur-md',
-  formResendCodeLink: '!text-emerald-200 hover:!text-emerald-100 transition-colors',
+  formResendCodeLink: '!text-neon-200 hover:!text-neon-100 transition-colors',
   alert: 'rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-left',
   alertText: '!text-rose-100 text-sm leading-relaxed',
   alertIcon: 'text-rose-300',
-  badge: 'bg-emerald-500/20 !text-emerald-300 border border-emerald-400/35',
+  badge: 'bg-neon-500/20 !text-neon-300 border border-neon-400/35',
   userButtonPopoverCard:
     'rounded-xl border border-zinc-700/60 bg-zinc-950 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.65)] ring-1 ring-white/10 backdrop-blur-md',
   userButtonPopoverMain: 'bg-zinc-950',
@@ -65,25 +65,25 @@ const clerkElementsLight: ClerkAppearance['elements'] = {
     '!text-zinc-900 font-heading text-2xl !leading-tight tracking-tight sm:text-3xl sm:tracking-tighter',
   headerSubtitle: '!text-zinc-500 text-sm leading-relaxed',
   socialButtonsBlockButton:
-    'relative z-[1] rounded-lg border border-zinc-300/80 bg-white !text-zinc-800 transition-all hover:border-emerald-500/50 hover:bg-emerald-50',
+    'relative z-[1] rounded-lg border border-zinc-300/80 bg-white !text-zinc-800 transition-all hover:border-neon-500/50 hover:bg-neon-50',
   socialButtonsBlockButtonText: '!text-zinc-800 text-sm font-medium',
   dividerLine: 'bg-gradient-to-r from-transparent via-zinc-300/60 to-transparent',
   dividerText: '!text-zinc-500 text-xs uppercase tracking-widest',
   formFieldLabel: '!text-zinc-600 text-sm font-medium',
   formFieldInput:
-    'relative z-[1] rounded-lg border border-zinc-300/80 !bg-white !text-zinc-900 placeholder:!text-zinc-400 transition-colors focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20',
+    'relative z-[1] rounded-lg border border-zinc-300/80 !bg-white !text-zinc-900 placeholder:!text-zinc-400 transition-colors focus:border-neon-500/60 focus:ring-2 focus:ring-neon-500/20',
   formFieldHintText: '!text-zinc-500',
   formButtonPrimary:
-    'relative z-[1] rounded-lg bg-emerald-500 font-semibold !text-white shadow-md shadow-emerald-500/25 transition-all hover:bg-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500/40 active:scale-[0.98]',
+    'relative z-[1] rounded-lg bg-neon-500 font-semibold !text-white shadow-md shadow-neon-500/25 transition-all hover:bg-neon-600 focus-visible:ring-2 focus-visible:ring-neon-500/40 active:scale-[0.98]',
   footerActionText: '!text-zinc-500',
   footerActionLink:
-    '!text-emerald-700 !font-semibold hover:!text-emerald-800 hover:underline underline-offset-2 transition-colors',
+    '!text-neon-700 !font-semibold hover:!text-neon-800 hover:underline underline-offset-2 transition-colors',
   footer: 'relative z-[1] rounded-b-xl border-t border-zinc-200/80 bg-zinc-50/80 backdrop-blur-md',
   identityPreviewText: '!text-zinc-700',
-  identityPreviewEditButton: '!text-emerald-700 hover:!text-emerald-800 transition-colors',
-  formFieldAction: '!text-emerald-700 hover:!text-emerald-800 text-sm font-medium transition-colors',
+  identityPreviewEditButton: '!text-neon-700 hover:!text-neon-800 transition-colors',
+  formFieldAction: '!text-neon-700 hover:!text-neon-800 text-sm font-medium transition-colors',
   otpCodeFieldInput: 'relative z-[1] !border-zinc-300/80 !bg-white !text-zinc-900',
-  formResendCodeLink: '!text-emerald-700 hover:!text-emerald-800 transition-colors',
+  formResendCodeLink: '!text-neon-700 hover:!text-neon-800 transition-colors',
   userButtonPopoverCard:
     'rounded-xl border border-zinc-200/90 bg-white shadow-lg ring-1 ring-zinc-200/50 backdrop-blur-md',
   userButtonPopoverMain: 'bg-white',
@@ -118,7 +118,7 @@ export const clerkAppearanceDark: ClerkAppearance = {
   elements: clerkElementsDark,
 };
 
-/** Light shell — emerald accent, zinc text. */
+/** Light shell — neon accent, zinc text. */
 export const clerkAppearanceLight: ClerkAppearance = {
   variables: {
     colorPrimary: '#10b981',

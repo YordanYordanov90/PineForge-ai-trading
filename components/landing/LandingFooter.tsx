@@ -27,11 +27,11 @@ export function LandingFooter() {
               href="/"
               className="pf-heading mb-3 inline-flex items-center gap-2 font-heading text-lg font-bold"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/15">
-                <Zap className="size-4 text-emerald-500" />
+              <div className="flex size-8 items-center justify-center rounded-lg border border-neon-500/25 bg-neon-500/15">
+                <Zap className="size-4 text-neon-500" />
               </div>
               {prefix}
-              <span className="text-emerald-500">{accent}</span>
+              <span className="text-neon-500">{accent}</span>
             </Link>
             <p className="pf-muted max-w-sm text-sm leading-relaxed">
               Turn plain-English strategy ideas into production-ready Pine Script — with risk
@@ -48,7 +48,7 @@ export function LandingFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="pf-muted text-sm transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                    className="pf-muted text-sm transition-colors hover:text-neon-600 dark:hover:text-neon-400"
                   >
                     {link.label}
                   </Link>
@@ -66,7 +66,7 @@ export function LandingFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="pf-muted text-sm transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                    className="pf-muted text-sm transition-colors hover:text-neon-600 dark:hover:text-neon-400"
                   >
                     {link.label}
                   </Link>

@@ -13,8 +13,8 @@ meant to help you understand:
 - why certain technical and product decisions were made
 
 This document is intentionally limited to the parts that are already built or
-actively wired into the current app. It does **not** cover the planned Forge
-Agent work that comes next.
+actively wired into the current app, including the shipped Forge Agent in
+Phase 6.
 
 ---
 
@@ -87,7 +87,8 @@ It is not built for:
 - general-purpose AI chat
 
 That boundary is important. The product is narrow by design, which helps the UI
-stay focused and the prompts stay reliable.
+stay focused, the prompts stay reliable, and the Forge Agent stays scoped to
+strategy workflow instead of general trading chat.
 
 ---
 
@@ -107,10 +108,9 @@ The current project includes these major areas:
 - local and account-backed script history
 - tags, starred scripts, and collections
 - TradingView handoff workflow
-- markdown export groundwork
-
-The next major planned area is the Forge Agent, but that is intentionally
-excluded from this document because it is not the part you asked to study now.
+- markdown export workflow
+- authenticated Forge Agent workspace at `/forge`
+- Forge conversations, memory, and tool orchestration
 
 ---
 
@@ -184,6 +184,17 @@ PineForge uses AI in bounded ways:
 - produce a backtesting checklist
 
 It does not aim to answer arbitrary trading questions.
+
+### 6.5 It expands through orchestration, not by becoming a general agent
+
+Phase 6 adds Forge, but Forge follows the same product philosophy as the rest
+of PineForge:
+
+- it orchestrates existing PineForge tools instead of replacing the core app
+- it remembers user strategy preferences and conversation context
+- it refuses live market data, trade execution, and financial advice
+- it stays focused on helping users generate, analyze, refine, and organize
+  Pine Script workflows
 
 ---
 
@@ -289,7 +300,7 @@ This is a practical security and cost-control decision, not just an optimization
 
 ## 8. High-Level Architecture
 
-At a high level, PineForge is split into four layers:
+At a high level, PineForge is split into five layers:
 
 ### 8.1 Presentation Layer
 
@@ -360,6 +371,23 @@ Main folders:
 This layered structure is deliberate. It keeps UI code from absorbing too much
 backend logic and keeps request validation close to the actual boundary.
 
+### 8.5 Agent Orchestration Layer
+
+Forge adds a dedicated orchestration layer on top of the generator-era
+architecture:
+
+- agent system prompt construction
+- tool definitions and execution
+- conversation persistence
+- memory extraction and recall
+- guardrails around agent behavior and tool use
+
+Main folders:
+
+- `app/forge/`
+- `components/forge/`
+- `lib/agent/`
+
 ---
 
 ## 9. Route Structure
@@ -370,6 +398,8 @@ backend logic and keeps request validation close to the actual boundary.
   Marketing landing page
 - `/generate`
   Main product workspace
+- `/forge`
+  Authenticated AI strategy workflow workspace
 - `/sign-in`
   Clerk sign-in page
 - `/sign-up`
@@ -391,6 +421,8 @@ backend logic and keeps request validation close to the actual boundary.
   Produce webhook-ready alert message templates
 - `/api/backtesting-summary`
   Produce a structured testing checklist
+- `/api/forge`
+  Run the Forge Agent as a streaming tool-calling conversation
 
 ## 9.3 Data Routes
 
@@ -410,6 +442,12 @@ backend logic and keeps request validation close to the actual boundary.
   List or create collections
 - `/api/collections/[collectionId]`
   Rename or delete a collection
+- `/api/forge/conversations`
+  List or create Forge conversations
+- `/api/forge/conversations/[conversationId]`
+  Rename or delete a Forge conversation
+- `/api/forge/conversations/[conversationId]/messages`
+  Load persisted Forge conversation messages
 - `/api/users/sync`
   Ensure DB user row exists for the current Clerk user
 
@@ -430,6 +468,8 @@ This holds route-level UI and route handlers.
   API routes
 - `app/generate/`
   generator page and route-level loading/error states
+- `app/forge/`
+  Forge Agent page and route-level loading states
 
 ## 10.2 `components/`
 
@@ -441,6 +481,8 @@ This is mostly presentational UI split by product area.
   auth visuals and trust UI
 - `components/strategy/`
   generator, output, history, tabs, panels
+- `components/forge/`
+  Forge chat, sidebar, composer, and tool-call presentation
 - `components/error/`
   custom terminal-style error screens
 - `components/ui/`
@@ -472,6 +514,8 @@ This is the reusable systems layer.
   schemas, response envelopes, boundary helpers
 - `lib/auth/`
   auth helpers and entitlement rules
+- `lib/agent/`
+  Forge system prompt, tools, memory, and orchestration helpers
 - `lib/db/`
   database access and row mapping
 - `lib/scripts/`
@@ -1892,6 +1936,14 @@ If you want to learn the project efficiently, this is a good reading order:
 15. `lib/scripts/`
 16. `lib/export/`
 
+If you want to study Forge after that, continue with:
+
+17. `app/forge/page.tsx`
+18. `components/forge/`
+19. `app/api/forge/route.ts`
+20. `app/api/forge/conversations/`
+21. `lib/agent/`
+
 That path lets you understand the app in the same order a user experiences it:
 
 - product concept
@@ -1918,11 +1970,9 @@ What PineForge already does well:
 
 What is still evolving:
 
-- export feature completion
+- post-Phase-6 polish and iteration
 - some deeper hardening items tracked in context files
-- the next major platform expansion after Phase 5
-
-Again, this document intentionally stops before the planned Forge Agent work.
+- future expansion beyond the shipped Forge workflow surface
 
 ---
 
@@ -1941,6 +1991,7 @@ Everything else in the app supports that promise:
 
 - the landing page sells it
 - the generator page executes it
+- Forge orchestrates it conversationally
 - refinement improves it
 - health/alerts/backtests deepen it
 - history/tags/collections preserve it

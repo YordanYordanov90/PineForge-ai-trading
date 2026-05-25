@@ -33,8 +33,8 @@ export function TerminalActivityHud() {
           className="relative flex h-2 w-2 shrink-0"
           aria-hidden
         >
-          <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400/50" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.45)]" />
+          <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-neon-400/50" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-neon-400 shadow-[0_0_10px_rgba(52,211,153,0.45)]" />
         </span>
         <span className="tabular-nums text-zinc-300">
           ~{traders.toLocaleString()}{" "}
@@ -44,7 +44,7 @@ export function TerminalActivityHud() {
       <span className="hidden h-3 w-px bg-zinc-700/80 sm:inline" aria-hidden />
       <span className="text-zinc-500">
         Last strategy generated{" "}
-        <span className="tabular-nums text-emerald-400/90">
+        <span className="tabular-nums text-neon-400/90">
           {secondsAgo}s
         </span>{" "}
         ago

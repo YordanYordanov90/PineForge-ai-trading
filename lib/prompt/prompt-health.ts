@@ -119,7 +119,7 @@ export const PROMPT_HEALTH_STYLES: Record<
     dot: 'bg-amber-400',
   },
   strong: {
-    badge: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300',
-    dot: 'bg-emerald-400',
+    badge: 'border-neon-500/35 bg-neon-500/10 text-neon-300',
+    dot: 'bg-neon-400',
   },
 };

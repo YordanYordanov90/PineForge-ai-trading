@@ -15,7 +15,7 @@ export function ScriptOutputEditable({ script, onScriptChange }: ScriptOutputEdi
       onChange={(e) => {
         onScriptChange(e.target.value);
       }}
-      className="pf-code-text box-border max-h-[640px] min-h-[320px] w-full resize-y border-0 bg-transparent p-6 font-mono text-sm leading-relaxed outline-none ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/20"
+      className="pf-code-text box-border max-h-[640px] min-h-[320px] w-full resize-y border-0 bg-transparent p-6 font-mono text-sm leading-relaxed outline-none ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/20"
     />
   );
 }

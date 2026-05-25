@@ -285,7 +285,7 @@ export function StrategyOutputCard({
       className={cn(
         'pf-card transition-all duration-500',
         isOutputBusy &&
-          'border-emerald-500/40 shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)] animate-border-glow dark:bg-zinc-950/40',
+          'border-neon-500/40 shadow-[0_0_30px_-5px_rgba(200,255,0,0.15)] animate-border-glow dark:bg-zinc-950/40',
         successPulse && 'animate-success-pulse',
       )}
     >
@@ -295,7 +295,7 @@ export function StrategyOutputCard({
             <CardTitle className="text-xl">Output</CardTitle>
             {validationResult && !isOutputBusy && (
               validationResult.isValid ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 animate-fade-in">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-neon-500/30 bg-neon-500/10 px-2.5 py-0.5 text-xs font-medium text-neon-400 animate-fade-in">
                   <ShieldCheck className="h-3 w-3" />
                   Valid Pine Script v5 ✓
                 </span>
@@ -307,10 +307,10 @@ export function StrategyOutputCard({
               )
             )}
             {isOutputBusy && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-neon-500/10 px-2.5 py-0.5 text-xs text-neon-400 border border-neon-500/20">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-neon-400" />
                 </span>
                 Streaming
               </span>
@@ -380,7 +380,7 @@ export function StrategyOutputCard({
                 asChild
                 variant="outline"
                 size="sm"
-                className="mt-3 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                className="mt-3 border-neon-500/40 text-neon-300 hover:bg-neon-500/10"
               >
                 <Link href="/pricing">Upgrade to Pro</Link>
               </Button>
@@ -544,7 +544,7 @@ export function StrategyOutputCard({
         <Separator className="bg-zinc-200 dark:bg-zinc-800/70" />
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="pf-output-footer-tile flex items-start gap-2.5 rounded-xl p-3">
-            <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-500/70" />
+            <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neon-600 dark:text-neon-500/70" />
             <div>
               <div className="pf-output-footer-title text-zinc-900 dark:text-zinc-200">Alert tiers</div>
               <div className="pf-output-footer-caption mt-0.5 text-xs text-zinc-700 dark:text-zinc-500">Getting Ready &middot; Average &middot; Strong</div>

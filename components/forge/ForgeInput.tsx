@@ -112,13 +112,13 @@ export function ForgeInput({
       className={cn(
         'flex w-full flex-col gap-2 rounded-sm border border-zinc-200/80 bg-white/90 p-3 backdrop-blur',
         'shadow-sm transition-[border-color,box-shadow] duration-200',
-        'focus-within:border-emerald-500/50 focus-within:shadow-[inset_0_0_15px_oklch(0.7_0.17_160/0.15)]',
+        'focus-within:border-neon-500/50 focus-within:shadow-[inset_0_0_15px_oklch(0.7_0.17_160/0.15)]',
         'dark:border-zinc-800/70 dark:bg-zinc-900/80',
       )}
     >
       <div className="flex items-start gap-2">
         <span
-          className="mt-2 shrink-0 font-mono text-sm text-emerald-600 dark:text-emerald-400"
+          className="mt-2 shrink-0 font-mono text-sm text-neon-600 dark:text-neon-400"
           aria-hidden
         >
           &gt;_
@@ -136,7 +136,7 @@ export function ForgeInput({
           aria-describedby="forge-input-helper"
           placeholder="Ask Forge anything about your strategies…"
           className={cn(
-            'pf-input min-h-[2.75rem] max-h-40 flex-1 resize-none overflow-y-auto border-0 bg-transparent font-mono text-sm text-emerald-800 shadow-none focus-visible:ring-0 dark:text-emerald-300/95',
+            'pf-input min-h-[2.75rem] max-h-40 flex-1 resize-none overflow-y-auto border-0 bg-transparent font-mono text-sm text-neon-800 shadow-none focus-visible:ring-0 dark:text-neon-300/95',
           )}
         />
       </div>
@@ -153,8 +153,8 @@ export function ForgeInput({
             onClick={() => injectPrompt(item.prompt)}
             className={cn(
               'rounded-sm border border-zinc-200/80 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider',
-              'text-emerald-700 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10',
-              'dark:border-zinc-700/70 dark:text-emerald-400 dark:hover:bg-emerald-500/10',
+              'text-neon-700 transition-colors hover:border-neon-500/40 hover:bg-neon-500/10',
+              'dark:border-zinc-700/70 dark:text-neon-400 dark:hover:bg-neon-500/10',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
@@ -202,7 +202,7 @@ export function ForgeInput({
             size="sm"
             disabled={!canSubmit}
             aria-label="Send message"
-            className="rounded-sm bg-emerald-500 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-emerald-400 disabled:opacity-50"
+            className="rounded-sm bg-neon-500 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-neon-400 disabled:opacity-50"
           >
             {isStreaming ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />

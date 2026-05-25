@@ -150,9 +150,9 @@ export function StrategyInputsCard({
                 'motion-btn-press shrink-0 self-end sm:self-start',
                 pfImprovePromptBtn,
                 improveReady &&
-                  'animate-pulse-glow shadow-[0_0_22px_-5px_rgba(16,185,129,0.45)] hover:shadow-[0_0_28px_-4px_rgba(16,185,129,0.55)]',
+                  'animate-pulse-glow shadow-[0_0_22px_-5px_rgba(200,255,0,0.45)] hover:shadow-[0_0_28px_-4px_rgba(200,255,0,0.55)]',
                 improveBusy &&
-                  'pointer-events-none cursor-wait animate-border-glow border-emerald-400/60 bg-emerald-500/15 shadow-[0_0_32px_-4px_rgba(16,185,129,0.5)]',
+                  'pointer-events-none cursor-wait animate-border-glow border-neon-400/60 bg-neon-500/15 shadow-[0_0_32px_-4px_rgba(200,255,0,0.5)]',
               )}
             >
               {isImproving ? (
@@ -207,7 +207,7 @@ export function StrategyInputsCard({
                   disabled={!canGenerate}
                   size="lg"
                   className={cn(
-                    'motion-btn-press w-full bg-emerald-500 text-zinc-950 hover:bg-emerald-400 disabled:opacity-60',
+                    'motion-btn-press w-full bg-neon-500 text-zinc-950 hover:bg-neon-400 disabled:opacity-60',
                     generateReady && 'motion-ready-generate',
                   )}
                   aria-busy={isGenerating}

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { terminalActivePressed } from '@/lib/ui/terminal-texture';
 
 const iconActionClass =
-  'border border-zinc-800 text-white hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30';
+  'border border-zinc-800 text-white hover:bg-neon-500/10 hover:text-neon-300 hover:border-neon-500/30';
 
 type OutputActionBarProps = {
   generatedScript: string;
@@ -77,7 +77,7 @@ export function OutputActionBar({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.08] px-2.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200"
+              className="h-8 gap-1.5 rounded-md border border-neon-500/30 bg-neon-500/[0.08] px-2.5 text-xs font-medium text-neon-600 hover:bg-neon-500/15 hover:text-neon-700 dark:text-neon-300 dark:hover:text-neon-200"
               aria-label="Discuss this script with Forge"
             >
               <Link href={`/forge?scriptId=${forgeScriptId}`}>
@@ -97,7 +97,7 @@ export function OutputActionBar({
             className={iconActionClass}
           >
             {copied ? (
-              <Check className="h-4 w-4 text-emerald-400" aria-hidden />
+              <Check className="h-4 w-4 text-neon-400" aria-hidden />
             ) : (
               <Copy className="h-4 w-4" aria-hidden />
             )}
@@ -126,7 +126,7 @@ export function OutputActionBar({
             aria-label="Open in TradingView"
             className={cn(
               iconActionClass,
-              'text-emerald-400 hover:text-emerald-300',
+              'text-neon-400 hover:text-neon-300',
             )}
           >
             <ExternalLink className="h-4 w-4" aria-hidden />

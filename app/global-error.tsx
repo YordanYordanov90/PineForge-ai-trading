@@ -20,29 +20,29 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               0deg,
               transparent 0,
               transparent 47px,
-              rgba(16, 185, 129, 0.08) 47px,
-              rgba(16, 185, 129, 0.08) 48px
+              rgba(200, 255, 0, 0.08) 47px,
+              rgba(200, 255, 0, 0.08) 48px
             ),
             repeating-linear-gradient(
               90deg,
               transparent 0,
               transparent 47px,
-              rgba(16, 185, 129, 0.08) 47px,
-              rgba(16, 185, 129, 0.08) 48px
+              rgba(200, 255, 0, 0.08) 47px,
+              rgba(200, 255, 0, 0.08) 48px
             )`,
             backgroundSize: '48px 48px',
           }}
           aria-hidden
         />
         <div
-          className="pointer-events-none fixed -top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px]"
+          className="pointer-events-none fixed -top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-neon-500/10 blur-[120px]"
           aria-hidden
         />
 
         <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-16 text-center">
           <p className="font-mono text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
             PINEFORGE :: ROUTE //CRITICAL
-            <span className="ml-0.5 inline-block h-[1em] w-[0.55em] bg-emerald-500/90 align-baseline" />
+            <span className="ml-0.5 inline-block h-[1em] w-[0.55em] bg-neon-500/90 align-baseline" />
           </p>
 
           <div className="mt-10 max-w-lg rounded-2xl border border-rose-500/30 bg-zinc-950/80 px-8 py-10">
@@ -65,7 +65,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               <button
                 type="button"
                 onClick={reset}
-                className="w-full rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-emerald-400 sm:w-auto"
+                className="w-full rounded-full bg-neon-500 px-8 py-3.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-neon-400 sm:w-auto"
               >
                 Try again
               </button>

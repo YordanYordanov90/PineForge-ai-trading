@@ -36,7 +36,7 @@ export type GeneratorCommandMenuProps = {
 };
 
 const itemClass =
-  'rounded-xl text-zinc-200 data-[selected=true]:bg-emerald-500/15 data-[selected=true]:text-emerald-100';
+  'rounded-xl text-zinc-200 data-[selected=true]:bg-neon-500/15 data-[selected=true]:text-neon-100';
 
 export function GeneratorCommandMenu({
   open,
@@ -190,7 +190,7 @@ export function GeneratorCommandMenu({
             >
               Script tab
               {outputTab === 'script' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
             <CommandItem
@@ -204,7 +204,7 @@ export function GeneratorCommandMenu({
             >
               Breakdown tab
               {outputTab === 'breakdown' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
             <CommandItem
@@ -218,7 +218,7 @@ export function GeneratorCommandMenu({
             >
               Checklist tab
               {outputTab === 'checklist' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
             <CommandItem
@@ -232,7 +232,7 @@ export function GeneratorCommandMenu({
             >
               Health tab
               {outputTab === 'health' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
             <CommandItem
@@ -246,7 +246,7 @@ export function GeneratorCommandMenu({
             >
               Alerts tab
               {outputTab === 'alerts' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
             <CommandItem
@@ -260,7 +260,7 @@ export function GeneratorCommandMenu({
             >
               Compare tab
               {outputTab === 'compare' ? (
-                <CommandShortcut className="text-emerald-400/90">Active</CommandShortcut>
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
           </CommandGroup>

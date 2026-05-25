@@ -73,7 +73,7 @@ function NextStepsSection({
                 variant="outline"
                 size="sm"
                 onClick={() => onPrefillRefine(item)}
-                className="h-7 shrink-0 border-emerald-500/35 bg-emerald-500/5 px-2.5 text-xs text-emerald-700 hover:bg-emerald-500/15 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
+                className="h-7 shrink-0 border-neon-500/35 bg-neon-500/5 px-2.5 text-xs text-neon-700 hover:bg-neon-500/15 hover:text-neon-800 dark:text-neon-300 dark:hover:text-neon-200"
               >
                 Refine
               </Button>

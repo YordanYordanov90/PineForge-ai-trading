@@ -16,14 +16,14 @@ export function AuthFormShell({ headline, children }: AuthFormShellProps) {
         <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-start">
           <li className="flex items-center gap-1.5 text-xs text-zinc-400">
             <ShieldCheck
-              className="size-3.5 shrink-0 text-emerald-500/90"
+              className="size-3.5 shrink-0 text-neon-500/90"
               aria-hidden
             />
             <span>Secured by Clerk</span>
           </li>
           <li className="flex items-center gap-1.5 text-xs text-zinc-400">
             <Users
-              className="size-3.5 shrink-0 text-emerald-500/90"
+              className="size-3.5 shrink-0 text-neon-500/90"
               aria-hidden
             />
             <span>Used by 2,400+ traders</span>

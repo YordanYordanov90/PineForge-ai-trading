@@ -2,7 +2,7 @@
 
 ## Brand
 
-Product name: **PineForge**. Logo wordmark: `Pine` + accent `Forge` (emerald-400/500).
+Product name: **PineForge**. Logo wordmark: `Pine` + accent `Forge` (neon-400/500).
 Use `lib/brand.ts` (`PRODUCT_NAME`, `brandLogoParts()`) in nav, metadata, and headers.
 
 ## Theme
@@ -16,7 +16,7 @@ Use `lib/brand.ts` (`PRODUCT_NAME`, `brandLogoParts()`) in nav, metadata, and he
 chrome, and landing hero sections may still use dark-terminal zinc until a
 follow-up pass (`context/features/15-theme-toggle.md`).
 
-Design language: zinc surfaces + emerald accent in both modes; shadcn
+Design language: zinc surfaces + neon accent (`#c8ff00`) in both modes; shadcn
 `:root` / `.dark` CSS variables in `globals.css`.
 
 ## Colors
@@ -25,16 +25,16 @@ All components use these tokens. No hardcoded hex values in components.
 
 | Role              | Tailwind Class                          | Usage                                  |
 | ----------------- | --------------------------------------- | -------------------------------------- |
-| Page background   | `bg-zinc-950`                           | Root page base                         |
-| Card surface      | `bg-zinc-900/70` + `backdrop-blur`      | Standard cards                         |
-| Card (generator)  | `bg-zinc-950/35` + `backdrop-blur`      | Generator panel cards                  |
-| Border            | `border-zinc-800/70`                    | All card and input borders             |
-| Accent            | `bg-emerald-500`                        | Primary buttons                        |
-| Accent hover      | `hover:bg-emerald-400`                  | Button hover state                     |
-| Focus ring        | `focus-visible:ring-emerald-400/30`     | All inputs and buttons                 |
-| Body text         | `text-zinc-100`                         | Primary readable text                  |
-| Muted text        | `text-zinc-400`                         | Labels, hints, helper text             |
-| Code text         | `text-emerald-300/95`                   | Pine Script output                     |
+| Page background   | `pf-page` gradient `#0a0a0a → #151515` + neon radial glow | Root page base (dark)                  |
+| Card surface      | `bg-[#111111]`                          | Standard cards                         |
+| Card (generator)  | `bg-[#111111]/80` + `backdrop-blur`     | Generator panel cards                  |
+| Border            | `border-zinc-800` / `#27272a`           | All card and input borders             |
+| Accent            | `bg-neon-500` (`#c8ff00`)               | Primary buttons, highlights            |
+| Accent hover      | `hover:bg-neon-500/10`                  | Outlined button hover state            |
+| Focus ring        | `focus-visible:ring-neon-500/30`        | All inputs and buttons                 |
+| Body text         | `text-zinc-100` / `#ffffff`             | Primary readable text                  |
+| Muted text        | `text-zinc-400` / `#a1a1aa`             | Labels, hints, helper text             |
+| Code text         | `text-neon-300/95`                      | Pine Script output                     |
 | Code background   | `bg-black/55`                           | Code container background              |
 | Error background  | `bg-rose-500/10`                        | Error state card background            |
 | Error border      | `border-rose-500/30`                    | Error state card border                |

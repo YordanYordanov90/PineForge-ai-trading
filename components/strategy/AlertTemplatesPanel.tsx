@@ -97,8 +97,8 @@ export function AlertTemplatesPanel({
   if (phase === 'empty') {
     return (
       <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10">
-          <Bell className="h-6 w-6 text-emerald-400" aria-hidden />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-neon-500/25 bg-neon-500/10">
+          <Bell className="h-6 w-6 text-neon-400" aria-hidden />
         </div>
         <div>
           <p className={cn('text-sm', pfOutputTitle)}>Alert Message Templates</p>
@@ -124,7 +124,7 @@ export function AlertTemplatesPanel({
     return (
       <div className="px-6 py-10" role="status" aria-live="polite" aria-busy="true">
         <div className="flex flex-col items-center gap-3 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" aria-hidden />
+          <Loader2 className="h-8 w-8 animate-spin text-neon-400" aria-hidden />
           <p className={cn('text-sm', pfOutputBody)}>Building provider templates…</p>
           <p className={cn('text-xs', pfOutputMuted)}>Usually takes a few seconds</p>
         </div>

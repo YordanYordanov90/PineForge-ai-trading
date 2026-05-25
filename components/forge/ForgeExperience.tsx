@@ -176,7 +176,7 @@ export function ForgeExperience({
           style={parallaxStyle}
         />
 
-        <header className="relative z-10 border-b border-emerald-500/20 bg-white/75 px-4 py-2.5 shadow-[0_1px_0_0_oklch(0.7_0.17_160/0.08)] backdrop-blur-md sm:px-6 dark:border-emerald-500/15 dark:bg-zinc-950/80 dark:shadow-[0_1px_24px_-8px_oklch(0.7_0.17_160/0.25)]">
+        <header className="relative z-10 border-b border-neon-500/20 bg-white/75 px-4 py-2.5 shadow-[0_1px_0_0_oklch(0.7_0.17_160/0.08)] backdrop-blur-md sm:px-6 dark:border-neon-500/15 dark:bg-zinc-950/80 dark:shadow-[0_1px_24px_-8px_oklch(0.7_0.17_160/0.25)]">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button
@@ -195,12 +195,12 @@ export function ForgeExperience({
                 className="flex items-center gap-2.5"
                 aria-label="Back to PineForge home"
               >
-                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm border border-emerald-500/35 bg-emerald-500/10 shadow-[inset_0_0_12px_oklch(0.7_0.17_160/0.12)]">
-                  <Sparkles className="size-4 text-emerald-500 dark:text-emerald-400" />
+                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm border border-neon-500/35 bg-neon-500/10 shadow-[inset_0_0_12px_oklch(0.7_0.17_160/0.12)]">
+                  <Sparkles className="size-4 text-neon-500 dark:text-neon-400" />
                 </span>
                 <span className="pf-heading hidden font-heading text-base font-bold tracking-tight sm:inline">
                   {prefix}
-                  <span className="text-emerald-500">{accent}</span>
+                  <span className="text-neon-500">{accent}</span>
                   <span className="pf-muted ml-2 font-mono text-[10px] uppercase tracking-[0.3em]">
                     {'// Forge'}
                   </span>
@@ -232,8 +232,8 @@ export function ForgeExperience({
         <div className="relative z-10 flex flex-1 overflow-hidden">
           <aside
             className={cn(
-              'hidden w-72 shrink-0 flex-col border-r border-emerald-500/10 bg-zinc-50/50 p-3 backdrop-blur-sm lg:flex',
-              'dark:border-emerald-500/10 dark:bg-zinc-950/55',
+              'hidden w-72 shrink-0 flex-col border-r border-neon-500/10 bg-zinc-50/50 p-3 backdrop-blur-sm lg:flex',
+              'dark:border-neon-500/10 dark:bg-zinc-950/55',
             )}
           >
             {sidebar}

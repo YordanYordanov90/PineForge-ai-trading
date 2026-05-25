@@ -40,11 +40,11 @@ export function LandingNavbar() {
           href="/"
           className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5"
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/15">
-            <Zap className="size-4 text-emerald-400" />
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neon-500/25 bg-neon-500/15">
+            <Zap className="size-4 text-neon-400" />
           </div>
           <span className="pf-heading font-heading text-base font-bold leading-none tracking-tight sm:text-lg">
-            {prefix}<span className="text-emerald-500">{accent}</span>
+            {prefix}<span className="text-neon-500">{accent}</span>
           </span>
         </Link>
 
@@ -56,14 +56,14 @@ export function LandingNavbar() {
           {isLoaded && !isSignedIn ? (
             <Link
               href="/sign-in"
-              className="pf-nav-muted whitespace-nowrap rounded-full border px-3 py-2 text-xs font-medium backdrop-blur-sm transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 sm:px-4 sm:text-sm"
+              className="pf-nav-muted whitespace-nowrap rounded-full border px-3 py-2 text-xs font-medium backdrop-blur-sm transition-all hover:border-neon-500/40 hover:bg-neon-500/10 hover:text-neon-600 dark:hover:text-neon-300 sm:px-4 sm:text-sm"
             >
               Sign in
             </Link>
           ) : null}
           <Link
             href="/generate"
-            className="pf-nav-muted group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-medium backdrop-blur-sm transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 sm:gap-2 sm:px-5 sm:text-sm"
+            className="pf-nav-muted group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-medium backdrop-blur-sm transition-all hover:border-neon-500/40 hover:bg-neon-500/10 hover:text-neon-600 dark:hover:text-neon-300 sm:gap-2 sm:px-5 sm:text-sm"
           >
             Open App
             <ArrowRight className="size-3 shrink-0 transition-transform group-hover:translate-x-0.5 sm:size-3.5" />
@@ -81,7 +81,7 @@ export function LandingNavbar() {
         aria-valuenow={Math.round(scrollProgress)}
       >
         <div
-          className="h-full bg-emerald-500 transition-[width] duration-150 ease-out"
+          className="h-full bg-neon-500 transition-[width] duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
         />
       </div>

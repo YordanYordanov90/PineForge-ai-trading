@@ -114,6 +114,12 @@ Phase 5 complete (Export 48–50 shipped). Phase 6 — Forge Agent —
 Tool Contracts, Conversation CRUD routes, Streaming Endpoint, Memory
 Extraction, `/forge` UI, and Guardrails.
 
+**Phase 7 — Depth & Polish — planned** (`59`–`68`): Strategy Templates
+Library, Strategy Assumptions Block, Research→Generate Pipeline, Strategy
+DNA Fingerprint, Strategy Comparison Reports, Strategy Variants, Quality
+Progression Tracker, Strategy Snapshot Export, Contextual Tips in Forge,
+Keyboard Power User Mode.
+
 ## Current Goal
 
 Phase 6 Forge Agent (`51`–`58`) is complete. Done: `52` (memory
@@ -131,9 +137,12 @@ sidebar + chat + message list + tool-call cards + input + empty state;
 `FORGE_GUARDRAILS` block with refusal patterns, language constraints,
 tool-usage rules, and prompt-transparency rules; replaces the inline
 MVP block in `system-prompt.ts`; refine-script runner hardened with
-empty-output check to complete spec § Tool Result Validation). Next
-slice: optional Phase 4 hardening (`context/fixes.md` Fix 3 / Fix 7 —
-weighted quotas, audit logs) or polish work.
+empty-output check to complete spec § Tool Result Validation).
+
+Next slice: Phase 7 starting with spec `59` (Strategy Templates Library)
+— the highest-priority item. Optional Phase 4 hardening
+(`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs)
+can run in parallel as a background track.
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -202,6 +211,23 @@ and orchestration over existing PineForge features. Specs:
 - `56` — Memory extraction (background preference extraction from conversations) ✅
 - `57` — `/forge` page UI (chat interface, tool call display, conversation sidebar) ✅
 - `58` — Guardrails (refusal patterns, prompt injection defense, output validation) ✅
+
+## Phase 7 — Depth & Polish (Planned)
+
+Feature specs live in `context/features/59`–`68`. Prioritised order:
+
+| Spec | Title | Status |
+|------|-------|--------|
+| `59` | Strategy Templates Library | Planned |
+| `60` | Strategy Assumptions Block | Planned |
+| `61` | Research → Generate Pipeline | Planned |
+| `62` | Strategy DNA Fingerprint | Planned |
+| `63` | Strategy Comparison Reports | Planned |
+| `64` | Strategy Variants Quick-Generate | Planned |
+| `65` | Quality Progression Tracker | Planned |
+| `66` | Strategy Snapshot Export | Planned |
+| `67` | Contextual Tips in Forge | Planned |
+| `68` | Keyboard Power User Mode | Planned |
 
 ## Completed
 
