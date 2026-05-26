@@ -84,3 +84,12 @@ Never assume project context. If a context file is missing, ask before proceedin
 | Security risk found | Block output, show ⚠️ SECURITY ALERT |
 | Stuck after 2–3 attempts | Stop, explain the blocker |
 | Architectural change needed | Ask first, document in `architecture.md` |
+
+## Review guidelines
+- All AI routes must use protectAiRoute() wrapper
+- No raw request body passed to LLM without Zod validation
+- Response envelope must be { success, data, error } on all JSON routes  
+- No secrets or API keys referenced in client components
+- generateObject used for structured output, not streamText
+- No stack traces or raw errors returned to client
+- Ownership checks enforced on every PATCH and DELETE route

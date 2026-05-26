@@ -21,7 +21,7 @@ export function LandingFooter() {
   return (
     <RevealOnScroll>
       <footer className="relative z-10 border-t border-zinc-200/80 py-10 dark:border-zinc-800/50 sm:py-12">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:gap-8">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-2">
             <Link
               href="/"
@@ -76,7 +76,7 @@ export function LandingFooter() {
           </div>
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-3 border-t border-zinc-200/60 px-4 pt-6 sm:flex-row sm:px-6 dark:border-zinc-800/50">
+        <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-3 border-t border-zinc-200/60 px-5 pt-6 sm:flex-row sm:px-6 dark:border-zinc-800/50">
           <p className="text-xs text-zinc-500">
             Built for traders, powered by xAI Grok
           </p>

@@ -35,7 +35,7 @@ export function LandingNavbar() {
   return (
     <nav className="pf-nav sticky top-0 z-50 border-b backdrop-blur-md supports-backdrop-filter:bg-zinc-950/80 dark:supports-backdrop-filter:bg-zinc-950/80">
       {/* Single row: fixed min-height + items-center keeps logo and CTA on one optical line on mobile */}
-      <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:gap-4 sm:px-6 sm:py-3.5 sm:pt-3.5">
+      <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:gap-4 sm:px-6 sm:py-3.5 sm:pt-3.5">
         <Link
           href="/"
           className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5"
