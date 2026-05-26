@@ -9,7 +9,7 @@ export function LandingHero() {
   return (
     <section
       id="hero"
-      className="relative mb-12 flex flex-col items-center justify-between gap-10 sm:mb-16 sm:gap-14 lg:mb-20 lg:flex-row lg:gap-16"
+      className="relative mb-12 flex flex-col items-center justify-between gap-10 overflow-x-clip sm:mb-16 sm:gap-14 lg:mb-20 lg:flex-row lg:gap-16"
     >
       <div className="flex-1 space-y-6 text-center sm:space-y-8 lg:text-left">
         <p
