@@ -56,10 +56,10 @@ export default async function ForgePage({ searchParams }: ForgePageProps) {
   const seedScript = await loadSeedScript(dbUserId, scriptIdParam);
 
   return (
-    <div className="pf-page relative flex min-h-screen flex-col">
+    <div className="pf-page relative flex h-svh flex-col overflow-hidden">
       <TerminalAmbientBackground variant="generate" className="-z-10" />
 
-      <div className="relative z-10 flex flex-1 flex-col">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <ForgeExperience
           initialPlan={initialPlan}
           initialConversations={initialConversations}

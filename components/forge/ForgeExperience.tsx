@@ -169,7 +169,7 @@ export function ForgeExperience({
 
   return (
     <UserPlanProvider plan={initialPlan}>
-      <div className="relative flex h-svh flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           aria-hidden
           className="forge-terminal-grid forge-noise pointer-events-none absolute inset-0 opacity-60 will-change-[background-position]"
@@ -229,7 +229,7 @@ export function ForgeExperience({
           </div>
         </header>
 
-        <div className="relative z-10 flex flex-1 overflow-hidden">
+        <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
           <aside
             className={cn(
               'hidden w-72 shrink-0 flex-col border-r border-neon-500/10 bg-zinc-50/50 p-3 backdrop-blur-sm lg:flex',

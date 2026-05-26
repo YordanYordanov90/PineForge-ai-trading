@@ -291,3 +291,100 @@ All re-scan findings are **safe to defer**. None block Phase 6 (Forge Agent). Th
 
 **Still open (re-scan)**: ops migration apply (`0002_groovy_scalphunter.sql`) only.
 
+---
+
+## Scan Results — full — 2026-05-26
+
+**Scope**: `full`
+
+**Trigger**: Explicit user request via @context/SCANNER.md
+
+**Context**: Post Phase 5 value features + early Phase 6 Forge Agent work (conversations CRUD, memory schema + 0003 migration, tool runners). Many prior refactors from 2026-05-22/23 logs (StrategyForm split, ScriptHistory split, useScriptHistory dual-store, useStrategyGenerationSession split, HealthScorePanel/ScriptOutput subcomponents) are in place. Fresh lint (`npm run lint`) + static inspection + tsc + targeted greps/reads performed. No code changes made during this scan.
+
+### 🔴 Critical
+- None.
+
+### 🟠 High
+
+- **File**: `components/strategy/StrategyOutputCard.tsx` · **Lines**: 1–581 (full file)
+  **Issue**: 581-line client component owns multi-tab output orchestration (Script / Breakdown / Health Score / Backtest Summary / Alert Templates / Explain Script / Compare), 10+ pieces of cross-panel state (export results, successPulse, panel reset keys), generation lifecycle effects, markdown serialization + download coordination, and all Phase 5 AI panel integrations. Does multiple jobs despite existing sub-panels.
+  **Fix**: Reduce to thin layout + tab host; extract per-panel state/effects into dedicated hooks (e.g. useHealthExport, useBacktestExport) or further sub-orchestrators. (Grew significantly since prior ~103-line post-split state in 05-23 logs.)
+
+### 🟡 Medium
+
+- **Pattern**: `react-hooks/set-state-in-effect` (19 errors)
+  **Files** (selected): `components/strategy/StrategyForm.tsx:98`, `StrategyOutputCard.tsx:207,284`, `RefineChat.tsx:36,42`, `ExplainScriptPanel.tsx:92`, `components/forge/ForgeToolCallCard.tsx:68,82`, `components/landing/LandingHeroTerminal.tsx:71`, `LandingScrollIndicator.tsx:22`, `RevealOnScroll.tsx:20`, `hooks/useShortcutLabel.ts:16` (and 9 more)
+  **Issue**: Synchronous `setState(...)` calls directly inside `useEffect` callback bodies (resets on dep changes, media-query inits, prefill handlers, pulse timers, effect-driven clears). React anti-pattern per the rule; risks cascading renders.
+  **Fix**: Refactor to lazy initializers, refs for one-time flags, or derived state where applicable. (Full list from `npm run lint`.)
+
+- **File**: `app/global-error.tsx` · **Line**: 72
+  **Issue**: `<a href="/">` for internal "Back to home" navigation (instead of Next `<Link>`).
+  **Fix**: Import `Link from 'next/link'` and use `<Link href="/">`.
+
+- **File**: `components/strategy/AlertTemplateCard.tsx` · **Line**: 9
+  **Issue**: `pfOutputBody` imported from `@/lib/ui/terminal-texture` but never used in the component body (dead import).
+  **Fix**: Remove the unused identifier from the import destructuring.
+
+### 🔵 Low
+
+- **Pattern**: `react/jsx-no-comment-textnodes` (5+ occurrences)
+  **Files**: `app/generate/loading.tsx:48,91`, `app/loading.tsx:30`, `app/global-error.tsx:52`, `components/error/GeneratorFaultPanel.tsx:38`, `components/forge/ForgeConversationSidebar.tsx:127`
+  **Issue**: JSX text children contain `// ` sequences (intentional terminal-chrome labels in skeletons, e.g. `// GENERATOR :: SYNCING`). ESLint rule treats them as misplaced comment syntax in children.
+  **Fix**: Acceptable for visual design (or scope the rule / render labels differently); not a runtime bug.
+
+### ✅ No issues found in: Security, Performance (data + bundle), core Code quality invariants
+
+- **Security** (re-confirmed clean):
+  - No hardcoded secrets, API keys, or tokens anywhere in `app/`, `components/`, `lib/`, `hooks/`.
+  - `NEXT_PUBLIC_*` usage limited to Clerk publishable key (in `next.config.ts` only; required for client).
+  - All 19+ API routes protected: AI routes via `protectAiRoute` (Clerk + rate limit + plan), data routes via `protectDataRoute` + ownership resolvers (`resolveOwnedScriptRoute`, `resolveOwnedCollectionRoute`, `resolveOwnedConversationRoute`).
+  - Every mutating handler does `await req.json().catch(() => null)` + `Schema.safeParse(body)` before any logic (Zod in `lib/api/validation.ts` and feature schemas).
+  - Drizzle queries use parameterized builders + explicit `escapeLikePattern` in `search-user-scripts.ts`; no string concat or raw sql interpolation of user data.
+  - Error responses always go through `apiError` / `apiInvalidRequest` (sanitized strings only, never `error.stack`, never raw LLM output, never internal ids). Dev-only `console.warn` gated behind `NODE_ENV === 'development'`.
+  - `dangerouslySetInnerHTML` used only for trusted shiki-generated HTML in `ScriptOutputHighlighted.tsx`.
+
+- **Performance** (clean on core dimensions):
+  - No N+1 query patterns (hot path `listScriptsForUser` uses `Promise.all` for recent + starred, then in-memory Map merge; search and agent queries are single statements).
+  - Composite indexes present in `drizzle/schema.ts` for all frequent filters/sorts (scripts: user+createdAt, user+isStarred, user+collectionId; agent_conversations: user+updatedAt).
+  - Shiki highlighter lazy-loaded (dynamic import of `@/lib/ai/highlight` inside `ScriptOutput.tsx` useEffect; singleton promise cache).
+  - `loading.tsx` exists at `/`, `/generate`, `/forge`.
+  - No raw `<img>` elements (lucide icons + CSS only).
+  - `'use client'` directives present only on files with hooks, event handlers, or browser APIs (media queries, scroll listeners, local state). No obvious dead client markers on pure presentational leaves.
+
+- **Code quality** (invariants hold):
+  - Zero `any` types in application source (confirmed via grep + `npx tsc --noEmit` clean).
+  - No `TODO` / `FIXME` / `HACK` markers in `app/`, `lib/`, `components/`, `hooks/`.
+  - Consistent `{ success, data, error }` envelope on every JSON API response via `lib/api/envelope.ts`.
+  - Error handling uniform (no route throws raw errors; all caught and mapped to `apiError`).
+  - Only one low-severity unused import (flagged above); no other dead code surfaced by lint beyond the effect/JSX rules.
+
+- **Component structure**:
+  - Prior hotspots (useScriptHistory facade ~31 lines, StrategyForm orchestrator, ScriptHistory, HealthScorePanel ~112-line orchestrator, ScriptOutput ~103-line orchestrator) remain addressed from 05-23 work.
+  - New growth observed in `StrategyOutputCard` (Phase 5 panel accumulation) and Forge modules (`ForgeChat.tsx` 346 lines, `useForgeConversations.ts` 210 lines, `memory-extraction.ts` 491 lines, `tool-runners.ts` 280 lines). Agent modules are single-purpose (tool calling / memory) but large due to LLM orchestration complexity.
+
+**Verdict**: 19 lint errors + 1 warning now present (was clean on 05-23 per logs). Primary structural concern is `StrategyOutputCard.tsx` re-growth. React effect setState pattern is the most common quality smell. **Zero security, zero correctness, zero data-layer issues.** Ops migration apply (0002 + 0003) carries forward from prior scan.
+
+All findings above are **directly evidenced** by:
+- `npm run lint` (full output captured)
+- `npx tsc --noEmit` (clean)
+- Grep + read_file on every security/performance rule in SCANNER.md
+- Line counts and import analysis on large files
+
+---
+
+## Resolution Log — 2026-05-26
+
+**New scan findings recorded above. Per explicit instruction: no code generation, no refactoring performed or proposed in this step.**
+
+**Reproduce locally**:
+```bash
+npm run lint
+npx tsc --noEmit
+# Then manual review of flagged files + SCANNER categories via grep/read
+```
+
+**Still open (carry-over + new)**:
+- Apply Drizzle migrations `0002_groovy_scalphunter.sql` + `0003_awesome_thundra.sql` (`npm run db:migrate` with `DATABASE_URL_UNPOOLED`).
+- Address the 19 `set-state-in-effect` + 5 `jsx-no-comment-textnodes` + dead import + `<a>` vs `<Link>` to restore lint-clean state.
+- Monitor `StrategyOutputCard.tsx` size as more workflow features (Forge handoff, comparison reports, etc.) land.
+
