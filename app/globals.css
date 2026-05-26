@@ -139,6 +139,8 @@
   }
   body {
     @apply min-h-full bg-background text-foreground antialiased;
+    position: relative;
+    overflow-x: clip;
   }
 
   /* Clerk UserButton menu — dark shell */
