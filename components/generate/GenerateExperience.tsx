@@ -11,19 +11,38 @@ import { ScriptHistory } from '@/components/strategy/ScriptHistory';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
 import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
+import { toast } from 'sonner';
 
 const USER_SYNC_SESSION_KEY = 'pineforge_user_synced';
 const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
 
 type GenerateExperienceProps = {
   initialPlan: string;
+  initialTemplateId?: string | null;
+  templateLockedNotice?: boolean;
 };
 
-export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
+export function GenerateExperience({
+  initialPlan,
+  initialTemplateId,
+  templateLockedNotice = false,
+}: GenerateExperienceProps) {
   const formRef = useRef<StrategyFormHandle>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { isSignedIn, isLoaded } = useAuth();
   const clerkAppearance = useClerkAppearance();
+
+  useEffect(() => {
+    if (!templateLockedNotice) return;
+    toast.error('Pro template — upgrade to load it into the generator.', {
+      action: {
+        label: 'View pricing',
+        onClick: () => {
+          window.location.assign('/pricing');
+        },
+      },
+    });
+  }, [templateLockedNotice]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || typeof window === 'undefined') return;
@@ -84,6 +103,12 @@ export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
                 </span>
               </Link>
             ) : null}
+            <Link
+              href="/templates"
+              className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+            >
+              Templates
+            </Link>
             <ModeToggle />
             <ScriptHistory
               onLoad={handleLoad}
@@ -101,6 +126,7 @@ export function GenerateExperience({ initialPlan }: GenerateExperienceProps) {
         <StrategyForm
           ref={formRef}
           onRequestOpenHistory={() => setHistoryOpen(true)}
+          initialTemplateId={initialTemplateId}
         />
       </div>
     </UserPlanProvider>

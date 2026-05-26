@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useImperativeHandle } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard } from '@/components/strategy/StrategyOutputCard';
@@ -10,6 +10,10 @@ import { useStrategyGenerationSession } from '@/hooks/strategy/useStrategyGenera
 import { useStrategyLineageSync } from '@/hooks/strategy/useStrategyLineageSync';
 import { useUserPlan } from '@/lib/providers/UserPlanContext';
 import type { SavedScript } from '@/lib/types';
+import { getTemplateById } from '@/lib/templates/templates';
+import type { StrategyTemplate } from '@/lib/templates/templates';
+import { X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export type StrategyFormHandle = {
   loadSavedScript: (entry: SavedScript) => void;
@@ -17,10 +21,11 @@ export type StrategyFormHandle = {
 
 export type StrategyFormProps = {
   onRequestOpenHistory?: () => void;
+  initialTemplateId?: string | null;
 };
 
 export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
-  function StrategyForm({ onRequestOpenHistory }, ref) {
+  function StrategyForm({ onRequestOpenHistory, initialTemplateId }, ref) {
     const plan = useUserPlan();
     const { entries, addEntry } = useScriptHistory();
     const inputs = useStrategyFormInputs();
@@ -53,10 +58,74 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
 
     useImperativeHandle(ref, () => ({ loadSavedScript }), [loadSavedScript]);
 
+    // Template preload from ?templateId (spec 59)
+    const [loadedTemplate, setLoadedTemplate] = useState<StrategyTemplate | null>(null);
+    const [templateBannerDismissed, setTemplateBannerDismissed] = useState(false);
+    const handledTemplateRef = useRef<string | null>(null);
+
+    useEffect(() => {
+      if (!initialTemplateId || handledTemplateRef.current === initialTemplateId) return;
+
+      const t = getTemplateById(initialTemplateId);
+      if (!t) return;
+
+      // Guard: free users cannot load Pro templates (client enforcement; server on generate POST)
+      if (t.isPro && plan !== 'pro') {
+        toast.error('This is a Pro-only template. Upgrade to load it into the generator.');
+        handledTemplateRef.current = initialTemplateId; // don't keep retrying
+        return;
+      }
+
+      // Prefill inputs + script (no new AI call)
+      inputs.setStrategy(t.prompt);
+      inputs.setActivePreset(null);
+      inputs.setStructuredInputs({
+        market: t.structuredInputs.market,
+        timeframe: t.structuredInputs.timeframe,
+        direction: t.structuredInputs.direction,
+        indicators: t.structuredInputs.indicators,
+        rr: t.structuredInputs.rr,
+      });
+
+      // Pre-load the script into output panel (ready to refine)
+      session.setGeneratedScript(t.script);
+      session.resetPanelKeys();
+
+      setLoadedTemplate(t);
+      setTemplateBannerDismissed(false);
+      handledTemplateRef.current = initialTemplateId;
+
+      // Optional: friendly success hint
+      toast.success(`Loaded template: ${t.title}`);
+    }, [initialTemplateId, plan, inputs, session]); // safe because setters are stable from the hooks
+
+    const dismissTemplateBanner = () => {
+      setTemplateBannerDismissed(true);
+      // Clear the loaded template state but keep the prefilled content (user can edit)
+      setLoadedTemplate(null);
+    };
+
     const { compare } = session;
 
     return (
       <>
+        {/* Template preload banner (spec 59) */}
+        {loadedTemplate && !templateBannerDismissed && (
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-sm">
+            <span>
+              Loaded from template: <span className="font-medium text-emerald-400">{loadedTemplate.title}</span>. Script and inputs are pre-filled — ready to refine or edit.
+            </span>
+            <button
+              type="button"
+              onClick={dismissTemplateBanner}
+              className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
+              aria-label="Dismiss template banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <GeneratorCommandMenu
           open={session.commandOpen}
           onOpenChange={session.setCommandOpen}

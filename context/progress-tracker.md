@@ -218,7 +218,7 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 
 | Spec | Title | Status |
 |------|-------|--------|
-| `59` | Strategy Templates Library | Planned |
+| `59` | Strategy Templates Library | **Complete** (shipped 21 curated Pine v5 templates with pre-computed Health/Backtest/Alerts; full `/templates` + detail pages; generator `?templateId` preload + server entitlement enforcement on generate) |
 | `60` | Strategy Assumptions Block | Planned |
 | `61` | Research → Generate Pipeline | Planned |
 | `62` | Strategy DNA Fingerprint | Planned |

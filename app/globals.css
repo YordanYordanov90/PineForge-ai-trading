@@ -135,11 +135,13 @@
   }
   html {
     @apply min-h-full bg-background font-sans text-foreground;
-    overflow-x: clip;
+    overflow-x: hidden;
+    max-width: 100%;
   }
   body {
     @apply min-h-full bg-background text-foreground antialiased;
-    overflow-x: clip;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   /* Clerk UserButton menu — dark shell */
