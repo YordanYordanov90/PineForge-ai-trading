@@ -74,10 +74,7 @@ export function GenerateExperience({
       <header className="mb-10 sm:mb-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="pf-badge inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-neon-400 shadow-[0_0_0_4px_rgba(200,255,0,0.12)]" />
-              Pine Script v5 · Alerts + SL/TP · Copy‑ready output
-            </div>
+            
             <h1 className="pf-heading mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
               {PRODUCT_NAME}
             </h1>

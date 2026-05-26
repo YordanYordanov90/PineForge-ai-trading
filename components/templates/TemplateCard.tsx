@@ -12,27 +12,24 @@ type TemplateCardProps = {
   onUseAsBase: (id: string) => void;
 };
 
+const badgeMuted =
+  'inline-flex items-center rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400';
+
+const tagMuted =
+  'rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400';
+
 function HealthBadge({ score }: { score: number | null }) {
   if (score == null) return null;
-  const color =
-    score >= 8 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' :
-    score >= 6 ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' :
-    'text-rose-400 border-rose-500/40 bg-rose-500/10';
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider', color)}>
+    <span className={badgeMuted}>
       Health {score}/10
     </span>
   );
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: StrategyTemplate['difficulty'] }) {
-  const styles = {
-    beginner: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10',
-    intermediate: 'border-amber-500/40 text-amber-400 bg-amber-500/10',
-    advanced: 'border-rose-500/40 text-rose-400 bg-rose-500/10',
-  };
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider', styles[difficulty])}>
+    <span className={cn(badgeMuted, 'shrink-0')}>
       {difficulty}
     </span>
   );
@@ -55,18 +52,23 @@ export function TemplateCard({ template, userPlan, onUseAsBase }: TemplateCardPr
   };
 
   return (
-    <div className="pf-card group flex h-full flex-col overflow-hidden transition-all hover:border-zinc-700">
-      <div className="flex items-start justify-between gap-2 border-b border-zinc-800 p-4">
+    <div className="pf-card group flex h-full flex-col overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+      <div className="flex items-start justify-between gap-2 border-b border-zinc-200 p-4 dark:border-zinc-800">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-base font-semibold text-zinc-100">{template.title}</h3>
+            <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              {template.title}
+            </h3>
             {template.isPro && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
-                <Lock className="h-3 w-3" /> Pro
+              <span className={cn(badgeMuted, 'normal-case tracking-normal')}>
+                <Lock className="mr-0.5 inline h-3 w-3" aria-hidden />
+                Pro
               </span>
             )}
           </div>
-          <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{template.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400">
+            {template.description}
+          </p>
         </div>
         <DifficultyBadge difficulty={template.difficulty} />
       </div>
@@ -74,14 +76,16 @@ export function TemplateCard({ template, userPlan, onUseAsBase }: TemplateCardPr
       <div className="flex flex-1 flex-col justify-between p-4">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400">{template.market}</span>
-            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400">{template.timeframe}</span>
-            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400">{template.direction}</span>
+            <span className={tagMuted}>{template.market}</span>
+            <span className={tagMuted}>{template.timeframe}</span>
+            <span className={tagMuted}>{template.direction}</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <HealthBadge score={template.healthScore?.score ?? null} />
-            <div className="text-[10px] text-zinc-500">{template.tags.slice(0, 2).join(' · ')}</div>
+            <div className="text-right text-[10px] text-zinc-500 dark:text-zinc-500">
+              {template.tags.slice(0, 2).join(' · ')}
+            </div>
           </div>
         </div>
 
@@ -89,13 +93,13 @@ export function TemplateCard({ template, userPlan, onUseAsBase }: TemplateCardPr
           <button
             type="button"
             onClick={handleUse}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-neon-500/40 bg-neon-500/10 px-3 py-1.5 text-xs font-medium text-neon-400 transition hover:bg-neon-500/15 active:bg-neon-500/20"
+            className="pf-improve-prompt-btn flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium"
           >
-            Use as base <ArrowRight className="h-3.5 w-3.5" />
+            Use as base <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </button>
           <Link
             href={`/templates/${template.id}`}
-            className="flex items-center justify-center rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+            className="flex items-center justify-center rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-900/50 dark:hover:text-zinc-200"
           >
             Details
           </Link>

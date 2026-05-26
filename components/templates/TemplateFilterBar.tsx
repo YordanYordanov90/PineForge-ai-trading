@@ -22,7 +22,7 @@ export function TemplateFilterBar({
   totalCount,
 }: TemplateFilterBarProps) {
   return (
-    <div className="sticky top-0 z-20 -mx-1 border-b border-zinc-800 bg-[#0a0a0a]/95 pb-4 pt-3 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0a]/80">
+    <div className="sticky top-0 z-20 -mx-1 border-b border-zinc-200 bg-white/95 pb-4 pt-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-[#0a0a0a]/95 dark:supports-[backdrop-filter]:bg-[#0a0a0a]/80">
       <div className="flex flex-wrap items-center gap-3">
         {/* Style filters */}
         <div className="flex flex-wrap gap-1.5">
@@ -46,7 +46,7 @@ export function TemplateFilterBar({
         </div>
 
         {/* Difficulty filters */}
-        <div className="flex flex-wrap gap-1.5 border-l border-zinc-800 pl-3">
+        <div className="flex flex-wrap gap-1.5 border-l border-zinc-200 pl-3 dark:border-zinc-800">
           {TEMPLATE_DIFFICULTIES.map((diff) => {
             const isActive = activeDifficulty === diff;
             return (
@@ -66,7 +66,7 @@ export function TemplateFilterBar({
           })}
         </div>
 
-        <div className="ml-auto text-xs text-zinc-500 tabular-nums">
+        <div className="ml-auto text-xs text-zinc-600 tabular-nums dark:text-zinc-500">
           {resultCount} / {totalCount} templates
         </div>
       </div>

@@ -53,30 +53,42 @@ export function TerminalPriceTicker({
     >
       <span
         className={
-          isLanding ? "text-zinc-500" : isGenerate ? "text-zinc-600" : "text-white/85"
+          isLanding
+            ? "text-zinc-600 dark:text-zinc-400"
+            : isGenerate
+              ? "text-zinc-600"
+              : "text-white/85"
         }
       >
         {r.sym}
       </span>
       <span
-        className={
-          isLanding ? "text-zinc-400" : isGenerate ? "text-zinc-400" : "text-white"
-        }
+        className={cn(
+          "tabular-nums",
+          isLanding
+            ? "text-zinc-900 dark:text-zinc-100"
+            : isGenerate
+              ? "text-zinc-400"
+              : "text-white",
+        )}
       >
         {r.price}
       </span>
       <span
-        className={
-          isLanding
-            ? "text-zinc-500"
-            : r.delta >= 0
-              ? isGenerate
+        className={cn(
+          "tabular-nums",
+          r.delta >= 0
+            ? isLanding
+              ? "text-neon-700 dark:text-neon-400"
+              : isGenerate
                 ? "text-neon-500/70"
                 : "text-neon-400"
+            : isLanding
+              ? "text-rose-600 dark:text-rose-400"
               : isGenerate
                 ? "text-rose-500/70"
-                : "text-rose-400"
-        }
+                : "text-rose-400",
+        )}
       >
         {formatDelta(r.delta)}
       </span>
