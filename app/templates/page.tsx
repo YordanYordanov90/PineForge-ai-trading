@@ -39,11 +39,14 @@ export default async function TemplatesPage() {
               <h1 className="pf-heading mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
                 Strategy Templates
               </h1>
-              <p className="mt-3 max-w-2xl text-pretty text-sm text-zinc-400 sm:text-base">
+              <p className="mt-3 max-w-2xl text-pretty text-sm text-zinc-600 sm:text-base dark:text-zinc-400">
                 High-quality, reviewed Pine Script v5 starting points. Each template ships with pre-computed Health Score, Backtest Summary, and ready-to-use alert templates.
               </p>
             </div>
-            <Link href="/generate" className="hidden rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100 lg:block">
+            <Link
+              href="/generate"
+              className="hidden rounded-full border border-zinc-200 px-4 py-2 text-sm text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 lg:block dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-transparent dark:hover:text-zinc-100"
+            >
               Open Generator →
             </Link>
           </div>

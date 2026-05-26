@@ -140,7 +140,7 @@
   }
   body {
     @apply min-h-full bg-background text-foreground antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100%;
   }
 

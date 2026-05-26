@@ -48,7 +48,7 @@ export function TemplateGrid({ initialPlan = 'free' }: TemplateGridProps) {
       />
 
       {filtered.length === 0 ? (
-        <div className="pf-card p-8 text-center text-sm text-zinc-400">
+        <div className="pf-card p-8 text-center text-sm text-zinc-600 dark:text-zinc-400">
           No templates match the current filters.
         </div>
       ) : (
@@ -64,7 +64,7 @@ export function TemplateGrid({ initialPlan = 'free' }: TemplateGridProps) {
         </div>
       )}
 
-      <p className="pt-2 text-center text-xs text-zinc-500">
+      <p className="pt-2 text-center text-xs text-zinc-600 dark:text-zinc-500">
         Free users see the curated public library. Pro unlocks the full set of advanced templates.
       </p>
     </div>
