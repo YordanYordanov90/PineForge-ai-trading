@@ -24,6 +24,8 @@ export type ApplyLoadedScriptCallbacks = {
   setGenStartTime: (value: number | null) => void;
   resetPanelKeys: () => void;
   setOutputTab: (tab: 'script') => void;
+  // Spec 60
+  setAssumptions?: (value: import('@/lib/ai/parse-assumptions').StrategyAssumptions | null) => void;
 };
 
 export function useStrategyLineageSync() {
@@ -112,6 +114,8 @@ export function useStrategyLineageSync() {
       setScriptCompareBaseline(entry.script);
       callbacks.setOutputTab('script');
       callbacks.resetPanelKeys();
+      // Spec 60: surface saved assumptions for the loaded script in Breakdown tab
+      callbacks.setAssumptions?.(entry.assumptions ?? null);
     },
     [],
   );

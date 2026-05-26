@@ -48,8 +48,9 @@ The fingerprint is a 32×32 SVG composed of:
 1. **Background**: a shade derived from the `market` field (crypto = deeper
    blue-grey, forex = slate, equities = zinc, any = neutral)
 2. **4×4 grid of cells**: each cell is filled or empty based on a hash of
-   the indicator names — similar to GitHub identicons but with emerald/zinc
-   cells matching the terminal palette
+   the indicator names — similar to GitHub identicons but with **neon
+   (`#c8ff00`) / zinc** cells matching the terminal palette. Do not use
+   emerald, green, or rainbow palettes — neon is the single accent.
 3. **Accent line**: a single horizontal or diagonal stroke encoding direction
    (long = upward angle, short = downward, both = horizontal)
 4. **Version dots**: 1–3 small corner dots encoding refinement depth

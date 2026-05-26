@@ -1,4 +1,5 @@
 import type { GrokModel } from '@/lib/config/constants';
+import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
 
 export type GrokModelId = GrokModel['id'];
 
@@ -42,6 +43,13 @@ export type SavedScript = {
    * route in spec 46 (`PATCH /api/scripts/[scriptId]/collection`).
    */
   collectionId: number | null;
+  /**
+   * Strategy Assumptions block (spec 60). Extracted client-side from the
+   * generation output via parseAssumptionsBlock(). Stored in scripts.metadata
+   * jsonb (no migration). Optional for backward compatibility with pre-60
+   * scripts and templates. Null or absent means "no assumptions recorded".
+   */
+  assumptions?: StrategyAssumptions | null;
 };
 
 /**

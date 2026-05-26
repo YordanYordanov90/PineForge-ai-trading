@@ -10,7 +10,8 @@ Supported providers (return exactly one template for each, in this order):
 4. custom — generic Custom Webhook JSON for any HTTP receiver
 
 Rules:
-- provider must be exactly one of: 3commas, alertatron, wundertrading, custom (lowercase).
+- provider MUST be exactly one of these four lowercase strings — no brand suffixes, no spaces: "3commas", "alertatron", "wundertrading", "custom". (Put the friendly brand name in label, not provider.)
+- Return exactly 4 templates, one per provider, in the order listed above.
 - messageJson may be a JSON object or a JSON string — use a real object when possible (preferred).
 - Use obvious placeholders: YOUR_WEBHOOK_SECRET, YOUR_BOT_ID, YOUR_SYMBOL, YOUR_API_KEY, YOUR_ACCOUNT_ID, etc.
 - messageJson must be syntactically valid JSON (parseable).

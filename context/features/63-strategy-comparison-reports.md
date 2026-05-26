@@ -136,7 +136,10 @@ A dedicated `/reports` page or a "Reports" section within the Forge sidebar:
   Summary panels
 - Coverage Map: a simple 3-cell visual row (Trending / Ranging / Breakout)
   with the winning script's fingerprint in each cell
-- Overlap badge: emerald (low overlap = diversified), amber (medium), rose (high)
+- Overlap badge uses the semantic state tokens from `context/ui-context.md`:
+  - Low overlap (diversified, positive) → neon (`text-neon-400` + `border-neon-500/40` + `bg-neon-500/10`)
+  - Medium overlap (warning) → amber (`text-amber-400` + `border-amber-500/30` + `bg-amber-500/10`)
+  - High overlap (negative) → rose (`text-rose-400` + `border-rose-500/40` + `bg-rose-500/10`)
 - "Refine a strategy" CTA from the recommendation section
 
 ---

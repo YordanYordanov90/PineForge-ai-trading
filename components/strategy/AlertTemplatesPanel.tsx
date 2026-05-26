@@ -155,7 +155,7 @@ export function AlertTemplatesPanel({
   if (!result) return null;
 
   return (
-    <div className="max-h-[640px] overflow-auto px-6 py-6">
+    <div className="px-6 py-6">
       <p className={cn('mb-4 text-xs', pfOutputMuted)}>
         Paste into TradingView alert message fields. Replace highlighted placeholders before live
         use. Not execution automation.

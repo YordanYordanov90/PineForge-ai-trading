@@ -66,8 +66,9 @@ A slim status bar (24px tall) anchored above the existing bottom ticker on
 - When history is open: `[j/k] Navigate  [↵] Load  [d] Delete  [s] Star  [Esc] Close`
 - When generating: `[⌘.] Stop` (Ctrl/Cmd+. already cancels; this makes it visible)
 
-The status bar uses `text-zinc-500` mono text with emerald highlights on the
-key labels. It respects `prefers-reduced-motion` and does not animate.
+The status bar uses `text-zinc-500` mono text with **neon highlights** on the
+key labels (`text-neon-400` on dark, `text-neon-700` on light — never
+emerald). It respects `prefers-reduced-motion` and does not animate.
 
 ---
 
@@ -87,7 +88,8 @@ New state in `ScriptHistory`:
 - `keyboardSelectedIndex: number | null` — tracks highlighted entry
 - Reset to `null` when drawer closes
 - `j` / `k` cycle through the visible (filtered) entries array
-- Selected entry gets a visible ring highlight (emerald, `ring-2`)
+- Selected entry gets a visible ring highlight: `ring-2 ring-neon-500/40`
+  (neon, not emerald)
 - `Enter` calls the existing `onLoad` handler
 
 ### Tab switching

@@ -114,5 +114,8 @@ export function useStrategyGenerationSession({
     setCopied: actions.setCopied,
     setGenElapsed: core.setGenElapsed,
     setGenStartTime: core.setGenStartTime,
+    // Spec 60
+    assumptions: core.assumptions,
+    setAssumptions: core.setAssumptions,
   };
 }

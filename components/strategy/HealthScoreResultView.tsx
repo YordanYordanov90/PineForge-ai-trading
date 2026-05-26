@@ -101,7 +101,7 @@ export function HealthScoreResultView({
   onPrefillRefine,
 }: HealthScoreResultViewProps) {
   return (
-    <div className="max-h-[640px] overflow-auto px-6 py-6">
+    <div className="px-6 py-6">
       <p className={cn('mb-4 text-xs', pfOutputMuted)}>
         Structural analysis guidance — not a performance prediction or financial advice.
       </p>

@@ -7,6 +7,8 @@ export const terminalScanlines = 'terminal-scanlines';
 export const terminalPhosphorActive = 'terminal-phosphor-active';
 export const terminalPhosphorInset = 'terminal-phosphor-inset';
 export const terminalCodeSurface = 'terminal-code-surface';
+/** Scrollable output card shell (overrides base surface overflow:hidden). */
+export const terminalCodeSurfacePanel = 'terminal-code-surface--panel';
 export const terminalCodeSurfaceStreaming = 'terminal-code-surface--streaming';
 export const terminalTabActive = 'terminal-tab-active';
 export const terminalCursorStream = 'terminal-cursor-stream';

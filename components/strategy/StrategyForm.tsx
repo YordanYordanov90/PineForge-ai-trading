@@ -51,7 +51,11 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
           setGenStartTime: session.setGenStartTime,
           resetPanelKeys: session.resetPanelKeys,
           setOutputTab: session.setOutputTab,
+          // Spec 60
+          setAssumptions: session.setAssumptions,
         });
+        // Ensure assumptions surface for the loaded script (defensive).
+        session.setAssumptions?.(entry.assumptions ?? null);
       },
       [lineage, plan, inputs, session],
     );
@@ -213,6 +217,8 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
             exportTitle={lineage.exportTitle}
             exportCreatedAt={lineage.exportCreatedAt}
             forgeScriptId={parseForgeScriptId(lineage.lineageState?.rootId)}
+            // Spec 60
+            assumptions={session.assumptions}
           />
         </div>
       </>

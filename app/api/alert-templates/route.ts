@@ -79,9 +79,6 @@ export async function POST(req: Request) {
 
     const normalized = normalizeAlertTemplatesOutput(object);
     if (!normalized) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[alert-templates] normalize failed', { object });
-      }
       return apiError(
         'Alert templates could not be validated. Please try again.',
         502,

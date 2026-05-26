@@ -55,14 +55,18 @@ export function useStrategyGenerationCore({
     stop,
     generate,
     refine,
+    assumptions,
+    setAssumptions,
   } = useScriptGeneration({
     onChunk: () => {
       requestAnimationFrame(() => {
-        const el = outputRef.current?.querySelector('pre, textarea');
-        if (el) el.scrollTop = el.scrollHeight;
+        const panel = outputRef.current;
+        if (panel) {
+          panel.scrollTop = panel.scrollHeight;
+        }
       });
     },
-    onGenerationComplete: (finalScript, payload) => {
+    onGenerationComplete: (finalScript, payload, extractedAssumptions) => {
       void (async () => {
         const entry = buildSavedScriptFromGeneration({
           prompt: payload.prompt,
@@ -74,6 +78,7 @@ export function useStrategyGenerationCore({
           direction: payload.structuredInputs.direction,
           indicators: payload.structuredInputs.indicators,
           rr: payload.structuredInputs.rr,
+          assumptions: extractedAssumptions ?? null,
         });
         const saved = await addEntry(entry);
         lineage.markCompareBaseline(finalScript);
@@ -81,7 +86,7 @@ export function useStrategyGenerationCore({
         lineage.recordGenerationSaved(saved);
       })();
     },
-    onRefineComplete: (finalScript) => {
+    onRefineComplete: (finalScript, extractedAssumptions) => {
       const lineageRef = lineage.getLineageRef();
       if (!lineageRef) return;
       const payload = inputs.getGenerationPayload();
@@ -100,6 +105,7 @@ export function useStrategyGenerationCore({
             direction: payload.structuredInputs.direction,
             indicators: payload.structuredInputs.indicators,
             rr: payload.structuredInputs.rr,
+            assumptions: extractedAssumptions ?? null,
           }),
         );
         if (!saved) return;
@@ -218,5 +224,8 @@ export function useStrategyGenerationCore({
     handleGeneratedScriptChange,
     handleGenerate,
     handleRefine,
+    // Spec 60
+    assumptions,
+    setAssumptions,
   };
 }

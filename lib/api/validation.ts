@@ -241,6 +241,14 @@ export const healthScoreRequestSchema = z.object({
   indicators: z
     .array(z.enum(['RSI', 'MACD', 'VWAP', 'EMA', 'Bollinger']))
     .optional(),
+  // Spec 60: optional assumptions block for cross-reference in risk analysis.
+  assumptions: z
+    .object({
+      items: z.array(z.string()).optional(),
+      raw: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const alertTemplateProviderEnum = z.enum([
