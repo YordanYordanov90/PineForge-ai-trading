@@ -8,6 +8,7 @@ import { DEFAULT_MODEL } from '@/lib/config/constants';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-system';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
+import { getTemplateById } from '@/lib/templates/templates';
 
 const schema = generateSchema.extend({
   model: generateSchema.shape.model.default(DEFAULT_MODEL),
@@ -27,6 +28,16 @@ export async function POST(req: Request) {
   const entitlement = resolveModelForPlan(guard.ctx.plan, parsed.data.model);
   if (!entitlement.ok) {
     return jsonApiError(403, entitlement.message);
+  }
+
+  // Template entitlement enforcement (spec 59) — before acquiring the stream lock
+  const rawBody = body as Record<string, unknown>;
+  const templateId = typeof rawBody.templateId === 'string' ? rawBody.templateId : undefined;
+  if (templateId) {
+    const t = getTemplateById(templateId);
+    if (t && t.isPro && guard.ctx.plan !== 'pro') {
+      return jsonApiError(403, 'This template requires a Pro plan. Upgrade to access the full library.');
+    }
   }
 
   const lock = await acquireStreamLock(guard.ctx.userId);
