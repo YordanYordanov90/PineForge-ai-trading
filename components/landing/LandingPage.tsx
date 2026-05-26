@@ -21,7 +21,7 @@ export function LandingPage() {
       <LandingNavbar />
       <LandingSectionNav />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pb-32 sm:pt-24">
+      <main className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-16 sm:px-6 sm:pb-32 sm:pt-24">
         <LandingHero />
         <LandingProofBar />
         <LandingFeatureGrid />
