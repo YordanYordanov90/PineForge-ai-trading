@@ -39,7 +39,7 @@ type ForgeEmptyStateProps = {
 
 export function ForgeEmptyState({ onSuggest, disabled }: ForgeEmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
+    <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 text-center">
       <div className="relative forge-fade-up">
         <div
           aria-hidden

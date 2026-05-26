@@ -227,11 +227,19 @@ export function ForgeChat({
     (hydrating || Boolean(hydrationError));
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      {seedScript != null && activeConversationId == null ? (
+        <div className="shrink-0 px-4 pt-3 sm:px-6">
+          <div className="mx-auto w-full max-w-3xl">
+            <SeedScriptBanner script={seedScript} />
+          </div>
+        </div>
+      ) : null}
+
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto scroll-smooth"
+        className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth"
       >
         {activeConversationId == null && !seedScript ? (
           <ForgeEmptyState
@@ -240,10 +248,6 @@ export function ForgeChat({
           />
         ) : (
           <>
-            {seedScript && activeConversationId == null ? (
-              <SeedScriptBanner script={seedScript} />
-            ) : null}
-
             {hydrating ? (
               <div className="pf-muted flex items-center justify-center gap-2 py-12 text-sm">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -290,8 +294,8 @@ export function ForgeChat({
 
 function SeedScriptBanner({ script }: { script: SavedScript }) {
   return (
-    <div className="mx-auto mt-6 w-full max-w-3xl px-4 sm:px-0">
-      <div className="flex items-start gap-3 rounded-sm border border-neon-500/30 border-l-2 border-l-neon-500 bg-neon-500/[0.05] p-3 dark:bg-neon-500/[0.08]">
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="flex items-start gap-3 rounded-sm border border-neon-500/30 border-l-2 border-l-neon-500 bg-neon-500/[0.08] p-3 shadow-lg shadow-black/10 backdrop-blur-md dark:bg-neon-500/[0.12] dark:shadow-black/40">
         <div className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-neon-500/30 bg-neon-500/10 text-neon-500 dark:text-neon-400">
           <ScrollText className="size-3.5" aria-hidden />
         </div>
