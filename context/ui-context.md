@@ -22,24 +22,41 @@ Design language: zinc surfaces + neon accent (`#c8ff00`) in both modes; shadcn
 ## Colors
 
 All components use these tokens. No hardcoded hex values in components.
+**Neon (`#c8ff00`) is the single primary accent.** Do not introduce emerald,
+green, or teal as accents — those were earlier-phase tokens and are fully
+replaced.
 
 | Role              | Tailwind Class                          | Usage                                  |
 | ----------------- | --------------------------------------- | -------------------------------------- |
 | Page background   | `pf-page` gradient `#0a0a0a → #151515` + neon radial glow | Root page base (dark)                  |
 | Card surface      | `bg-[#111111]`                          | Standard cards                         |
 | Card (generator)  | `bg-[#111111]/80` + `backdrop-blur`     | Generator panel cards                  |
-| Border            | `border-zinc-800` / `#27272a`           | All card and input borders             |
+| Border            | `border-zinc-800` / `#27272a`           | All card and input borders (dark)      |
+| Border (light)    | `border-zinc-200`                       | All card and input borders (light)     |
 | Accent            | `bg-neon-500` (`#c8ff00`)               | Primary buttons, highlights            |
 | Accent hover      | `hover:bg-neon-500/10`                  | Outlined button hover state            |
+| Accent text (dark)  | `text-neon-300` / `text-neon-400`     | Accent labels, accent links on dark    |
+| Accent text (light) | `text-neon-600` / `text-neon-700`     | Accent labels, accent links on light   |
 | Focus ring        | `focus-visible:ring-neon-500/30`        | All inputs and buttons                 |
-| Body text         | `text-zinc-100` / `#ffffff`             | Primary readable text                  |
-| Muted text        | `text-zinc-400` / `#a1a1aa`             | Labels, hints, helper text             |
+| Body text         | `text-zinc-100` (dark) / `text-zinc-900` (light) | Primary readable text         |
+| Muted text        | `text-zinc-400` (dark) / `text-zinc-600` (light) | Labels, hints, helper text    |
 | Code text         | `text-neon-300/95`                      | Pine Script output                     |
 | Code background   | `bg-black/55`                           | Code container background              |
 | Error background  | `bg-rose-500/10`                        | Error state card background            |
 | Error border      | `border-rose-500/30`                    | Error state card border                |
 | Error text        | `text-rose-200`                         | Error message text                     |
-| Warning           | `text-amber-400`                        | Char count warning, stream badge       |
+| Warning / info    | `text-amber-400` + `border-amber-500/30` + `bg-amber-500/10` | Char count, stream badge, contextual tips, research pre-fill banner |
+
+### Semantic state colors
+
+Use these only when state semantics genuinely apply. Do **not** use them as
+generic palette variety on metadata badges (see "Muted Metadata Badge" pattern).
+
+| State                       | Token                                                     |
+| --------------------------- | --------------------------------------------------------- |
+| Positive / success / "good" | `text-neon-400` + `border-neon-500/40` + `bg-neon-500/10` |
+| Warning / educational / info | `text-amber-400` + `border-amber-500/30` + `bg-amber-500/10` |
+| Negative / error / "bad"    | `text-rose-400` + `border-rose-500/40` + `bg-rose-500/10` |
 
 ## Typography
 
@@ -74,12 +91,19 @@ generation. The Sheet component is used for the Script History drawer.
   with `gap-6 lg:gap-8`. Single column on mobile (output below inputs).
   Max width `max-w-6xl mx-auto px-6`.
 - **Landing page** (`/`): Full-width sections, max-width `max-w-7xl mx-auto px-6`.
-  Document-level scroll, no `overflow-x-hidden` on page shell.
-- **Navbar**: Sticky top bar. Landing: `bg-zinc-950/80 backdrop-blur-md` +
-  emerald scroll progress bar. Generator: standard fixed nav.
+  Document-level scroll. Page shell uses `overflow-x-clip` (not `hidden`) so
+  sticky descendants are not broken by an implicit scroll container.
+- **Navbar**: Sticky top bar. Landing wraps `LandingTicker` + `LandingNavbar`
+  inside a single `sticky top-0 z-50` container so they pin together.
+  Background: `bg-zinc-950/80 backdrop-blur-md`. Scroll progress bar uses
+  `bg-neon-500` over `bg-zinc-200/80 dark:bg-zinc-800/60`. Generator: standard
+  fixed nav.
 - **Drawers**: shadcn Sheet slides in from left. `w-80` desktop, full-width mobile.
 - **Collapsibles**: Advanced Options panel uses Tailwind height animation.
   Chevron icon rotates on open/close.
+- **Overflow rule**: prefer `overflow-x-clip` over `overflow-x-hidden` on page
+  shells and `body` — `clip` does not establish a scroll container, so sticky
+  positioning keeps working further down the tree.
 
 ## Icons
 
@@ -88,21 +112,51 @@ Lucide React. Stroke-based only. Sizes: `h-4 w-4` for inline / labels,
 
 ## Key Component Patterns
 
-**Template Pills**
+**Template Pills** (in-generator quick-start pills)
 ```
 flex flex-wrap gap-2
-Default:  rounded-full border border-zinc-700/70 bg-zinc-900/50 px-3 py-1 text-xs
-Hover:    hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300
-Active:   border-emerald-500/70 bg-emerald-500/15 text-emerald-300
+Default:  rounded-full border border-zinc-300 bg-white/70 text-zinc-600
+          dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400
+Hover:    hover:border-neon-500/30 hover:text-neon-700 dark:hover:text-neon-300
+Active:   terminal-active-pill border-neon-500/50 text-neon-700 dark:text-neon-300
 ```
 
 **Model Selector**
 ```
 Segmented control — 3 buttons inline
-Active:   border-emerald-500/70 bg-emerald-500/15 text-emerald-300
-Inactive: text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50
+Active:   border-neon-500/70 bg-neon-500/15 text-neon-700 dark:text-neon-300
+Inactive: text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200
+          hover:bg-zinc-100 dark:hover:bg-zinc-800/50
 Below:    description text for selected model
 ```
+
+**Muted Metadata Badge** (templates, history rows, fingerprints)
+
+Used for **non-critical** metadata (market, timeframe, direction, difficulty,
+Health Score chip on a template card). Do **not** color-code by value — value
+encoding lives in the surrounding context (e.g. the Health tab itself).
+
+```
+inline-flex items-center rounded-full border px-2 py-0.5 text-[10px]
+font-medium uppercase tracking-wider
+Light: border-zinc-200 bg-zinc-100 text-zinc-600
+Dark:  dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400
+```
+
+For free-form chip tags (no border emphasis):
+```
+rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-600
+dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400
+```
+
+When a badge **does** carry semantic meaning (an error state, a warning, a
+"success" verdict on a Health Score card itself), use the semantic state
+tokens from the Colors section.
+
+**Primary CTA Button** — use the shared `.pf-improve-prompt-btn` utility for
+neon-accented CTAs in both modes (defined in `globals.css`). Avoid inlining
+`border-neon-500/45 bg-neon-500/10 …` ad-hoc; reuse the utility so dark/light
+parity stays consistent.
 
 **Output Card Header (left → right)**
 ```
@@ -112,3 +166,20 @@ Below:    description text for selected model
 - Streaming badge: only while `isGenerating`
 - Stop: only during streaming when script is non-empty
 - Validator badge + stats + Download + Copy: only when idle with script present
+
+## Shell Utilities (`globals.css`)
+
+Prefer these utility classes over re-implementing dark/light variants in every
+component. They are defined in `app/globals.css` and handle both themes.
+
+| Utility                  | Purpose                                            |
+| ------------------------ | -------------------------------------------------- |
+| `.pf-page`               | Root page background gradient + neon radial glow   |
+| `.pf-nav`                | Sticky navbar background + backdrop-blur           |
+| `.pf-nav-muted`          | Muted nav link / pill                              |
+| `.pf-card`               | Standard card surface + border (both modes)        |
+| `.pf-badge`              | Small inline pill (e.g. landing hero subtitle)     |
+| `.pf-heading`            | Heading typography (Syne)                          |
+| `.pf-improve-prompt-btn` | Primary neon-accent CTA (both modes)               |
+| `.pf-refine-panel`       | Refine-chat panel surface                          |
+| `.pf-terminal-window` + `.terminal-code-surface` | Landing code/example surface |

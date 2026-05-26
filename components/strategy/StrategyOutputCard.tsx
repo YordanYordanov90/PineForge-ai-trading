@@ -26,6 +26,8 @@ import { BacktestSummaryPanel } from '@/components/strategy/BacktestSummaryPanel
 import { HealthScorePanel } from '@/components/strategy/HealthScorePanel';
 import { ExportMarkdownPanel } from '@/components/strategy/ExportMarkdownPanel';
 import { OutputActionBar } from '@/components/strategy/OutputActionBar';
+import { BreakdownTab } from '@/components/strategy/BreakdownTab';
+import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
 import type {
   AlertTemplatesResult,
   BacktestSummaryResult,
@@ -46,6 +48,7 @@ import { cn } from '@/lib/utils';
 import {
   pfOutputMuted,
   terminalCodeSurface,
+  terminalCodeSurfacePanel,
   terminalCodeSurfaceStreaming,
   terminalTabActive,
 } from '@/lib/ui/terminal-texture';
@@ -136,6 +139,8 @@ type StrategyOutputCardProps = {
    * "Discuss with Forge" entry point in the action bar (spec 57).
    */
   forgeScriptId?: number | null;
+  /** Spec 60: assumptions parsed from the current generation / loaded script. */
+  assumptions?: StrategyAssumptions | null;
 };
 
 export function StrategyOutputCard({
@@ -184,6 +189,7 @@ export function StrategyOutputCard({
   exportTitle,
   exportCreatedAt = null,
   forgeScriptId = null,
+  assumptions,
 }: StrategyOutputCardProps) {
   const [successPulse, setSuccessPulse] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
@@ -390,8 +396,9 @@ export function StrategyOutputCard({
         <div
           ref={outputRef}
           className={cn(
-            'relative max-h-[min(72vh,720px)] min-h-[280px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200/90 dark:border-zinc-800/70',
+            'relative max-h-[min(72vh,720px)] min-h-[280px] overscroll-contain rounded-2xl border border-zinc-200/90 dark:border-zinc-800/70',
             terminalCodeSurface,
+            terminalCodeSurfacePanel,
             isStreaming && terminalCodeSurfaceStreaming,
           )}
           aria-live="polite"
@@ -417,7 +424,7 @@ export function StrategyOutputCard({
                 onOutputTabChange(v);
               }
             }}
-            className="relative gap-0"
+            className="relative min-h-0 gap-0"
           >
             <TabsList
               variant="line"
@@ -442,7 +449,7 @@ export function StrategyOutputCard({
                 disabled={!compareAvailable}
               />
             </TabsList>
-            <TabsContent value="script" forceMount className="mt-0 data-[state=inactive]:hidden">
+            <TabsContent value="script" forceMount className="mt-0 min-h-0 data-[state=inactive]:hidden">
               <ScriptOutput
                 script={generatedScript}
                 isGenerating={isOutputBusy}
@@ -452,23 +459,25 @@ export function StrategyOutputCard({
                 onSuggestionClick={onSuggestionClick}
               />
             </TabsContent>
-            <TabsContent value="breakdown" forceMount className="mt-0 data-[state=inactive]:hidden">
-              <ExplainScriptPanel
-                mode="breakdown"
+            <TabsContent value="breakdown" forceMount className="mt-0 min-h-0 data-[state=inactive]:hidden">
+              <BreakdownTab
                 script={generatedScript}
                 isTabActive={outputTab === 'breakdown'}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 cancelKey={explainCancelKey}
+                containedScroll={false}
                 onBreakdownChange={setBreakdownText}
+                assumptions={assumptions ?? null}
               />
             </TabsContent>
-            <TabsContent value="checklist" forceMount className="mt-0 data-[state=inactive]:hidden">
+            <TabsContent value="checklist" forceMount className="mt-0 min-h-0 data-[state=inactive]:hidden">
               <ExplainScriptPanel
                 mode="checklist"
                 script={generatedScript}
                 isTabActive={outputTab === 'checklist'}
                 isScriptFinal={!isOutputBusy && Boolean(generatedScript.trim())}
                 cancelKey={explainCancelKey}
+                containedScroll={false}
               />
             </TabsContent>
             <TabsContent value="health" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -482,6 +491,7 @@ export function StrategyOutputCard({
                 resetKey={healthScoreResetKey}
                 onPrefillRefine={onPrefillRefine}
                 onResultChange={setHealthExportResult}
+                assumptions={assumptions ?? null}
               />
             </TabsContent>
             <TabsContent value="backtest" forceMount className="mt-0 data-[state=inactive]:hidden">

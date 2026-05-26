@@ -9,6 +9,7 @@ import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-syst
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
 import { getTemplateById } from '@/lib/templates/templates';
+// Spec 60: client applies parseAssumptionsBlock on stream completion (useScriptGeneration).
 
 const schema = generateSchema.extend({
   model: generateSchema.shape.model.default(DEFAULT_MODEL),

@@ -1174,6 +1174,13 @@ html[data-theme-transitioning] *:not(.theme-transition-overlay)::after {
   z-index: 1;
 }
 
+/* Generate output shell — scrollable; overrides base overflow:hidden on .terminal-code-surface */
+.terminal-code-surface.terminal-code-surface--panel {
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 [data-terminal-tab][data-state="active"] {
   box-shadow: 0 4px 14px -8px rgba(var(--terminal-neon), 0.35);
 }

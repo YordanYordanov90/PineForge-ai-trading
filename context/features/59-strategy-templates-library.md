@@ -90,7 +90,13 @@ table later is a single migration step.
 - Template cards: title, difficulty badge, market + timeframe chips, brief
   description, Health Score badge, "Use as base" CTA
 - Pro badge on locked templates for free users (upgrade CTA on click)
-- Follows terminal design language (zinc surfaces, emerald accents)
+- Follows terminal design language: zinc surfaces, **neon accent (`#c8ff00`)**
+  on the primary CTA only. Metadata badges (difficulty, Health Score, market,
+  timeframe, direction, Pro) use the **Muted Metadata Badge** pattern from
+  `context/ui-context.md` — they are **not** color-coded by value
+  (no green-for-beginner / red-for-advanced, no green-for-high-score). Use the
+  shared `.pf-improve-prompt-btn` utility for the "Use as base" CTA so light
+  and dark modes stay in parity.
 
 ### In-generator: template preview
 

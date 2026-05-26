@@ -82,7 +82,9 @@ Data source: `agent_memory` table — already populated by spec `56`.
 
 GitHub-style contribution grid: one cell per day, shaded by number of
 generations/refinements. Visual identity strongly matches terminal aesthetic
-with emerald cells.
+with **neon (`#c8ff00`)** cells stepped by opacity (e.g. `bg-neon-500/15`,
+`/30`, `/55`, `/80`) over a `bg-zinc-900` (dark) / `bg-zinc-100` (light) base.
+No emerald.
 
 ---
 

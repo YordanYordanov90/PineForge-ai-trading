@@ -48,6 +48,7 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
     isStarred: row.isStarred ?? false,
     tags: row.tags ?? [],
     collectionId: row.collectionId ?? null,
+    assumptions: meta.assumptions ?? null,
   };
 }
 
@@ -60,6 +61,7 @@ export function savedScriptToMetadata(entry: SavedScript): ScriptMetadata {
     direction: entry.direction,
     indicators: entry.indicators,
     rr: entry.rr,
+    assumptions: entry.assumptions ?? null,
   };
 }
 

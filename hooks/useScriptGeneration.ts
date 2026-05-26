@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
 import type { GrokModelId } from '@/lib/types';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
+import { parseAssumptionsBlock, type StrategyAssumptions } from '@/lib/ai/parse-assumptions';
 
 type GeneratePayload = {
   prompt: string;
@@ -14,8 +15,8 @@ type GeneratePayload = {
 };
 
 type UseScriptGenerationOptions = {
-  onGenerationComplete?: (script: string, payload: GeneratePayload) => void;
-  onRefineComplete?: (script: string) => void;
+  onGenerationComplete?: (script: string, payload: GeneratePayload, assumptions: StrategyAssumptions | null) => void;
+  onRefineComplete?: (script: string, assumptions: StrategyAssumptions | null) => void;
   onChunk?: () => void;
 };
 
@@ -33,6 +34,10 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   const [isRefining, setIsRefining] = useState(false);
   const [genStartTime, setGenStartTime] = useState<number | null>(null);
   const [genElapsed, setGenElapsed] = useState<number | null>(null);
+  // Spec 60: assumptions extracted client-side from generation/refine output.
+  // The streamed text may briefly contain the === ASSUMPTIONS block at the tail;
+  // on completion we swap generatedScript to the clean version and surface this.
+  const [assumptions, setAssumptions] = useState<StrategyAssumptions | null>(null);
 
   const isOutputBusy = isGenerating || isRefining;
 
@@ -146,7 +151,17 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
         setIsGenerating(false);
         abortRef.current = null;
         if (!generationAborted && finalScript.trim()) {
-          options.onGenerationComplete?.(finalScript, payload);
+          // Spec 60: extract assumptions (if present) and ensure only clean Pine Script
+          // is committed to state and passed to history / onGenerationComplete.
+          const parsed = parseAssumptionsBlock(finalScript);
+          const cleanScript = parsed.cleanScript || finalScript.trim();
+          const extracted = parsed.assumptions ?? null;
+          setGeneratedScript(cleanScript);
+          setAssumptions(extracted);
+          options.onGenerationComplete?.(cleanScript, payload, extracted);
+        } else if (!generationAborted) {
+          // No script produced — clear any stale assumptions
+          setAssumptions(null);
         }
       }
     },
@@ -242,7 +257,16 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
         setIsRefining(false);
         abortRef.current = null;
         if (!refineAborted && refineSucceeded && finalScript.trim()) {
-          options.onRefineComplete?.(finalScript);
+          // Spec 60: refine also runs the updated system prompt and may emit an
+          // assumptions block. Extract + clean exactly like generation.
+          const parsed = parseAssumptionsBlock(finalScript);
+          const cleanScript = parsed.cleanScript || finalScript.trim();
+          const extracted = parsed.assumptions ?? null;
+          setGeneratedScript(cleanScript);
+          setAssumptions(extracted);
+          options.onRefineComplete?.(cleanScript, extracted);
+        } else if (!refineAborted) {
+          setAssumptions(null);
         }
       }
     },
@@ -263,5 +287,8 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
     stop,
     generate,
     refine,
+    // Spec 60
+    assumptions,
+    setAssumptions,
   };
 }

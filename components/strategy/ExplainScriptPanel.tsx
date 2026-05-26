@@ -22,6 +22,8 @@ type ExplainScriptPanelProps = {
   isTabActive: boolean;
   isScriptFinal: boolean;
   cancelKey: number;
+  /** When false, content grows with the output card scroll (no nested 640px scroller). */
+  containedScroll?: boolean;
   /** Spec 50: surfaces Breakdown tab text for Markdown export. */
   onBreakdownChange?: (text: string | null) => void;
 };
@@ -49,6 +51,7 @@ export function ExplainScriptPanel({
   isTabActive,
   isScriptFinal,
   cancelKey,
+  containedScroll = true,
   onBreakdownChange,
 }: ExplainScriptPanelProps) {
   const [text, setText] = useState('');
@@ -66,6 +69,16 @@ export function ExplainScriptPanel({
       onBreakdownChange?.(null);
     }
   }, [cancelKey, mode, onBreakdownChange]);
+
+  // Release the shared stream lock when leaving this tab so Checklist/Breakdown can run.
+  useEffect(() => {
+    if (isTabActive) return;
+    inFlightRef.current?.abort();
+    inFlightRef.current = null;
+    const trimmed = script.trim();
+    if (!trimmed) return;
+    startedRef.current.delete(cacheKeyFor(mode, script));
+  }, [isTabActive, script, mode]);
 
   useEffect(() => {
     if (mode !== 'breakdown' || !onBreakdownChange) return;
@@ -239,7 +252,8 @@ export function ExplainScriptPanel({
   return (
     <div
       className={cn(
-        'max-h-[640px] overflow-auto px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap',
+        'px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap',
+        containedScroll && 'max-h-[640px] overflow-auto',
         pfOutputBody,
       )}
     >

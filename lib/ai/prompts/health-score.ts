@@ -11,6 +11,8 @@ Score trading logic robustness from 1 (very weak) to 10 (very strong) based on:
 - missing filters or confirmations (trend, session, volatility, etc.)
 - whether the strategy is realistically backtest-ready in TradingView
 
+If the script includes an Assumptions block, cross-reference strategy risks against the stated assumptions. Flag if the strategy logic contradicts its own assumptions (e.g. assumes trending market but uses RSI in ranging mode).
+
 Verdict labels (pick one that fits the score):
 - 1–3: Fragile
 - 4–5: Needs Work

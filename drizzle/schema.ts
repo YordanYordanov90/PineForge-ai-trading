@@ -15,6 +15,7 @@ import type {
   AgentMessage,
   AgentUserProfile,
 } from '@/lib/types/agent';
+import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -52,6 +53,11 @@ export type ScriptMetadata = {
   direction?: string;
   indicators?: string[];
   rr?: string;
+  /**
+   * Spec 60: Assumptions block extracted during generation.
+   * Stored in the existing jsonb column (no migration required).
+   */
+  assumptions?: StrategyAssumptions | null;
 };
 
 export const scripts = pgTable(

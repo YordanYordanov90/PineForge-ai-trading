@@ -23,6 +23,8 @@ type HealthScorePanelProps = {
   onPrefillRefine?: (instruction: string) => void;
   /** Spec 50: surfaces loaded result for Markdown export. */
   onResultChange?: (result: HealthScoreResult | null) => void;
+  /** Spec 60: passed through to the health-score request for assumption cross-reference. */
+  assumptions?: import('@/lib/ai/parse-assumptions').StrategyAssumptions | null;
 };
 
 function buildRunInput(props: HealthScorePanelProps): HealthScoreRunInput {

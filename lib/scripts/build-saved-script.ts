@@ -1,4 +1,5 @@
 import type { GrokModelId, SavedScript } from '@/lib/types';
+import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
 
 export function buildSavedScriptFromGeneration(params: {
   prompt: string;
@@ -10,6 +11,7 @@ export function buildSavedScriptFromGeneration(params: {
   direction?: string;
   indicators?: string[];
   rr?: string;
+  assumptions?: StrategyAssumptions | null;
 }): SavedScript {
   const trim = params.prompt.trim();
   const base = trim.length <= 40 ? trim : `${trim.slice(0, 40)}…`;
@@ -30,6 +32,7 @@ export function buildSavedScriptFromGeneration(params: {
     isStarred: false,
     tags: [],
     collectionId: null,
+    assumptions: params.assumptions ?? null,
   };
 }
 
@@ -46,6 +49,7 @@ export function buildSavedScriptFromRefinement(params: {
   direction?: string;
   indicators?: string[];
   rr?: string;
+  assumptions?: StrategyAssumptions | null;
 }): SavedScript {
   return {
     id: crypto.randomUUID(),
@@ -65,5 +69,6 @@ export function buildSavedScriptFromRefinement(params: {
     isStarred: false,
     tags: [],
     collectionId: null,
+    assumptions: params.assumptions ?? null,
   };
 }

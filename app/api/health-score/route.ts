@@ -19,6 +19,7 @@ function buildHealthScoreUserPrompt(data: {
   timeframe?: string | null;
   direction?: string | null;
   indicators?: string[];
+  assumptions?: { items?: string[]; raw?: string } | null;
 }): string {
   const contextParts: string[] = [];
   if (data.market) contextParts.push(`Market: ${data.market}`);
@@ -33,16 +34,23 @@ function buildHealthScoreUserPrompt(data: {
     ? `\n\nStrategy context:\n${contextParts.join('\n')}`
     : '';
 
+  let assumptionsBlock = '';
+  if (data.assumptions?.items?.length) {
+    assumptionsBlock = `\n\nStrategy assumptions (cross-reference for contradictions):\n${data.assumptions.items.map((i) => `- ${i}`).join('\n')}`;
+  } else if (data.assumptions?.raw) {
+    assumptionsBlock = `\n\nStrategy assumptions (cross-reference for contradictions):\n${data.assumptions.raw}`;
+  }
+
   return `Original strategy intent:
 ${data.prompt}
-${contextBlock}
+${contextBlock}${assumptionsBlock}
 
 Generated Pine Script v5:
 \`\`\`pine
 ${data.script}
 \`\`\`
 
-Review the intent against the script. Score structural quality only.`;
+Review the intent against the script. Score structural quality only. If assumptions are provided, explicitly flag any logic that contradicts the stated assumptions.`;
 }
 
 export async function POST(req: Request) {

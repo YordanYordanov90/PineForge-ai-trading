@@ -104,11 +104,16 @@ Pro-only. The "Snapshot Export" button in the Output Action Bar is:
 
 The HTML file uses the terminal design language:
 - Dark background (`#09090b` zinc-950)
-- Emerald accents (`#10b981`)
+- **Neon accent (`#c8ff00`)** — must match the in-app palette exactly. Do not
+  substitute emerald, green, or any other accent. The QR code, dividers, and
+  any score chip use neon.
+- Body text `#fafafa` (zinc-50) on dark; muted text `#a1a1aa` (zinc-400)
+- Borders `#27272a` (zinc-800)
 - Monospace font for code (system mono fallback, no external font)
 - Clean section separators matching the terminal aesthetic
 - Print-friendly: `@media print` rules ensure white background + black text
-  for users who print the document
+  for users who print the document (neon accent stays as a subtle hairline,
+  not a fill, on printed pages)
 
 ---
 
