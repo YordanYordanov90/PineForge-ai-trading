@@ -6,6 +6,7 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import {
   acquireStreamLock,
   bindStreamLockRelease,
+  refreshStreamLock,
 } from '@/lib/rate-limit/concurrency';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import {
@@ -139,6 +140,12 @@ export async function POST(req: Request) {
       stopWhen: stepCountIs(FORGE_AGENT_MAX_STEPS),
       temperature: 0.4,
       abortSignal: req.signal,
+      onAbort: () => {
+        void releaseLock();
+      },
+      onStepFinish: () => {
+        void refreshStreamLock(guard.ctx.userId, 'forge');
+      },
       onFinish: async (event) => {
         let postTurnMessages: AgentMessage[] = conversation.messages;
         try {
