@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import type { AlertTemplateItem } from '@/lib/api/validation';
 import { Button } from '@/components/ui/button';
 import {
-  pfOutputBody,
   pfOutputBorder,
   pfOutputCard,
   pfOutputCodeBlock,

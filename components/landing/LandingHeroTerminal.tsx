@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Activity } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { cn } from '@/lib/utils';
 
 const PROMPT = '"9 EMA crosses 21 EMA, 2% risk"';
@@ -63,39 +64,24 @@ function Token({ part }: { part: { t: string; c: string } }) {
 
 export function LandingHeroTerminal() {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = usePrefersReducedMotion();
+  const [intersected, setIntersected] = useState(false);
+  const visible = reduceMotion || intersected;
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduceMotion(mq.matches);
-    const onChange = () => setReduceMotion(mq.matches);
-    mq.addEventListener('change', onChange);
-
-    if (mq.matches) {
-      setVisible(true);
-      return () => mq.removeEventListener('change', onChange);
-    }
-
+    if (reduceMotion) return;
     const el = ref.current;
-    if (!el) {
-      return () => mq.removeEventListener('change', onChange);
-    }
+    if (!el) return;
 
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-        }
+        if (entry.isIntersecting) setIntersected(true);
       },
       { threshold: 0.2 },
     );
     obs.observe(el);
-    return () => {
-      obs.disconnect();
-      mq.removeEventListener('change', onChange);
-    };
-  }, []);
+    return () => obs.disconnect();
+  }, [reduceMotion]);
 
   return (
     <div ref={ref} className="relative w-full max-w-md flex-1 sm:max-w-lg lg:perspective-[2000px]">

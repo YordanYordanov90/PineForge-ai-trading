@@ -3,7 +3,10 @@ import { stepCountIs, streamText, type ModelMessage } from 'ai';
 import { apiError, apiInvalidRequest } from '@/lib/api/envelope';
 import { jsonApiError, protectAiRoute } from '@/lib/api/protected-ai-route';
 import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
-import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
+import {
+  acquireStreamLock,
+  bindStreamLockRelease,
+} from '@/lib/rate-limit/concurrency';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import {
   appendMessages,
@@ -85,10 +88,12 @@ export async function POST(req: Request) {
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) return missingKey;
 
-  const lock = await acquireStreamLock(guard.ctx.userId);
+  const lock = await acquireStreamLock(guard.ctx.userId, 'forge');
   if (!lock.acquired) {
     return jsonApiError(409, 'A Forge conversation is already in progress.');
   }
+
+  const releaseLock = bindStreamLockRelease(lock, req.signal);
 
   // Pre-stream IO that can fail without making the conversation broken — if
   // any of these throw we release the lock and return 502 so the user can
@@ -101,11 +106,15 @@ export async function POST(req: Request) {
       loadScriptContext(userId, conversation.scriptId),
     ]);
   } catch {
-    await lock.release();
+    await releaseLock();
     return apiError('Forge encountered an error. Please try again.', 502);
   }
 
-  const systemPrompt = buildForgeSystemPrompt(profile, scriptContext);
+  const systemPrompt = buildForgeSystemPrompt(
+    profile,
+    scriptContext,
+    conversation.type,
+  );
   const userAgentMessage = buildUserAgentMessage(message);
   const modelMessages: ModelMessage[] = [
     ...agentHistoryToModelMessages(conversation.messages),
@@ -166,13 +175,13 @@ export async function POST(req: Request) {
           model: entitlement.model,
         });
 
-        void lock.release();
+        void releaseLock();
       },
       onError: ({ error }) => {
         if (process.env.NODE_ENV === 'development') {
           console.warn('[forge] stream error', error);
         }
-        void lock.release();
+        void releaseLock();
       },
     });
 
@@ -181,7 +190,7 @@ export async function POST(req: Request) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[forge] streamText threw', error);
     }
-    await lock.release();
+    await releaseLock();
     return apiError('Forge encountered an error. Please try again.', 502);
   }
 }

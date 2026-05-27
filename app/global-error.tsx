@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useErrorLogger } from '@/hooks/useErrorLogger';
 
 type GlobalErrorProps = {
@@ -50,7 +51,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               SYSTEM HALT
             </h1>
             <p className="mt-3 font-mono text-xs tracking-[0.2em] text-rose-400/90 uppercase">
-              // ROOT LAYOUT FAULT
+              {'// ROOT LAYOUT FAULT'}
             </p>
             <p className="mt-4 text-sm leading-relaxed text-zinc-400">
               Core services failed to initialize. Retry or return to the homepage.
@@ -69,12 +70,12 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               >
                 Try again
               </button>
-              <a
+              <Link
                 href="/"
                 className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-8 py-3.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-800 sm:w-auto"
               >
                 Back to home
-              </a>
+              </Link>
             </div>
           </div>
 

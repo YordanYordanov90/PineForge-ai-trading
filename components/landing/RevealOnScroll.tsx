@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
 
 type RevealOnScrollProps = {
@@ -12,29 +13,19 @@ type RevealOnScrollProps = {
 
 export function RevealOnScroll({ children, className, delay = 0 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = usePrefersReducedMotion();
+  const [intersected, setIntersected] = useState(false);
+  const visible = reduceMotion || intersected;
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduceMotion(mq.matches);
-    const onChange = () => setReduceMotion(mq.matches);
-    mq.addEventListener("change", onChange);
-
-    if (mq.matches) {
-      setVisible(true);
-      return () => mq.removeEventListener("change", onChange);
-    }
-
+    if (reduceMotion) return;
     const el = ref.current;
-    if (!el) {
-      return () => mq.removeEventListener("change", onChange);
-    }
+    if (!el) return;
 
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setVisible(true);
+          setIntersected(true);
           obs.disconnect();
         }
       },
@@ -42,11 +33,8 @@ export function RevealOnScroll({ children, className, delay = 0 }: RevealOnScrol
     );
     obs.observe(el);
 
-    return () => {
-      obs.disconnect();
-      mq.removeEventListener("change", onChange);
-    };
-  }, []);
+    return () => obs.disconnect();
+  }, [reduceMotion]);
 
   return (
     <div

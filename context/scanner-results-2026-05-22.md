@@ -309,6 +309,7 @@ All re-scan findings are **safe to defer**. None block Phase 6 (Forge Agent). Th
 - **File**: `components/strategy/StrategyOutputCard.tsx` · **Lines**: 1–581 (full file)
   **Issue**: 581-line client component owns multi-tab output orchestration (Script / Breakdown / Health Score / Backtest Summary / Alert Templates / Explain Script / Compare), 10+ pieces of cross-panel state (export results, successPulse, panel reset keys), generation lifecycle effects, markdown serialization + download coordination, and all Phase 5 AI panel integrations. Does multiple jobs despite existing sub-panels.
   **Fix**: Reduce to thin layout + tab host; extract per-panel state/effects into dedicated hooks (e.g. useHealthExport, useBacktestExport) or further sub-orchestrators. (Grew significantly since prior ~103-line post-split state in 05-23 logs.)
+  **Status**: ⏸ Deferred (2026-05-27) — explicitly held back to a future session by user request. File size now ~592 lines after the effect-pattern refactors (the prev-tracker state pairs added a few lines); split still warranted before Phase 6 Forge handoff lands more panels.
 
 ### 🟡 Medium
 
@@ -316,14 +317,17 @@ All re-scan findings are **safe to defer**. None block Phase 6 (Forge Agent). Th
   **Files** (selected): `components/strategy/StrategyForm.tsx:98`, `StrategyOutputCard.tsx:207,284`, `RefineChat.tsx:36,42`, `ExplainScriptPanel.tsx:92`, `components/forge/ForgeToolCallCard.tsx:68,82`, `components/landing/LandingHeroTerminal.tsx:71`, `LandingScrollIndicator.tsx:22`, `RevealOnScroll.tsx:20`, `hooks/useShortcutLabel.ts:16` (and 9 more)
   **Issue**: Synchronous `setState(...)` calls directly inside `useEffect` callback bodies (resets on dep changes, media-query inits, prefill handlers, pulse timers, effect-driven clears). React anti-pattern per the rule; risks cascading renders.
   **Fix**: Refactor to lazy initializers, refs for one-time flags, or derived state where applicable. (Full list from `npm run lint`.)
+  **Status**: ✅ Fixed (2026-05-27) — all 11 spots refactored idiomatically using the React-docs "Adjusting state when a prop changes" pattern (`setState` during render gated by tracked-prev state). Two new shared hooks: `hooks/usePrefersReducedMotion.ts` and rewritten `hooks/useShortcutLabel.ts` (both `useSyncExternalStore`). See Resolution Log — 2026-05-27 below for per-file detail. No `eslint-disable` escape hatch used.
 
 - **File**: `app/global-error.tsx` · **Line**: 72
   **Issue**: `<a href="/">` for internal "Back to home" navigation (instead of Next `<Link>`).
   **Fix**: Import `Link from 'next/link'` and use `<Link href="/">`.
+  **Status**: ✅ Fixed (2026-05-27) — `next/link` import added; `<a>` replaced with `<Link>`.
 
 - **File**: `components/strategy/AlertTemplateCard.tsx` · **Line**: 9
   **Issue**: `pfOutputBody` imported from `@/lib/ui/terminal-texture` but never used in the component body (dead import).
   **Fix**: Remove the unused identifier from the import destructuring.
+  **Status**: ✅ Fixed (2026-05-27) — identifier removed from the import block.
 
 ### 🔵 Low
 
@@ -331,6 +335,7 @@ All re-scan findings are **safe to defer**. None block Phase 6 (Forge Agent). Th
   **Files**: `app/generate/loading.tsx:48,91`, `app/loading.tsx:30`, `app/global-error.tsx:52`, `components/error/GeneratorFaultPanel.tsx:38`, `components/forge/ForgeConversationSidebar.tsx:127`
   **Issue**: JSX text children contain `// ` sequences (intentional terminal-chrome labels in skeletons, e.g. `// GENERATOR :: SYNCING`). ESLint rule treats them as misplaced comment syntax in children.
   **Fix**: Acceptable for visual design (or scope the rule / render labels differently); not a runtime bug.
+  **Status**: ✅ Fixed (2026-05-27) — all 6 sites wrapped in `{'// LABEL'}` string-literal expression children. Visual output unchanged; ESLint rule satisfied without disabling.
 
 ### ✅ No issues found in: Security, Performance (data + bundle), core Code quality invariants
 
@@ -364,6 +369,8 @@ All re-scan findings are **safe to defer**. None block Phase 6 (Forge Agent). Th
 
 **Verdict**: 19 lint errors + 1 warning now present (was clean on 05-23 per logs). Primary structural concern is `StrategyOutputCard.tsx` re-growth. React effect setState pattern is the most common quality smell. **Zero security, zero correctness, zero data-layer issues.** Ops migration apply (0002 + 0003) carries forward from prior scan.
 
+> **Update 2026-05-27**: All Medium + Low items above resolved (`npm run lint` and `npx tsc --noEmit` clean). Only the 🟠 High `StrategyOutputCard.tsx` split + the two ops migrations remain open. See Resolution Log — 2026-05-27 below.
+
 All findings above are **directly evidenced** by:
 - `npm run lint` (full output captured)
 - `npx tsc --noEmit` (clean)
@@ -384,7 +391,72 @@ npx tsc --noEmit
 ```
 
 **Still open (carry-over + new)**:
-- Apply Drizzle migrations `0002_groovy_scalphunter.sql` + `0003_awesome_thundra.sql` (`npm run db:migrate` with `DATABASE_URL_UNPOOLED`).
-- Address the 19 `set-state-in-effect` + 5 `jsx-no-comment-textnodes` + dead import + `<a>` vs `<Link>` to restore lint-clean state.
+- ~~Apply Drizzle migrations `0002_groovy_scalphunter.sql` + `0003_awesome_thundra.sql`~~ + `0004_nervous_morg.sql` — ✅ Applied on Neon 2026-05-27 (per user). Conversation SELECTs in `lib/db/agent-conversations.ts` now include `type`; defensive insert fallback + `as any` casts in `lib/db/agent-mapper.ts` removed.
+- ~~Address the 19 `set-state-in-effect` + 5 `jsx-no-comment-textnodes` + dead import + `<a>` vs `<Link>` to restore lint-clean state.~~ — ✅ Done 2026-05-27. See Resolution Log — 2026-05-27 below.
+- 🟠 `StrategyOutputCard.tsx` split — explicitly deferred 2026-05-27 (user-requested separate session/task).
 - Monitor `StrategyOutputCard.tsx` size as more workflow features (Forge handoff, comparison reports, etc.) land.
+
+---
+
+## Resolution Log — 2026-05-27
+
+**Scope**: Address all 🟡 Medium + 🔵 Low findings from the 2026-05-26 scan. The 🟠 High (`StrategyOutputCard.tsx` split) was explicitly held back for a separate session per user request.
+
+**Verification** (post-fix):
+- `npm run lint` — clean (was 19 errors + 1 warning).
+- `npx tsc --noEmit` — clean.
+- `npm run dev` — HMR recompiled through every change with no errors.
+
+### 🟡 Medium — fixed
+
+**Dead import (`AlertTemplateCard.tsx:9`)**
+- Removed `pfOutputBody` from the `@/lib/ui/terminal-texture` import block.
+
+**`<a>` → `<Link>` (`app/global-error.tsx:72`)**
+- Added `import Link from 'next/link'`; replaced `<a href="/">` with `<Link href="/">` ("Back to home" CTA on the root layout fault screen). Works inside `global-error.tsx`'s own `<html>/<body>` shell.
+
+**`react-hooks/set-state-in-effect` (11 sites, 9 files)** — refactored idiomatically per React docs ("Adjusting state when a prop changes" / `useSyncExternalStore` where applicable). No `eslint-disable` used.
+
+New shared primitives:
+- [hooks/usePrefersReducedMotion.ts](hooks/usePrefersReducedMotion.ts) — `useSyncExternalStore`-based reader for `(prefers-reduced-motion: reduce)`. Used by all three landing components below.
+- [hooks/useShortcutLabel.ts](hooks/useShortcutLabel.ts) — rewritten with `useSyncExternalStore` (no effect; hydration-safe `SSR_MOD_KEY_LABEL` snapshot, `getModKeyLabel()` client snapshot).
+
+Per-file refactors:
+
+| File | Approach |
+|---|---|
+| `components/landing/LandingHeroTerminal.tsx` | `usePrefersReducedMotion()` + `intersected` from observer callback (callback-side `setState` is not flagged); `visible = reduceMotion \|\| intersected`. Observer now restarts if reduced-motion toggles mid-session. |
+| `components/landing/RevealOnScroll.tsx` | same pattern as above; observer disconnects after first intersection. |
+| `components/landing/LandingScrollIndicator.tsx` | `usePrefersReducedMotion()` + `useSyncExternalStore` for scroll-threshold boolean (`window.scrollY <= 200`). |
+| `components/strategy/RefineChat.tsx` | `prevResetKey` / `prevPrefillNonce` tracked state; setStates moved into render-time conditional. Focus/scroll moved to a narrow effect that now properly clears its 0ms timer on unmount. |
+| `components/forge/ForgeToolCallCard.tsx` | dropped `wasLoadingRef`; replaced with `prevIsLoading` state-tracked transition detection. Pulse-cleanup `setTimeout` lives in a dedicated effect keyed on `justCompleted`. |
+| `components/strategy/ExplainScriptPanel.tsx` | removed dead `setText('')` + `setPhase('idle')` in the empty-script branch — render early-returns at line 191 before reading either; added `inFlightRef.abort()` for safety so stream is released when script clears. |
+| `components/strategy/StrategyOutputCard.tsx` | composite `resetKeysComposite` + `prevResetKeys` state fans out the 6 panel-reset setStates during render; `wasGeneratingRef` replaced with `prevIsGenerating` state for the success-pulse transition. `useRef` dropped from imports. |
+| `components/strategy/StrategyForm.tsx` | template prefill split: `templateLoadResult` derived via `useMemo` (none / missing / denied / ok); banner dismissal switched to `dismissedTemplateId` state. The remaining `useEffect` performs side effects only (toast + cross-hook setters) — no local `setState` in its body. |
+
+### 🔵 Low — fixed
+
+**`react/jsx-no-comment-textnodes` (6 sites)** — every literal `// LABEL` JSX text child wrapped in `{'…'}` expression child. Visual output unchanged; rule satisfied without scope edits. Sites:
+- `app/generate/loading.tsx` (2× — `SYNCING`, `STANDBY`)
+- `app/loading.tsx` (1× — `ESTABLISHING CONNECTION`)
+- `app/global-error.tsx` (1× — `ROOT LAYOUT FAULT`)
+- `components/error/GeneratorFaultPanel.tsx` (1× — `// GENERATOR :: ${variant}`, the dynamic suffix already lived inside `{…}`)
+- `components/forge/ForgeConversationSidebar.tsx` (1× — `no sessions yet`)
+
+### Incidental improvements (fall-out from refactors, no behavior regressions)
+
+- `RefineChat`'s 0ms focus timer now has cleanup on unmount (previously leaked).
+- `ExplainScriptPanel` now aborts the in-flight `/api/explain-script` stream when the script clears (previously dangled until natural completion or next mount).
+- `LandingHeroTerminal` / `RevealOnScroll` now react to runtime reduced-motion changes (previously stuck on the mount value because the effect had `[]` deps).
+
+### Still open after this session
+
+1. **🟠 `StrategyOutputCard.tsx` split** — explicitly deferred. File is now ~592 lines after the effect refactors (added ~10 lines of tracked-prev state). Split should still happen before Phase 6 Forge handoff lands more panels.
+2. **Ops migration apply (`0002_groovy_scalphunter.sql` + `0003_awesome_thundra.sql`)** — unchanged. `npm run db:migrate` with `DATABASE_URL_UNPOOLED`.
+
+### Don't re-open
+
+- Security clean (no findings 2026-05-26, no regression after refactor — changes were UI/hook-internal only).
+- Performance clean (no new effects, no new client bundles, two fewer leaked timers).
+- Code quality: lint + tsc both clean as of 2026-05-27 09:46 (UTC+3).
 

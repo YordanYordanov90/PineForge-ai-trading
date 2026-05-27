@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Loader2, Sparkles, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +26,7 @@ import {
   evaluatePromptHealth,
   PROMPT_HEALTH_STYLES,
 } from '@/lib/prompt/prompt-health';
+import { readResearchHandoff } from '@/lib/research/read-research-handoff';
 
 type StrategyInputsCardProps = {
   strategy: string;
@@ -78,6 +80,45 @@ export function StrategyInputsCard({
   const generateShortcut = useFormatShortcut('enter');
   const commandShortcut = useFormatShortcut('k');
 
+  // Spec 61 research handoff pre-fill + dismissable banner (amber per ui-context)
+  const [showResearchBanner, setShowResearchBanner] = useState(false);
+  const researchHandoffAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (researchHandoffAppliedRef.current) return;
+    const handoff = readResearchHandoff();
+    if (!handoff) return;
+
+    researchHandoffAppliedRef.current = true;
+
+    // Pre-fill description (main strategy prompt)
+    onStrategyChange(handoff.description);
+
+    // Map research direction ('Long'/'Short'/'Both') -> generator labels
+    const mappedDirection = handoff.direction
+      ? handoff.direction === 'Long'
+        ? 'Long only'
+        : handoff.direction === 'Short'
+          ? 'Short only'
+          : 'Both'
+      : undefined;
+
+    const nextStructured: StructuredInputsValue = {
+      ...structuredInputs,
+      market: handoff.market || structuredInputs.market,
+      timeframe: handoff.timeframe || structuredInputs.timeframe,
+      direction: mappedDirection || structuredInputs.direction,
+      indicators:
+        handoff.indicators && handoff.indicators.length > 0
+          ? handoff.indicators
+          : structuredInputs.indicators,
+    };
+    onStructuredInputsChange(nextStructured);
+
+    setShowResearchBanner(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount per spec
+
   return (
     <Card className="pf-card">
       <CardHeader className="p-4 sm:p-5">
@@ -87,6 +128,20 @@ export function StrategyInputsCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
+        {showResearchBanner ? (
+          <div className="flex items-start gap-3 rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-400">
+            <div className="mt-0.5 font-medium">Pre-filled from Forge research — edit as needed</div>
+            <button
+              type="button"
+              onClick={() => setShowResearchBanner(false)}
+              className="ml-auto shrink-0 rounded p-1 text-amber-400/70 hover:bg-amber-500/20 hover:text-amber-300"
+              aria-label="Dismiss research pre-fill banner"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+        ) : null}
+
         <PromptTemplates activePreset={activePreset} onSelect={onPresetSelect} />
 
         <div className="space-y-2">

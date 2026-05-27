@@ -28,7 +28,7 @@ export default function RootLoading() {
             </h1>
 
             <p className="mt-2 font-mono text-xs tracking-[0.2em] text-neon-600 uppercase dark:text-neon-400/90">
-              // ESTABLISHING CONNECTION
+              {'// ESTABLISHING CONNECTION'}
             </p>
 
             <div className="mx-auto mt-8 h-1 max-w-xs overflow-hidden rounded-full bg-zinc-900/70 ring-1 ring-neon-500/10">

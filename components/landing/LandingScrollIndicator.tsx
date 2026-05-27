@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { cn } from '@/lib/utils';
 
 const SCROLL_FADE_THRESHOLD = 200;
@@ -13,30 +14,26 @@ function scrollToNextSection() {
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function subscribeScroll(callback: () => void): () => void {
+  window.addEventListener('scroll', callback, { passive: true });
+  return () => window.removeEventListener('scroll', callback);
+}
+
+function getVisibleSnapshot(): boolean {
+  return window.scrollY <= SCROLL_FADE_THRESHOLD;
+}
+
+function getVisibleServerSnapshot(): boolean {
+  return true;
+}
+
 export function LandingScrollIndicator() {
-  const [visible, setVisible] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mq.matches);
-
-    const onMotionChange = (event: MediaQueryListEvent) => {
-      setReducedMotion(event.matches);
-    };
-    mq.addEventListener('change', onMotionChange);
-
-    const onScroll = () => {
-      setVisible(window.scrollY <= SCROLL_FADE_THRESHOLD);
-    };
-
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      mq.removeEventListener('change', onMotionChange);
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, []);
+  const reducedMotion = usePrefersReducedMotion();
+  const visible = useSyncExternalStore(
+    subscribeScroll,
+    getVisibleSnapshot,
+    getVisibleServerSnapshot,
+  );
 
   if (reducedMotion) return null;
 

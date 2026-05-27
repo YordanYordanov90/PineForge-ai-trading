@@ -37,6 +37,7 @@ export async function listConversationsForUser(
       id: agentConversations.id,
       title: agentConversations.title,
       scriptId: agentConversations.scriptId,
+      type: agentConversations.type,
       createdAt: agentConversations.createdAt,
       updatedAt: agentConversations.updatedAt,
     })
@@ -64,7 +65,16 @@ export async function listRecentConversationsWithMessages(
 ): Promise<SavedConversation[]> {
   if (limit <= 0) return [];
   const rows = await db
-    .select()
+    .select({
+      id: agentConversations.id,
+      userId: agentConversations.userId,
+      title: agentConversations.title,
+      messages: agentConversations.messages,
+      scriptId: agentConversations.scriptId,
+      type: agentConversations.type,
+      createdAt: agentConversations.createdAt,
+      updatedAt: agentConversations.updatedAt,
+    })
     .from(agentConversations)
     .where(eq(agentConversations.userId, userId))
     .orderBy(desc(agentConversations.updatedAt))
@@ -83,7 +93,16 @@ export async function getConversationForUser(
   conversationId: number,
 ): Promise<SavedConversation | null> {
   const [row] = await db
-    .select()
+    .select({
+      id: agentConversations.id,
+      userId: agentConversations.userId,
+      title: agentConversations.title,
+      messages: agentConversations.messages,
+      scriptId: agentConversations.scriptId,
+      type: agentConversations.type,
+      createdAt: agentConversations.createdAt,
+      updatedAt: agentConversations.updatedAt,
+    })
     .from(agentConversations)
     .where(
       and(
@@ -116,6 +135,13 @@ async function scriptIsOwnedByUser(
 }
 
 /**
+ * Public export of the ownership check (spec 61.2).
+ * Used by the PATCH route when a client attempts to attach or change
+ * the `scriptId` on a research conversation.
+ */
+export const verifyScriptOwnership = scriptIsOwnedByUser;
+
+/**
  * Outcome of a {@link createConversation} call. Owner-not-found and
  * foreign-script attempts are surfaced as discriminated values so the
  * HTTP layer can map them to 403 without leaking row existence.
@@ -136,6 +162,7 @@ export type CreateConversationResult =
 export async function createConversation(
   userId: number,
   scriptId: number | null,
+  type: 'general' | 'research' = 'general',
 ): Promise<CreateConversationResult> {
   if (scriptId != null) {
     const owned = await scriptIsOwnedByUser(userId, scriptId);
@@ -173,6 +200,7 @@ export async function createConversation(
     .values({
       userId,
       scriptId: scriptId ?? null,
+      type,
       messages: [],
     })
     .returning();
@@ -201,6 +229,38 @@ export async function updateConversationTitle(
   const [updated] = await db
     .update(agentConversations)
     .set({ title, updatedAt: new Date() })
+    .where(
+      and(
+        eq(agentConversations.id, conversationId),
+        eq(agentConversations.userId, userId),
+      ),
+    )
+    .returning();
+
+  return updated ? rowToAgentConversation(updated) : null;
+}
+
+/**
+ * Updates (or clears) the `script_id` on a research conversation (spec 61.2).
+ * Owner-scoped. When `scriptId` is a positive number, ownership is verified
+ * first (reusing the same check as create). Passing `null` detaches.
+ * Always bumps `updated_at` so the change surfaces in the sidebar list.
+ */
+export async function updateConversationScriptId(
+  userId: number,
+  conversationId: number,
+  scriptId: number | null,
+): Promise<SavedConversation | null> {
+  if (scriptId != null) {
+    const owned = await scriptIsOwnedByUser(userId, scriptId);
+    if (!owned) {
+      return null; // caller (route) maps this to 403
+    }
+  }
+
+  const [updated] = await db
+    .update(agentConversations)
+    .set({ scriptId, updatedAt: new Date() })
     .where(
       and(
         eq(agentConversations.id, conversationId),

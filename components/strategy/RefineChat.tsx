@@ -30,17 +30,27 @@ export function RefineChat({
   prefillNonce = 0,
 }: RefineChatProps) {
   const [instruction, setInstruction] = useState('');
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  const [prevPrefillNonce, setPrevPrefillNonce] = useState(prefillNonce);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // React-docs pattern: derive state from prop changes during render
+  // instead of `setState` inside `useEffect`.
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setInstruction('');
-  }, [resetKey]);
+  }
+
+  if (prevPrefillNonce !== prefillNonce) {
+    setPrevPrefillNonce(prefillNonce);
+    if (prefillNonce && prefillInstruction.trim()) {
+      setInstruction(prefillInstruction.trim().slice(0, MAX_INSTRUCTION));
+    }
+  }
 
   useEffect(() => {
     if (!prefillNonce || !prefillInstruction.trim()) return;
-    const trimmed = prefillInstruction.trim().slice(0, MAX_INSTRUCTION);
-    setInstruction(trimmed);
-    window.setTimeout(() => {
+    const handle = window.setTimeout(() => {
       const el = document.getElementById('refine-instruction');
       if (el instanceof HTMLTextAreaElement) {
         el.focus();
@@ -49,6 +59,7 @@ export function RefineChat({
       }
       containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 0);
+    return () => window.clearTimeout(handle);
   }, [prefillNonce, prefillInstruction]);
 
   const len = instruction.length;

@@ -10,6 +10,8 @@ import {
 } from 'react';
 import {
   Check,
+  FlaskConical,
+  MessageSquare,
   MessageSquarePlus,
   MoreHorizontal,
   Pencil,
@@ -50,6 +52,7 @@ type ForgeConversationSidebarProps = {
   isCreating: boolean;
   onSelectConversation: (id: number) => void;
   onCreateConversation: () => void;
+  onCreateResearchConversation?: () => void;
   onRenameConversation: (id: number, title: string) => Promise<boolean>;
   onDeleteConversation: (id: number) => Promise<boolean>;
 };
@@ -60,6 +63,7 @@ export function ForgeConversationSidebar({
   isCreating,
   onSelectConversation,
   onCreateConversation,
+  onCreateResearchConversation,
   onRenameConversation,
   onDeleteConversation,
 }: ForgeConversationSidebarProps) {
@@ -113,19 +117,31 @@ export function ForgeConversationSidebar({
         <p className="px-1 font-mono text-[10px] uppercase tracking-[0.25em] text-neon-600/80 dark:text-neon-400/70">
           ~/conversations
         </p>
-        <Button
-          type="button"
-          onClick={onCreateConversation}
-          disabled={isCreating}
-          className="w-full justify-start gap-2 rounded-sm bg-neon-500/90 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-neon-400 disabled:opacity-50"
-        >
-          <MessageSquarePlus className="size-4" aria-hidden />
-          {isCreating ? 'Starting…' : 'New chat'}
-        </Button>
+        <div className="flex flex-col gap-1.5">
+          <Button
+            type="button"
+            onClick={onCreateConversation}
+            disabled={isCreating}
+            className="w-full justify-start gap-2 rounded-sm bg-neon-500/90 font-mono text-xs uppercase tracking-wider text-zinc-950 hover:bg-neon-400 disabled:opacity-50"
+          >
+            <MessageSquarePlus className="size-4" aria-hidden />
+            {isCreating ? 'Starting…' : 'New chat'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onCreateResearchConversation?.()}
+            disabled={isCreating || !onCreateResearchConversation}
+            className="w-full justify-start gap-2 rounded-sm border-amber-500/40 bg-amber-500/5 font-mono text-[10px] uppercase tracking-[0.2em] text-amber-600 hover:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30"
+          >
+            <FlaskConical className="size-4" aria-hidden />
+            {isCreating ? 'Starting…' : 'New Research'}
+          </Button>
+        </div>
 
         {conversations.length === 0 ? (
           <p className="pf-muted px-2 py-6 text-center font-mono text-xs leading-relaxed">
-            // no sessions yet
+            {'// no sessions yet'}
           </p>
         ) : (
           <div className="flex flex-col gap-4 overflow-y-auto pr-1">
@@ -162,6 +178,7 @@ export function ForgeConversationSidebar({
                             <ConversationButton
                               title={title}
                               relative={formatRelativeTime(c.updatedAt)}
+                              type={c.type}
                               isActive={isActive}
                               onClick={() => onSelectConversation(c.id)}
                             />
@@ -222,6 +239,7 @@ export function ForgeConversationSidebar({
 type ConversationButtonProps = {
   title: string;
   relative: string;
+  type: 'general' | 'research';
   isActive: boolean;
   onClick: () => void;
 };
@@ -229,9 +247,13 @@ type ConversationButtonProps = {
 function ConversationButton({
   title,
   relative,
+  type,
   isActive,
   onClick,
 }: ConversationButtonProps) {
+  const isResearch = type === 'research';
+  const Icon = isResearch ? FlaskConical : MessageSquare;
+
   return (
     <button
       type="button"
@@ -240,12 +262,15 @@ function ConversationButton({
       className="flex w-full min-w-0 flex-col items-start gap-0.5 pr-8 text-left"
     >
       <span className="flex w-full min-w-0 items-center gap-1.5">
-        <span
-          className="shrink-0 font-mono text-neon-600/70 dark:text-neon-400/60"
+        <Icon
+          className={cn(
+            'size-3.5 shrink-0',
+            isResearch
+              ? 'text-amber-500 dark:text-amber-400'
+              : 'text-neon-600/70 dark:text-neon-400/60',
+          )}
           aria-hidden
-        >
-          ├─
-        </span>
+        />
         <span
           className={cn(
             'block min-w-0 flex-1 truncate text-sm font-medium',
@@ -256,6 +281,11 @@ function ConversationButton({
         >
           {title}
         </span>
+        {isResearch ? (
+          <span className="ml-1 shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 font-mono text-[8px] uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">
+            RESEARCH
+          </span>
+        ) : null}
       </span>
       <span className="pf-muted block pl-5 font-mono text-[10px] tabular-nums uppercase tracking-wide">
         {relative}

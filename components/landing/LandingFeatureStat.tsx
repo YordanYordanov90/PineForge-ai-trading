@@ -6,7 +6,7 @@ export function LandingFeatureStat() {
     <RevealOnScroll className="mb-20 sm:mb-32 lg:mb-40">
       <section
         aria-label="Average generation time"
-        className="relative isolate mx-auto max-w-5xl overflow-x-clip px-2 sm:px-6"
+        className="relative isolate mx-auto max-w-5xl overflow-hidden px-2 sm:px-6"
       >
         <div
           className="pointer-events-none absolute -left-12 top-1/2 -z-10 size-72 -translate-y-1/2 rounded-full bg-neon-500/15 blur-3xl dark:bg-neon-500/10"

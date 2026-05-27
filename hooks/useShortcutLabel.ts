@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import {
   SSR_MOD_KEY_LABEL,
   formatShortcut,
@@ -8,15 +8,25 @@ import {
   type ShortcutKey,
 } from '@/lib/ui/shortcut-label';
 
+function subscribe(): () => void {
+  return () => {};
+}
+
+function getModKeySnapshot(): string {
+  return getModKeyLabel();
+}
+
+function getModKeyServerSnapshot(): string {
+  return SSR_MOD_KEY_LABEL;
+}
+
 /** Hydration-safe modifier label — SSR default, then platform-specific after mount. */
 export function useModKeyLabel(): string {
-  const [label, setLabel] = useState(SSR_MOD_KEY_LABEL);
-
-  useEffect(() => {
-    setLabel(getModKeyLabel());
-  }, []);
-
-  return label;
+  return useSyncExternalStore(
+    subscribe,
+    getModKeySnapshot,
+    getModKeyServerSnapshot,
+  );
 }
 
 /** Hydration-safe shortcut chord for inline hints and tooltips. */

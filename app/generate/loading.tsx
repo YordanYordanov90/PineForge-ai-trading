@@ -46,7 +46,7 @@ function InputsCardSkeleton() {
   return (
     <div className="pf-card terminal-scanlines rounded-xl border p-4 sm:p-5">
       <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-        // GENERATOR :: SYNCING
+        {'// GENERATOR :: SYNCING'}
       </p>
       <div className="mt-4 space-y-1">
         <Skeleton className="h-6 w-24 rounded-md" />
@@ -89,7 +89,7 @@ function OutputCardSkeleton() {
   return (
     <div className="pf-card terminal-scanlines rounded-xl border p-4 sm:p-5">
       <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-        // OUTPUT :: STANDBY
+        {'// OUTPUT :: STANDBY'}
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">

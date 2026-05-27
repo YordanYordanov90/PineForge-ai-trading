@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GeneratorCommandMenu } from '@/components/strategy/GeneratorCommandMenu';
 import { StrategyInputsCard } from '@/components/strategy/StrategyInputsCard';
 import { StrategyOutputCard } from '@/components/strategy/StrategyOutputCard';
@@ -62,23 +62,50 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
 
     useImperativeHandle(ref, () => ({ loadSavedScript }), [loadSavedScript]);
 
-    // Template preload from ?templateId (spec 59)
-    const [loadedTemplate, setLoadedTemplate] = useState<StrategyTemplate | null>(null);
-    const [templateBannerDismissed, setTemplateBannerDismissed] = useState(false);
+    // Template preload from ?templateId (spec 59).
+    //
+    // Derive the resolved template from props instead of mirroring it
+    // in `useState` — that lets the side-effect-only useEffect below
+    // avoid `setState` calls in its body. Dismiss state is tracked by
+    // the *id* of the dismissed template so a new template id auto-
+    // reshows the banner.
+    type TemplateLoadResult =
+      | { kind: 'none' }
+      | { kind: 'missing' }
+      | { kind: 'denied'; template: StrategyTemplate }
+      | { kind: 'ok'; template: StrategyTemplate };
+
+    const templateLoadResult = useMemo<TemplateLoadResult>(() => {
+      if (!initialTemplateId) return { kind: 'none' };
+      const t = getTemplateById(initialTemplateId);
+      if (!t) return { kind: 'missing' };
+      if (t.isPro && plan !== 'pro') return { kind: 'denied', template: t };
+      return { kind: 'ok', template: t };
+    }, [initialTemplateId, plan]);
+
+    const loadedTemplate =
+      templateLoadResult.kind === 'ok' ? templateLoadResult.template : null;
+
+    const [dismissedTemplateId, setDismissedTemplateId] = useState<string | null>(null);
+    const showTemplateBanner =
+      Boolean(loadedTemplate) && dismissedTemplateId !== initialTemplateId;
+
     const handledTemplateRef = useRef<string | null>(null);
 
     useEffect(() => {
       if (!initialTemplateId || handledTemplateRef.current === initialTemplateId) return;
 
-      const t = getTemplateById(initialTemplateId);
-      if (!t) return;
-
-      // Guard: free users cannot load Pro templates (client enforcement; server on generate POST)
-      if (t.isPro && plan !== 'pro') {
-        toast.error('This is a Pro-only template. Upgrade to load it into the generator.');
-        handledTemplateRef.current = initialTemplateId; // don't keep retrying
+      if (templateLoadResult.kind === 'none' || templateLoadResult.kind === 'missing') {
         return;
       }
+
+      if (templateLoadResult.kind === 'denied') {
+        toast.error('This is a Pro-only template. Upgrade to load it into the generator.');
+        handledTemplateRef.current = initialTemplateId;
+        return;
+      }
+
+      const t = templateLoadResult.template;
 
       // Prefill inputs + script (no new AI call)
       inputs.setStrategy(t.prompt);
@@ -95,18 +122,12 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       session.setGeneratedScript(t.script);
       session.resetPanelKeys();
 
-      setLoadedTemplate(t);
-      setTemplateBannerDismissed(false);
       handledTemplateRef.current = initialTemplateId;
-
-      // Optional: friendly success hint
       toast.success(`Loaded template: ${t.title}`);
-    }, [initialTemplateId, plan, inputs, session]); // safe because setters are stable from the hooks
+    }, [templateLoadResult, initialTemplateId, inputs, session]);
 
     const dismissTemplateBanner = () => {
-      setTemplateBannerDismissed(true);
-      // Clear the loaded template state but keep the prefilled content (user can edit)
-      setLoadedTemplate(null);
+      if (initialTemplateId) setDismissedTemplateId(initialTemplateId);
     };
 
     const { compare } = session;
@@ -114,7 +135,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
     return (
       <>
         {/* Template preload banner (spec 59) */}
-        {loadedTemplate && !templateBannerDismissed && (
+        {showTemplateBanner && loadedTemplate && (
           <div className="mb-4 flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-sm">
             <span>
               Loaded from template: <span className="font-medium text-emerald-400">{loadedTemplate.title}</span>. Script and inputs are pre-filled — ready to refine or edit.

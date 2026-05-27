@@ -36,7 +36,8 @@ export function GeneratorFaultPanel({
         )}
       >
         <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-          // GENERATOR :: {isError ? 'FAULT' : 'NOT_FOUND'}
+          {'// GENERATOR :: '}
+          {isError ? 'FAULT' : 'NOT_FOUND'}
           <span
             className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-px bg-neon-500/90 align-baseline animate-blink-cursor"
             aria-hidden
