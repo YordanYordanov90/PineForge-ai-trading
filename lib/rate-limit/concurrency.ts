@@ -16,6 +16,15 @@ function lockKey(scope: StreamLockScope, userId: string): string {
   return `${LOCK_PREFIX}${scope}:${userId}`;
 }
 
+/** Extends an active lock TTL during long multi-step agent turns. */
+export async function refreshStreamLock(
+  userId: string,
+  scope: StreamLockScope = 'generate',
+): Promise<void> {
+  const key = lockKey(scope, userId);
+  await redis.expire(key, LOCK_TTL_SECONDS);
+}
+
 export async function acquireStreamLock(
   userId: string,
   scope: StreamLockScope = 'generate',

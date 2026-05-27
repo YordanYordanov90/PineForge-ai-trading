@@ -82,14 +82,46 @@ export function ForgeChat({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userAwayFromBottomRef = useRef(false);
+  const turnAbortRef = useRef<AbortController | null>(null);
 
   const conversationIdRef = useRef<number | null>(activeConversationId);
   conversationIdRef.current = activeConversationId;
+
+  const chatId =
+    activeConversationId != null
+      ? `forge-conv-${activeConversationId}`
+      : 'forge-draft';
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/api/forge',
+        fetch: async (input, init) => {
+          turnAbortRef.current?.abort();
+          const controller = new AbortController();
+          turnAbortRef.current = controller;
+
+          const upstream = init?.signal;
+          if (upstream) {
+            if (upstream.aborted) {
+              controller.abort(upstream.reason);
+            } else {
+              upstream.addEventListener(
+                'abort',
+                () => controller.abort(upstream.reason),
+                { once: true },
+              );
+            }
+          }
+
+          try {
+            return await fetch(input, { ...init, signal: controller.signal });
+          } finally {
+            if (turnAbortRef.current === controller) {
+              turnAbortRef.current = null;
+            }
+          }
+        },
         prepareSendMessagesRequest: ({ messages }) => {
           const conversationId = conversationIdRef.current;
           const latest = messages.at(-1);
@@ -107,39 +139,45 @@ export function ForgeChat({
 
   const { messages, sendMessage, status, stop, setMessages, error } =
     useChat({
+      id: chatId,
       transport,
       onFinish: () => {
         const id = conversationIdRef.current;
         if (id != null) onConversationActivity(id);
       },
       onError: (err) => {
-        const message =
+        const raw =
           err?.message?.trim() ||
           'Forge encountered an error. Please try again.';
+        const message = raw.includes('already in progress')
+          ? 'Forge is still finishing another reply. Wait a moment, or press Stop on the conversation that is still running.'
+          : raw;
         toast.error(message);
       },
     });
 
+  const abortActiveTurn = useCallback(() => {
+    turnAbortRef.current?.abort();
+    turnAbortRef.current = null;
+    void stop();
+  }, [stop]);
+
   const isStreaming = status === 'submitted' || status === 'streaming';
-  const isStreamingRef = useRef(false);
-  isStreamingRef.current = isStreaming;
 
   useEffect(() => {
     if (error) {
-      void stop();
+      abortActiveTurn();
     }
-  }, [error, stop]);
+  }, [error, abortActiveTurn]);
 
   useEffect(() => {
     if (hydrationToken === 0) return;
 
     let cancelled = false;
 
-    // Only abort an in-flight stream — unconditional `stop()` on every
-    // hydrate left the server Redis lock held when switching threads.
-    if (isStreamingRef.current) {
-      void stop();
-    }
+    // Abort any in-flight POST so the server releases the forge stream lock
+    // before the user can send in another thread.
+    abortActiveTurn();
 
     const targetId = conversationIdRef.current;
     if (targetId == null) {
@@ -212,9 +250,9 @@ export function ForgeChat({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrationToken]);
+  }, [hydrationToken, abortActiveTurn]);
 
-  useEffect(() => () => void stop(), [stop]);
+  useEffect(() => () => abortActiveTurn(), [abortActiveTurn]);
 
   const localMessageCount = Math.max(
     persistedCount,
@@ -461,7 +499,7 @@ export function ForgeChat({
 
           <ForgeInput
             onSubmit={(text) => void handleSubmit(text)}
-            onStop={() => void stop()}
+            onStop={abortActiveTurn}
             isStreaming={isStreaming}
             disabled={inputDisabled}
             reachedMessageCap={reachedCap}
