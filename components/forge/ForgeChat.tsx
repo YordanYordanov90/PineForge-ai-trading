@@ -87,11 +87,6 @@ export function ForgeChat({
   const conversationIdRef = useRef<number | null>(activeConversationId);
   conversationIdRef.current = activeConversationId;
 
-  const chatId =
-    activeConversationId != null
-      ? `forge-conv-${activeConversationId}`
-      : 'forge-draft';
-
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -139,7 +134,6 @@ export function ForgeChat({
 
   const { messages, sendMessage, status, stop, setMessages, error } =
     useChat({
-      id: chatId,
       transport,
       onFinish: () => {
         const id = conversationIdRef.current;

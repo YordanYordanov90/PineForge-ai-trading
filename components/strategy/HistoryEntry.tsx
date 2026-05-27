@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { HistoryTagEditor } from '@/components/strategy/HistoryTagEditor';
+import { StrategyFingerprint } from '@/components/strategy/StrategyFingerprint';
 import type { useHistoryEntryEditing } from '@/hooks/strategy/useHistoryEntryEditing';
 import type { SavedCollection, SavedScript } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -80,7 +81,8 @@ export function HistoryEntry({
           'border border-amber-500/25 bg-amber-500/[0.06] dark:border-amber-400/20',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-2.5">
+        <StrategyFingerprint entry={entry} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           {rename.editingId === entry.id ? (
             <Input
