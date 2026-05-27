@@ -133,15 +133,16 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html {
+  html,
+  body {
     @apply min-h-full bg-background font-sans text-foreground;
-    overflow-x: clip;
-    max-width: 100vw;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
   body {
-    @apply min-h-full bg-background text-foreground antialiased;
-    overflow-x: clip;
-    max-width: 100%;
+    @apply text-foreground antialiased;
+    position: relative;
+    width: 100%;
   }
 
   /* Clerk UserButton menu — dark shell */

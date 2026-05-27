@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -201,16 +201,20 @@ export function StrategyOutputCard({
     useState<AlertTemplatesResult | null>(null);
   const [backtestExportResult, setBacktestExportResult] =
     useState<BacktestSummaryResult | null>(null);
-  const wasGeneratingRef = useRef(false);
 
-  useEffect(() => {
+  // React-docs pattern for "adjusting state when a prop changes": detect
+  // reset-key changes during render via a tracked composite, no effect.
+  const resetKeysComposite = `${explainCancelKey}::${healthScoreResetKey}::${backtestSummaryResetKey}::${alertTemplatesResetKey}`;
+  const [prevResetKeys, setPrevResetKeys] = useState(resetKeysComposite);
+  if (prevResetKeys !== resetKeysComposite) {
+    setPrevResetKeys(resetKeysComposite);
     setBreakdownText(null);
     setHealthExportResult(null);
     setAlertExportResult(null);
     setBacktestExportResult(null);
     setExportPanelOpen(false);
     setMarkdownCopied(false);
-  }, [explainCancelKey, healthScoreResetKey, backtestSummaryResetKey, alertTemplatesResetKey]);
+  }
 
   const buildMarkdown = useCallback(() => {
     return buildExportMarkdownFromContext({
@@ -269,22 +273,28 @@ export function StrategyOutputCard({
     toast.success('Markdown file downloaded.');
   }, [buildMarkdown, exportTitle]);
 
-  useEffect(() => {
+  // Detect the `isGenerating: true → false` transition during render so
+  // we don't `setState` inside `useEffect`. The follow-up timer that
+  // turns the pulse off lives in an effect that depends on the pulse
+  // itself (cleanup-only setState happens inside `setTimeout`, which
+  // the lint rule allows).
+  const [prevIsGenerating, setPrevIsGenerating] = useState(isGenerating);
+  if (prevIsGenerating !== isGenerating) {
+    setPrevIsGenerating(isGenerating);
     const finishedGenerate =
-      wasGeneratingRef.current &&
+      prevIsGenerating &&
       !isGenerating &&
       !isRefining &&
       Boolean(generatedScript.trim()) &&
       !generationError;
+    if (finishedGenerate && !successPulse) setSuccessPulse(true);
+  }
 
-    wasGeneratingRef.current = isGenerating;
-
-    if (!finishedGenerate) return;
-
-    setSuccessPulse(true);
+  useEffect(() => {
+    if (!successPulse) return;
     const timer = window.setTimeout(() => setSuccessPulse(false), 720);
     return () => window.clearTimeout(timer);
-  }, [isGenerating, isRefining, generatedScript, generationError]);
+  }, [successPulse]);
 
   return (
     <Card

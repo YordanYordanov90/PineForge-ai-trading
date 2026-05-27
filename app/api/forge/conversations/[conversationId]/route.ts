@@ -1,7 +1,9 @@
 import {
   deleteConversation,
   getConversationForUser,
+  updateConversationScriptId,
   updateConversationTitle,
+  verifyScriptOwnership,
 } from '@/lib/db';
 import { updateConversationSchema } from '@/lib/api/validation';
 import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
@@ -68,11 +70,53 @@ export async function PATCH(req: Request, context: RouteContext) {
     return apiInvalidRequest();
   }
 
-  const updated = await updateConversationTitle(
-    route.userId,
-    route.conversationId,
-    parsed.data.title,
-  );
+  const { title, scriptId } = parsed.data;
+
+  // At least one field must be present for a meaningful update.
+  if (title === undefined && scriptId === undefined) {
+    return apiInvalidRequest();
+  }
+
+  let updated: Awaited<ReturnType<typeof updateConversationTitle>> = null;
+
+  // Handle script attach / change / detach first (spec 61.2).
+  if (scriptId !== undefined) {
+    // Extra belt-and-suspenders ownership check for the explicit null case
+    // (the DB helper already does the positive-number check).
+    if (scriptId != null) {
+      const owned = await verifyScriptOwnership(route.userId, scriptId);
+      if (!owned) {
+        return apiError('Script does not belong to this user', 403);
+      }
+    }
+
+    updated = await updateConversationScriptId(
+      route.userId,
+      route.conversationId,
+      scriptId,
+    );
+
+    if (!updated) {
+      // Either ownership race or DB failure; treat as 403 for foreign script
+      // to avoid leaking existence.
+      return apiError('Cannot attach this script', 403);
+    }
+  }
+
+  // Handle title rename (can be combined with scriptId change in one call).
+  if (title !== undefined) {
+    const titleUpdated = await updateConversationTitle(
+      route.userId,
+      route.conversationId,
+      title,
+    );
+    if (titleUpdated) {
+      updated = titleUpdated;
+    } else if (!updated) {
+      // Title-only failure path (no prior scriptId change succeeded).
+      return apiError('Failed to update conversation', 500);
+    }
+  }
 
   if (!updated) {
     return apiError('Failed to update conversation', 500);

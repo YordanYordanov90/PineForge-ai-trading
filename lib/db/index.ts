@@ -24,6 +24,8 @@ export {
   getConversationForUser,
   createConversation,
   updateConversationTitle,
+  updateConversationScriptId,
+  verifyScriptOwnership,
   deleteConversation,
   appendMessages,
   type CreateConversationResult,

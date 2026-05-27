@@ -76,6 +76,12 @@ export interface SavedConversation {
   title: string | null;
   messages: AgentMessage[];
   scriptId: number | null;
+  /**
+   * Conversation mode (spec 61). 'research' uses the research-optimised
+   * system prompt and exposes the "Generate from Research" handoff flow.
+   * All pre-61 conversations default to 'general'.
+   */
+  type: 'general' | 'research';
   createdAt: string;
   updatedAt: string;
 }

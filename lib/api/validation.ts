@@ -124,6 +124,10 @@ export const createConversationSchema = z.object({
     .nullable()
     .optional()
     .describe('Optional script ID to attach as initial context'),
+  type: z
+    .enum(['general', 'research'])
+    .optional()
+    .describe("Conversation mode: 'research' for the research→generate handoff flow (spec 61)"),
 });
 
 /**
@@ -132,7 +136,14 @@ export const createConversationSchema = z.object({
  * mutations happen exclusively via the streaming endpoint (spec 55).
  */
 export const updateConversationSchema = z.object({
-  title: z.string().trim().min(1).max(200),
+  title: z.string().trim().min(1).max(200).optional(),
+  scriptId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional()
+    .describe('Attach a script to a research conversation, change it, or pass null to detach (spec 61.2)'),
 });
 
 /**
@@ -293,6 +304,40 @@ export const alertTemplatesLlmResultSchema = z.object({
 export type AlertTemplateProvider = z.infer<typeof alertTemplateProviderEnum>;
 export type AlertTemplateItem = z.infer<typeof alertTemplateItemSchema>;
 export type AlertTemplatesResult = z.infer<typeof alertTemplatesResultSchema>;
+
+/**
+ * Request body for `POST /api/forge/research-summary` (spec 61).
+ * Only the conversationId is accepted from the client; the route loads
+ * the messages server-side (owner-scoped) to prevent prompt injection.
+ */
+export const researchSummaryRequestSchema = z.object({
+  conversationId: z.number().int().positive(),
+});
+
+/**
+ * Structured output schema for the research summarisation LLM call (spec 61).
+ * The summariser produces a payload suitable for pre-filling /generate and
+ * for storing as traceability notes on the eventual script.
+ */
+export const researchSummaryPayloadSchema = z.object({
+  description: z
+    .string()
+    .min(20)
+    .max(1200)
+    .describe('Concise strategy description ready for the generator textarea'),
+  market: z.string().min(1).max(80).nullable(),
+  timeframe: z.string().min(1).max(40).nullable(),
+  direction: z.enum(['Long', 'Short', 'Both']).nullable(),
+  indicators: z.array(z.string().min(1).max(40)).max(12),
+  researchNotes: z
+    .string()
+    .min(30)
+    .max(4000)
+    .describe('Synthesised research insights for script.metadata traceability'),
+});
+
+export type ResearchSummaryRequest = z.infer<typeof researchSummaryRequestSchema>;
+export type ResearchSummaryPayload = z.infer<typeof researchSummaryPayloadSchema>;
 
 export const alertTemplatesRequestSchema = z.object({
   prompt: z

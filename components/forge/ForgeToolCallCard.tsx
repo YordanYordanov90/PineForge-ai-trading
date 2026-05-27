@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -54,7 +54,6 @@ export function ForgeToolCallCard({
   const [expanded, setExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [justCompleted, setJustCompleted] = useState(false);
-  const wasLoadingRef = useRef(state === 'loading');
 
   const label = FORGE_TOOL_LABELS[toolName] ?? prettifyForgeToolName(toolName);
   const Icon = TOOL_ICONS[toolName] ?? Wrench;
@@ -63,29 +62,29 @@ export function ForgeToolCallCard({
   const isError = state === 'output-error';
   const canExpand = state === 'output-available' && output !== undefined;
 
-  useEffect(() => {
-    if (!isLoading) {
-      setElapsedSeconds(0);
-      return;
-    }
+  // React-docs pattern: detect transitions during render via tracked
+  // prev-value state, so we don't `setState` inside `useEffect`.
+  const [prevIsLoading, setPrevIsLoading] = useState(isLoading);
+  if (prevIsLoading !== isLoading) {
+    setPrevIsLoading(isLoading);
+    if (!isLoading && elapsedSeconds !== 0) setElapsedSeconds(0);
+    if (prevIsLoading && state === 'output-available') setJustCompleted(true);
+  }
 
+  useEffect(() => {
+    if (!isLoading) return;
     const startedAt = Date.now();
     const interval = window.setInterval(() => {
       setElapsedSeconds((Date.now() - startedAt) / 1000);
     }, 100);
-
     return () => window.clearInterval(interval);
   }, [isLoading]);
 
   useEffect(() => {
-    if (wasLoadingRef.current && state === 'output-available') {
-      setJustCompleted(true);
-      const timeout = window.setTimeout(() => setJustCompleted(false), 600);
-      return () => window.clearTimeout(timeout);
-    }
-    wasLoadingRef.current = isLoading;
-    return undefined;
-  }, [isLoading, state]);
+    if (!justCompleted) return;
+    const timeout = window.setTimeout(() => setJustCompleted(false), 600);
+    return () => window.clearTimeout(timeout);
+  }, [justCompleted]);
 
   return (
     <div

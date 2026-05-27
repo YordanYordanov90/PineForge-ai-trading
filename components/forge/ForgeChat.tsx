@@ -10,8 +10,10 @@ import {
   useState,
 } from 'react';
 import Link from 'next/link';
-import { Loader2, ScrollText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { FlaskConical, Loader2, ScrollText } from 'lucide-react';
 import { toast } from 'sonner';
+import type { ResearchSummaryPayload } from '@/lib/api/validation';
 import { Button } from '@/components/ui/button';
 import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
 import { agentMessagesToUIMessages } from '@/lib/agent/ui-messages';
@@ -21,6 +23,7 @@ import { ForgeEmptyState } from '@/components/forge/ForgeEmptyState';
 import { ForgeInput } from '@/components/forge/ForgeInput';
 import { ForgeMessageList } from '@/components/forge/ForgeMessageList';
 import { ForgeScrollToBottomFab } from '@/components/forge/ForgeScrollToBottomFab';
+import { ResearchScriptBanner } from '@/components/forge/ResearchScriptBanner';
 
 /**
  * Forge chat panel (spec 57 § ForgeChat).
@@ -37,8 +40,13 @@ type ForgeChatProps = {
   seedScript: SavedScript | null;
   onCreateConversation: (
     scriptId: number | null,
+    type?: 'general' | 'research',
   ) => Promise<SavedConversation | null>;
   onConversationActivity: (id: number) => void;
+  onUpdateScriptId?: (
+    scriptId: number | null,
+    scriptName?: string | null,
+  ) => Promise<boolean>;
   onScrollOffset?: (offset: number) => void;
 };
 
@@ -48,13 +56,28 @@ export function ForgeChat({
   seedScript,
   onCreateConversation,
   onConversationActivity,
+  onUpdateScriptId,
   onScrollOffset,
 }: ForgeChatProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (activeConversationId == null) {
+      setActiveConvType(null);
+      setActiveScriptId(null);
+      setActiveScriptName(null);
+    }
+  }, [activeConversationId]);
+
   const [hydratedMessages, setHydratedMessages] = useState<UIMessage[]>([]);
   const [hydrating, setHydrating] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   const [persistedCount, setPersistedCount] = useState(0);
   const [showScrollFab, setShowScrollFab] = useState(false);
+  const [activeConvType, setActiveConvType] = useState<'general' | 'research' | null>(null);
+  const [activeScriptId, setActiveScriptId] = useState<number | null>(null);
+  const [activeScriptName, setActiveScriptName] = useState<string | null>(null);
+  const [isGeneratingFromResearch, setIsGeneratingFromResearch] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -98,6 +121,8 @@ export function ForgeChat({
     });
 
   const isStreaming = status === 'submitted' || status === 'streaming';
+  const isStreamingRef = useRef(false);
+  isStreamingRef.current = isStreaming;
 
   useEffect(() => {
     if (error) {
@@ -110,7 +135,11 @@ export function ForgeChat({
 
     let cancelled = false;
 
-    void stop();
+    // Only abort an in-flight stream — unconditional `stop()` on every
+    // hydrate left the server Redis lock held when switching threads.
+    if (isStreamingRef.current) {
+      void stop();
+    }
 
     const targetId = conversationIdRef.current;
     if (targetId == null) {
@@ -118,6 +147,9 @@ export function ForgeChat({
       setMessages([]);
       setPersistedCount(0);
       setHydrationError(null);
+      setActiveConvType(null);
+      setActiveScriptId(null);
+      setActiveScriptName(null);
       return () => {
         cancelled = true;
       };
@@ -144,6 +176,9 @@ export function ForgeChat({
           setHydratedMessages([]);
           setMessages([]);
           setPersistedCount(0);
+          setActiveConvType(null);
+          setActiveScriptId(null);
+          setActiveScriptName(null);
           return;
         }
 
@@ -155,12 +190,18 @@ export function ForgeChat({
         setHydratedMessages(ui);
         setMessages(ui);
         setPersistedCount(conversation?.messages.length ?? 0);
+        setActiveConvType(conversation?.type ?? 'general');
+        setActiveScriptId(conversation?.scriptId ?? null);
+        setActiveScriptName(null);
       } catch {
         if (!cancelled) {
           setHydrationError('Network error — could not load conversation.');
           setHydratedMessages([]);
           setMessages([]);
           setPersistedCount(0);
+          setActiveConvType(null);
+          setActiveScriptId(null);
+          setActiveScriptName(null);
         }
       } finally {
         if (!cancelled) setHydrating(false);
@@ -181,6 +222,68 @@ export function ForgeChat({
   );
   const reachedCap = localMessageCount >= MAX_MESSAGES_PER_CONVERSATION;
 
+  const isResearchConv = activeConvType === 'research';
+  const canGenerateFromResearch =
+    isResearchConv &&
+    localMessageCount >= 2 &&
+    !isStreaming &&
+    !hydrating &&
+    !hydrationError;
+
+  const showResearchScriptBanner =
+    isResearchConv && !hydrating && !hydrationError;
+
+  const attachedScript = useMemo(
+    () =>
+      activeScriptId != null
+        ? { id: activeScriptId, name: activeScriptName }
+        : null,
+    [activeScriptId, activeScriptName],
+  );
+
+  const handleUpdateScript = useCallback(
+    async (scriptId: number | null, scriptName?: string | null) => {
+      if (!onUpdateScriptId) return false;
+      const ok = await onUpdateScriptId(scriptId, scriptName);
+      if (ok) {
+        setActiveScriptId(scriptId);
+        setActiveScriptName(scriptId == null ? null : (scriptName ?? null));
+      }
+      return ok;
+    },
+    [onUpdateScriptId],
+  );
+
+  // Resolve script title after hydration when only scriptId is known.
+  useEffect(() => {
+    if (activeScriptId == null) return;
+    if (activeScriptName != null) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/scripts');
+        const json: unknown = await res.json().catch(() => null);
+        if (cancelled || !res.ok) return;
+
+        const list =
+          (json as { data?: { scripts?: SavedScript[] } })?.data?.scripts ?? [];
+        const match = list.find(
+          (s) => Number.parseInt(s.id, 10) === activeScriptId,
+        );
+        if (match && !cancelled) {
+          setActiveScriptName(match.name ?? null);
+        }
+      } catch {
+        /* banner falls back to "Untitled strategy" */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeScriptId, activeScriptName]);
+
   const seedScriptDbId = useMemo(
     () => parseSavedScriptId(seedScript?.id),
     [seedScript?.id],
@@ -197,6 +300,50 @@ export function ForgeChat({
     },
     [onCreateConversation, seedScriptDbId, sendMessage],
   );
+
+  const handleGenerateFromResearch = useCallback(async () => {
+    if (!activeConversationId) return;
+    setIsGeneratingFromResearch(true);
+    try {
+      const res = await fetch('/api/forge/research-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: activeConversationId }),
+      });
+      const json: unknown = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        toast.error(
+          messageFromApiErrorJson(
+            json,
+            'Could not generate research summary.',
+            'Research handoff failed. Please try again.',
+          ),
+        );
+        return;
+      }
+
+      const summary = (json as { data?: { summary?: ResearchSummaryPayload } })?.data
+        ?.summary;
+      if (!summary || typeof summary.description !== 'string') {
+        toast.error('Received an invalid research summary from Forge.');
+        return;
+      }
+
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem(
+          'pineforge_research_handoff',
+          JSON.stringify(summary),
+        );
+      }
+
+      router.push('/generate');
+    } catch {
+      toast.error('Network error — could not reach Forge summariser.');
+    } finally {
+      setIsGeneratingFromResearch(false);
+    }
+  }, [activeConversationId, router]);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -258,10 +405,19 @@ export function ForgeChat({
                 {hydrationError}
               </div>
             ) : messages.length === 0 ? (
-              <ForgeEmptyState
-                disabled={isStreaming}
-                onSuggest={(prompt) => void handleSubmit(prompt)}
-              />
+              <>
+                {showResearchScriptBanner ? (
+                  <ResearchScriptBanner
+                    variant="empty"
+                    attachedScript={attachedScript}
+                    onUpdateScript={handleUpdateScript}
+                  />
+                ) : null}
+                <ForgeEmptyState
+                  disabled={isStreaming}
+                  onSuggest={(prompt) => void handleSubmit(prompt)}
+                />
+              </>
             ) : (
               <ForgeMessageList
                 messages={messages}
@@ -279,6 +435,30 @@ export function ForgeChat({
 
       <div className="border-t border-neon-500/15 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6 dark:border-neon-500/10 dark:bg-zinc-950/80">
         <div className="mx-auto w-full max-w-3xl">
+          {showResearchScriptBanner && messages.length > 0 ? (
+            <ResearchScriptBanner
+              variant="active"
+              attachedScript={attachedScript}
+              onUpdateScript={handleUpdateScript}
+            />
+          ) : null}
+          {canGenerateFromResearch ? (
+            <div className="mb-3 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => void handleGenerateFromResearch()}
+                disabled={isGeneratingFromResearch}
+                className="gap-2 rounded-sm border border-amber-500/40 bg-amber-500/10 font-mono text-xs uppercase tracking-widest text-amber-700 hover:bg-amber-500/15 disabled:opacity-60 dark:text-amber-400"
+                variant="ghost"
+              >
+                <FlaskConical className="size-4" aria-hidden />
+                {isGeneratingFromResearch
+                  ? 'Synthesising…'
+                  : 'Generate from Research'}
+              </Button>
+            </div>
+          ) : null}
+
           <ForgeInput
             onSubmit={(text) => void handleSubmit(text)}
             onStop={() => void stop()}

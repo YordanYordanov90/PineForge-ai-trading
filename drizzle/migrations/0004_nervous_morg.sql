@@ -1,0 +1,1 @@
+ALTER TABLE "agent_conversations" ADD COLUMN "type" varchar(20) DEFAULT 'general' NOT NULL;

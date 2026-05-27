@@ -89,8 +89,11 @@ export function ExplainScriptPanel({
   useEffect(() => {
     const trimmed = script.trim();
     if (!trimmed) {
-      setText('');
-      setPhase('idle');
+      // Empty script: the early-return in render shows the idle copy
+      // (regardless of `text`/`phase`), so we only need to release any
+      // in-flight stream here.
+      inFlightRef.current?.abort();
+      inFlightRef.current = null;
       return;
     }
 

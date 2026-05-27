@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { AgentUserProfile } from '@/lib/types/agent';
 import { FORGE_GUARDRAILS } from './guardrails';
+import { FORGE_RESEARCH_IDENTITY } from '@/lib/ai/prompts/forge-research';
 
 /**
  * Forge Agent system prompt builder (spec 55 § "System Prompt").
@@ -124,15 +125,25 @@ function scriptContextSection(ctx: ForgeScriptContext): string {
  * Composes the Forge system prompt for a single streaming turn.
  *
  * Pure & deterministic — no DB reads, no env access. Callers (the spec
- * 55 streaming endpoint) are responsible for loading the profile and
- * optional script context. Stable section order so the LLM caches the
- * prompt prefix consistently across turns.
+ * 55 streaming endpoint) are responsible for loading the profile,
+ * optional script context, and conversation type. Stable section order
+ * so the LLM caches the prompt prefix consistently across turns.
+ *
+ * When `conversationType === 'research'` the research-optimised identity
+ * (spec 61) is used instead of the default workflow identity. The full
+ * guardrail block is always appended last.
  */
 export function buildForgeSystemPrompt(
   profile: AgentUserProfile,
   scriptContext?: ForgeScriptContext,
+  conversationType: 'general' | 'research' = 'general',
 ): string {
-  const sections: string[] = [FORGE_IDENTITY];
+  const identity =
+    conversationType === 'research'
+      ? FORGE_RESEARCH_IDENTITY
+      : FORGE_IDENTITY;
+
+  const sections: string[] = [identity];
 
   const profileText = profileSection(profile);
   if (profileText) sections.push(profileText);

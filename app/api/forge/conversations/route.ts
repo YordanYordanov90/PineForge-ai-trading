@@ -57,9 +57,11 @@ export async function POST(req: Request) {
     return apiInvalidRequest();
   }
 
+  const convoType = parsed.data.type ?? 'general';
   const result = await createConversation(
     userId,
     parsed.data.scriptId ?? null,
+    convoType,
   );
 
   if (!result.ok) {

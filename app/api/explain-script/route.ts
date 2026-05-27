@@ -9,7 +9,10 @@ import {
   EXPLAIN_CHECKLIST_SYSTEM,
 } from '@/lib/ai/prompts/explain-script';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
-import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
+import {
+  acquireStreamLock,
+  bindStreamLockRelease,
+} from '@/lib/rate-limit/concurrency';
 
 export async function POST(req: Request) {
   const guard = await protectAiRoute(req);
@@ -22,14 +25,16 @@ export async function POST(req: Request) {
     return apiInvalidRequest();
   }
 
-  const lock = await acquireStreamLock(guard.ctx.userId);
+  const lock = await acquireStreamLock(guard.ctx.userId, 'generate');
   if (!lock.acquired) {
     return jsonApiError(409, 'A generation is already in progress.');
   }
 
+  const releaseLock = bindStreamLockRelease(lock, guard.ctx.req.signal);
+
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) {
-    await lock.release();
+    await releaseLock();
     return missingKey;
   }
 
@@ -47,13 +52,16 @@ export async function POST(req: Request) {
       maxOutputTokens: EXPLAIN_MAX_OUTPUT_TOKENS,
       abortSignal: guard.ctx.req.signal,
       onFinish: () => {
-        void lock.release();
+        void releaseLock();
+      },
+      onError: () => {
+        void releaseLock();
       },
     });
 
     return result.toTextStreamResponse();
   } catch {
-    await lock.release();
+    await releaseLock();
     return apiError('Failed to explain script. Please try again.', 500);
   }
 }

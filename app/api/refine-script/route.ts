@@ -7,7 +7,10 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { DEFAULT_MODEL, REFINE_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-system';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
-import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
+import {
+  acquireStreamLock,
+  bindStreamLockRelease,
+} from '@/lib/rate-limit/concurrency';
 
 const schema = refineScriptSchema.extend({
   model: refineScriptSchema.shape.model.default(DEFAULT_MODEL),
@@ -29,14 +32,16 @@ export async function POST(req: Request) {
     return jsonApiError(403, entitlement.message);
   }
 
-  const lock = await acquireStreamLock(guard.ctx.userId);
+  const lock = await acquireStreamLock(guard.ctx.userId, 'generate');
   if (!lock.acquired) {
     return jsonApiError(409, 'A generation is already in progress.');
   }
 
+  const releaseLock = bindStreamLockRelease(lock, guard.ctx.req.signal);
+
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) {
-    await lock.release();
+    await releaseLock();
     return missingKey;
   }
 
@@ -59,13 +64,16 @@ ${instruction}`;
       maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS,
       abortSignal: guard.ctx.req.signal,
       onFinish: () => {
-        void lock.release();
+        void releaseLock();
+      },
+      onError: () => {
+        void releaseLock();
       },
     });
 
     return result.toTextStreamResponse();
   } catch {
-    await lock.release();
+    await releaseLock();
     return apiError('Failed to refine script. Please try again.', 500);
   }
 }

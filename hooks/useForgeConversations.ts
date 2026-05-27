@@ -30,9 +30,12 @@ type ConversationsState = {
    */
   createConversation: (
     scriptId: number | null,
+    type?: 'general' | 'research',
   ) => Promise<SavedConversation | null>;
   renameConversation: (id: number, title: string) => Promise<boolean>;
   deleteConversation: (id: number) => Promise<boolean>;
+  /** Update (attach/change/detach) the scriptId on a research conversation (spec 61.2). */
+  updateScriptId: (id: number, scriptId: number | null) => Promise<boolean>;
   /** Bump `updatedAt` and (optionally) `title` after the chat persists a turn. */
   touchConversation: (id: number, patch?: { title?: string | null }) => void;
 };
@@ -45,13 +48,16 @@ export function useForgeConversations(
   const [isCreating, setIsCreating] = useState(false);
 
   const createConversation = useCallback(
-    async (scriptId: number | null): Promise<SavedConversation | null> => {
+    async (
+      scriptId: number | null,
+      type: 'general' | 'research' = 'general',
+    ): Promise<SavedConversation | null> => {
       setIsCreating(true);
       try {
         const res = await fetch('/api/forge/conversations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scriptId }),
+          body: JSON.stringify({ scriptId, type }),
         });
         const json: unknown = await res.json().catch(() => null);
 
@@ -161,6 +167,50 @@ export function useForgeConversations(
     [conversations],
   );
 
+  const updateScriptId = useCallback(
+    async (id: number, scriptId: number | null): Promise<boolean> => {
+      const prev = conversations;
+      // Optimistic update of the scriptId on the list item (sidebar + any consumers)
+      setConversations((curr) =>
+        curr.map((c) => (c.id === id ? { ...c, scriptId } : c)),
+      );
+
+      try {
+        const res = await fetch(`/api/forge/conversations/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scriptId }),
+        });
+        const json: unknown = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          setConversations(prev);
+          toast.error(
+            messageFromApiErrorJson(
+              json,
+              'Could not update attached script.',
+              'Could not attach or detach the script.',
+            ),
+          );
+          return false;
+        }
+
+        const updated = readConversationPayload(json);
+        if (updated) {
+          setConversations((curr) =>
+            curr.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+          );
+        }
+        return true;
+      } catch {
+        setConversations(prev);
+        toast.error('Network error — script update failed.');
+        return false;
+      }
+    },
+    [conversations],
+  );
+
   const touchConversation = useCallback(
     (id: number, patch?: { title?: string | null }) => {
       const now = new Date().toISOString();
@@ -187,6 +237,7 @@ export function useForgeConversations(
     createConversation,
     renameConversation,
     deleteConversation,
+    updateScriptId,
     touchConversation,
   };
 }

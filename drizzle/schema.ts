@@ -138,6 +138,14 @@ export const agentConversations = pgTable(
      * initial context.
      */
     scriptId: integer('script_id').references(() => scripts.id),
+    /**
+     * Conversation mode (spec 61 — Research → Generate Pipeline).
+     * 'research' threads use a specialised system prompt focused on
+     * indicator/strategy research and produce a structured handoff to
+     * /generate. Defaults to 'general' (full backward compat with all
+     * Phase 6 conversations).
+     */
+    type: varchar('type', { length: 20 }).notNull().default('general'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },

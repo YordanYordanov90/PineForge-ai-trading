@@ -9,6 +9,17 @@ type AgentConversationRow = typeof agentConversations.$inferSelect;
 type AgentMemoryRow = typeof agentMemory.$inferSelect;
 
 /**
+ * Narrows the raw `type` varchar to the spec 61 union. Any unexpected
+ * value (legacy data, manual SQL, future modes that aren't wired up
+ * client-side yet) falls back to `'general'` so the UI never breaks.
+ */
+function narrowConversationType(
+  raw: string | null | undefined,
+): 'general' | 'research' {
+  return raw === 'research' ? 'research' : 'general';
+}
+
+/**
  * Maps an `agent_conversations` DB row to the client-facing
  * {@link SavedConversation}. Spec 52 owns the shape; spec 54's CRUD
  * routes (list / get / save / delete) all funnel through this mapper
@@ -26,6 +37,7 @@ export function rowToAgentConversation(
     title: row.title ?? null,
     messages: (row.messages ?? []) as AgentMessage[],
     scriptId: row.scriptId ?? null,
+    type: narrowConversationType(row.type),
     createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
     updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
   };
@@ -43,6 +55,7 @@ export type AgentConversationSummaryRow = {
   id: number;
   title: string | null;
   scriptId: number | null;
+  type: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -61,6 +74,7 @@ export function rowToAgentConversationSummary(
     title: row.title ?? null,
     messages: [],
     scriptId: row.scriptId ?? null,
+    type: narrowConversationType(row.type),
     createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
     updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
   };

@@ -59,18 +59,33 @@ export function ForgeExperience({
   const { prefix, accent } = brandLogoParts();
 
   const handleCreateConversation = useCallback(
-    async (scriptId: number | null) => {
-      const created = await conversations.createConversation(scriptId);
+    async (scriptId: number | null, type: 'general' | 'research' = 'general') => {
+      const created = await conversations.createConversation(scriptId, type);
       if (created) {
         setActiveId(created.id);
         setSidebarOpen(false);
-        // No `setHydrationToken` bump — fresh conversations start
-        // empty and the chat panel already owns the in-flight first
-        // message. Hydrating here would wipe it.
+        // No `setHydrationToken` bump — this code path also runs when
+        // `ForgeChat.handleSubmit` creates the conversation on the
+        // first user message, and hydrating there would wipe the
+        // in-flight user text. Sidebar-initiated creates use
+        // `handleCreateAndOpen` below which bumps hydration explicitly.
       }
       return created;
     },
     [conversations],
+  );
+
+  const handleCreateAndOpen = useCallback(
+    async (type: 'general' | 'research' = 'general') => {
+      const created = await handleCreateConversation(null, type);
+      if (created) {
+        // Force a fresh hydrate so the chat panel clears any previous
+        // conversation's messages and renders the empty state for the
+        // newly opened thread without requiring a sidebar click.
+        setHydrationToken((curr) => curr + 1);
+      }
+    },
+    [handleCreateConversation],
   );
 
   const handleSelect = useCallback((id: number) => {
@@ -123,6 +138,19 @@ export function ForgeExperience({
   // message so we don't burn a conversation slot on accidental visits.
   const showSeedBanner = activeId == null && seedScript != null;
 
+  const handleCreateResearchConversation = useCallback(
+    () => void handleCreateAndOpen('research'),
+    [handleCreateAndOpen],
+  );
+
+  const handleUpdateScriptId = useCallback(
+    async (scriptId: number | null) => {
+      if (!activeId) return false;
+      return conversations.updateScriptId(activeId, scriptId);
+    },
+    [conversations, activeId],
+  );
+
   const sidebar = useMemo(
     () => (
       <ForgeConversationSidebar
@@ -130,7 +158,8 @@ export function ForgeExperience({
         activeConversationId={activeId}
         isCreating={conversations.isCreating}
         onSelectConversation={handleSelect}
-        onCreateConversation={() => void handleCreateConversation(null)}
+        onCreateConversation={() => void handleCreateAndOpen('general')}
+        onCreateResearchConversation={handleCreateResearchConversation}
         onRenameConversation={conversations.renameConversation}
         onDeleteConversation={handleDelete}
       />
@@ -141,7 +170,8 @@ export function ForgeExperience({
       conversations.renameConversation,
       activeId,
       handleSelect,
-      handleCreateConversation,
+      handleCreateAndOpen,
+      handleCreateResearchConversation,
       handleDelete,
     ],
   );
@@ -266,6 +296,7 @@ export function ForgeExperience({
               seedScript={showSeedBanner ? seedScript : null}
               onCreateConversation={handleCreateConversation}
               onConversationActivity={handleConversationActivity}
+              onUpdateScriptId={handleUpdateScriptId}
               onScrollOffset={handleScrollOffset}
             />
           </main>

@@ -7,7 +7,10 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { DEFAULT_MODEL } from '@/lib/config/constants';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-system';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
-import { acquireStreamLock } from '@/lib/rate-limit/concurrency';
+import {
+  acquireStreamLock,
+  bindStreamLockRelease,
+} from '@/lib/rate-limit/concurrency';
 import { getTemplateById } from '@/lib/templates/templates';
 // Spec 60: client applies parseAssumptionsBlock on stream completion (useScriptGeneration).
 
@@ -41,14 +44,16 @@ export async function POST(req: Request) {
     }
   }
 
-  const lock = await acquireStreamLock(guard.ctx.userId);
+  const lock = await acquireStreamLock(guard.ctx.userId, 'generate');
   if (!lock.acquired) {
     return jsonApiError(409, 'A generation is already in progress.');
   }
 
+  const releaseLock = bindStreamLockRelease(lock, guard.ctx.req.signal);
+
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) {
-    await lock.release();
+    await releaseLock();
     return missingKey;
   }
 
@@ -83,13 +88,16 @@ export async function POST(req: Request) {
       maxOutputTokens: 900,
       abortSignal: guard.ctx.req.signal,
       onFinish: () => {
-        void lock.release();
+        void releaseLock();
+      },
+      onError: () => {
+        void releaseLock();
       },
     });
 
     return result.toTextStreamResponse();
   } catch {
-    await lock.release();
+    await releaseLock();
     return apiError('Failed to generate script. Please try again.', 500);
   }
 }
