@@ -1,11 +1,7 @@
 'use client';
 
-import { useAuth, UserButton } from '@clerk/nextjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
-import { ModeToggle } from '@/components/mode-toggle';
-import { useClerkAppearance } from '@/hooks/useClerkAppearance';
+import { useAuth } from '@clerk/nextjs';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
@@ -30,7 +26,6 @@ export function GenerateExperience({
   const formRef = useRef<StrategyFormHandle>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { isSignedIn, isLoaded } = useAuth();
-  const clerkAppearance = useClerkAppearance();
 
   useEffect(() => {
     if (!templateLockedNotice) return;
@@ -84,37 +79,11 @@ export function GenerateExperience({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3 sm:pt-1">
-            {isLoaded && isSignedIn ? (
-              <Link
-                href="/forge"
-                className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neon-500/30 bg-neon-500/[0.06] px-3 py-1.5 text-xs font-medium text-neon-700 backdrop-blur-sm transition-all hover:border-neon-500/50 hover:bg-neon-500/15 dark:text-neon-300"
-                aria-label="Open Forge agent"
-              >
-                <Sparkles className="size-3.5" aria-hidden />
-                Forge
-                <span
-                  aria-hidden
-                  className="ml-1 rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-neon-700 dark:text-neon-300"
-                >
-                  New
-                </span>
-              </Link>
-            ) : null}
-            <Link
-              href="/templates"
-              className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
-            >
-              Templates
-            </Link>
-            <ModeToggle />
             <ScriptHistory
               onLoad={handleLoad}
               open={historyOpen}
               onOpenChange={setHistoryOpen}
             />
-            {isLoaded && isSignedIn ? (
-              <UserButton appearance={clerkAppearance} />
-            ) : null}
           </div>
         </div>
       </header>

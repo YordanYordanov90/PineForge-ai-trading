@@ -421,3 +421,50 @@ export type BacktestSummaryRequest = z.infer<typeof backtestSummaryRequestSchema
 export type BacktestSummarySections = z.infer<typeof backtestSummarySectionsSchema>;
 export type BacktestSummaryResult = z.infer<typeof backtestSummaryResultSchema>;
 export type BacktestSummaryLlmResult = z.infer<typeof backtestSummaryLlmResultSchema>;
+
+/**
+ * Comparison Reports (spec 63).
+ * Request accepts exactly 2 or 3 owned script IDs.
+ * LLM receives a *loose* schema (comparisonReportLlmSchema) so it can be
+ * slightly verbose; the route then re-validates with the stricter
+ * comparisonReportSchema (or the same with tighter max lengths) before DB write.
+ */
+export const comparisonReportRequestSchema = z.object({
+  scriptIds: z
+    .array(z.number().int().positive())
+    .min(2, 'Select at least 2 scripts')
+    .max(3, 'Compare at most 3 scripts'),
+});
+
+export const comparisonReportLlmSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  summary: z.string().trim().min(1).max(600),
+  entryLogicComparison: z.string().trim().min(1).max(1200),
+  riskProfileComparison: z.string().trim().min(1).max(1200),
+  marketConditionFit: z
+    .array(
+      z.object({
+        scriptId: z.number().int().positive(),
+        scriptTitle: z.string().trim().min(1).max(200),
+        bestFor: z.string().trim().min(1).max(300),
+        avoidIn: z.string().trim().min(1).max(300),
+      }),
+    )
+    .min(2)
+    .max(3),
+  coverageMap: z.object({
+    trendy: z.number().int().positive().nullable(),
+    ranging: z.number().int().positive().nullable(),
+    breakout: z.number().int().positive().nullable(),
+  }),
+  overlapAssessment: z.enum(['high', 'medium', 'low']),
+  overlapNotes: z.string().trim().min(1).max(800),
+  recommendation: z.string().trim().min(1).max(1200),
+});
+
+/** Strict schema used for final validation before persistence (same shape today). */
+export const comparisonReportSchema = comparisonReportLlmSchema;
+
+export type ComparisonReportRequest = z.infer<typeof comparisonReportRequestSchema>;
+export type ComparisonReportLlm = z.infer<typeof comparisonReportLlmSchema>;
+export type ComparisonReport = z.infer<typeof comparisonReportSchema>;

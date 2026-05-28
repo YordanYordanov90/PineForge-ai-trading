@@ -45,3 +45,10 @@ export {
   listCollectionsForUser,
   findUserCollectionByNameInsensitive,
 } from './list-user-collections';
+export {
+  getScriptsByIds,
+  createComparisonReport,
+  listComparisonReportsForUser,
+  getComparisonReportForUser,
+  deleteComparisonReportForUser,
+} from './comparison-reports';

@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useAuth, UserButton } from '@clerk/nextjs';
-import { ArrowLeft, Menu, Sparkles } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -12,11 +11,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { ModeToggle } from '@/components/mode-toggle';
-import { useClerkAppearance } from '@/hooks/useClerkAppearance';
 import { useForgeConversations } from '@/hooks/useForgeConversations';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
-import { brandLogoParts } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import type { SavedConversation, SavedScript } from '@/lib/types';
 import { ForgeChat } from '@/components/forge/ForgeChat';
@@ -25,8 +21,7 @@ import { ForgeConversationSidebar } from '@/components/forge/ForgeConversationSi
 /**
  * Top-level Forge page shell (spec 57 § Page Structure).
  *
- *  - Slim navbar with the PineForge brand, a back-to-Generate link,
- *    theme toggle, and Clerk user button.
+ *  - Global app navigation lives in `AppNavbar` via `app/(app)/layout`.
  *  - Persistent conversation sidebar on ≥ lg viewports; a Sheet
  *    drawer below that (same pattern as `/generate`'s Script History).
  *  - Chat panel owns `useChat` + `messages` via `ForgeChat`.
@@ -55,8 +50,6 @@ export function ForgeExperience({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const { isLoaded, isSignedIn } = useAuth();
-  const clerkAppearance = useClerkAppearance();
-  const { prefix, accent } = brandLogoParts();
 
   const handleCreateConversation = useCallback(
     async (scriptId: number | null, type: 'general' | 'research' = 'general') => {
@@ -206,59 +199,6 @@ export function ForgeExperience({
           style={parallaxStyle}
         />
 
-        <header className="relative z-10 border-b border-neon-500/20 bg-white/75 px-4 py-2.5 shadow-[0_1px_0_0_oklch(0.7_0.17_160/0.08)] backdrop-blur-md sm:px-6 dark:border-neon-500/15 dark:bg-zinc-950/80 dark:shadow-[0_1px_24px_-8px_oklch(0.7_0.17_160/0.25)]">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-sm border border-zinc-200/80 lg:hidden dark:border-zinc-700/70"
-                aria-label="Open conversations"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="size-4" aria-hidden />
-              </Button>
-
-              <Link
-                href="/"
-                className="flex items-center gap-2.5"
-                aria-label="Back to PineForge home"
-              >
-                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm border border-neon-500/35 bg-neon-500/10 shadow-[inset_0_0_12px_oklch(0.7_0.17_160/0.12)]">
-                  <Sparkles className="size-4 text-neon-500 dark:text-neon-400" />
-                </span>
-                <span className="pf-heading hidden font-heading text-base font-bold tracking-tight sm:inline">
-                  {prefix}
-                  <span className="text-neon-500">{accent}</span>
-                  <span className="pf-muted ml-2 font-mono text-[10px] uppercase tracking-[0.3em]">
-                    {'// Forge'}
-                  </span>
-                </span>
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                asChild
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="hidden rounded-sm font-mono text-[11px] uppercase tracking-widest sm:inline-flex"
-              >
-                <Link href="/generate">
-                  <ArrowLeft className="size-3.5" aria-hidden />
-                  Generator
-                </Link>
-              </Button>
-              <ModeToggle />
-              {isLoaded && isSignedIn ? (
-                <UserButton appearance={clerkAppearance} />
-              ) : null}
-            </div>
-          </div>
-        </header>
-
         <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
           <aside
             className={cn(
@@ -290,6 +230,23 @@ export function ForgeExperience({
           </Sheet>
 
           <main className="relative flex flex-1 flex-col overflow-hidden">
+            {/* Mobile-only conversations toggle (moved from old header per app-wide nav plan) */}
+            <div className="lg:hidden flex items-center border-b border-neon-500/10 bg-zinc-950/60 px-3 py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="rounded-sm border border-zinc-700/70"
+                aria-label="Open conversations"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="size-4" aria-hidden />
+              </Button>
+              <span className="ml-2 text-xs font-mono uppercase tracking-widest text-zinc-500">
+                Conversations
+              </span>
+            </div>
+
             <ForgeChat
               activeConversationId={activeId}
               hydrationToken={hydrationToken}

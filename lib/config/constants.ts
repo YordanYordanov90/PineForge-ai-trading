@@ -91,6 +91,9 @@ export const ALERT_TEMPLATES_MAX_OUTPUT_TOKENS = 4096;
 /** Structured backtesting checklist from /api/backtesting-summary. */
 export const BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS = 1200;
 
+/** Structured strategy comparison report from /api/comparison-reports (spec 63). */
+export const COMPARISON_REPORT_MAX_OUTPUT_TOKENS = 2200;
+
 export const CHAR_WARNING_THRESHOLD = 1200;
 
 export const CHAR_DANGER_THRESHOLD = 1400;

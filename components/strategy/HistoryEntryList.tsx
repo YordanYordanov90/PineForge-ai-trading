@@ -17,6 +17,9 @@ type HistoryEntryListProps = {
   onLoad: (entry: SavedScript) => void;
   onClose: () => void;
   onToggleTagFilter: (tag: string) => void;
+  // Multi-select for comparison reports (spec 63)
+  selectedIds?: ReadonlySet<number>;
+  onToggleSelect?: (id: number) => void;
 };
 
 export function HistoryEntryList({
@@ -30,6 +33,8 @@ export function HistoryEntryList({
   onLoad,
   onClose,
   onToggleTagFilter,
+  selectedIds,
+  onToggleSelect,
 }: HistoryEntryListProps) {
   const entryCommon = {
     editing,
@@ -40,6 +45,8 @@ export function HistoryEntryList({
     onLoad,
     onClose,
     onToggleTagFilter,
+    selectedIds,
+    onToggleSelect,
   };
 
   return (
