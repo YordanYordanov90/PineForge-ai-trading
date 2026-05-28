@@ -10,7 +10,6 @@ import {
 } from 'react';
 import {
   Check,
-  FileText,
   FlaskConical,
   MessageSquare,
   MessageSquarePlus,
@@ -138,13 +137,6 @@ export function ForgeConversationSidebar({
             <FlaskConical className="size-4" aria-hidden />
             {isCreating ? 'Starting…' : 'New Research'}
           </Button>
-          <a
-            href="/reports"
-            className="flex w-full items-center justify-start gap-2 rounded-sm border border-zinc-700/70 bg-zinc-950/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400 hover:border-neon-500/30 hover:text-neon-300"
-          >
-            <FileText className="size-4" aria-hidden />
-            Reports
-          </a>
         </div>
 
         {conversations.length === 0 ? (

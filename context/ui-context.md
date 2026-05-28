@@ -183,3 +183,12 @@ component. They are defined in `app/globals.css` and handle both themes.
 | `.pf-improve-prompt-btn` | Primary neon-accent CTA (both modes)               |
 | `.pf-refine-panel`       | Refine-chat panel surface                          |
 | `.pf-terminal-window` + `.terminal-code-surface` | Landing code/example surface |
+
+## App-wide Navigation (2026 Phase 7)
+
+The authenticated app surface (`/generate`, `/forge`, `/reports`, `/templates`) is now wrapped by a single `AppNavbar` via the `app/(app)` route group layout.
+
+- `components/AppNavbar.tsx` provides consistent logo, primary nav links (Generator / Forge / Templates / Reports), active route highlighting via `usePathname`, ModeToggle, auth controls (UserButton or Sign In), and a mobile hamburger + Sheet.
+- Page-specific chrome (e.g. ScriptHistory trigger on `/generate`, Forge conversations mobile toggle) remains inside the individual page components.
+- Landing (`/`) and auth pages keep their dedicated navbars and are **not** part of the `(app)` group.
+- Styling reuses `.pf-nav` / `.pf-nav-muted` tokens and brand logo patterns from `LandingNavbar`.
