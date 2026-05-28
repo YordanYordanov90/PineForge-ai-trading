@@ -188,3 +188,35 @@ export const agentMemory = pgTable(
     uniqueIndex('agent_memory_user_id_unique_idx').on(table.userId),
   ],
 );
+
+/**
+ * Strategy Comparison Reports (spec 63).
+ *
+ * Stores structured side-by-side analysis of 2–3 user scripts.
+ * The `report` jsonb holds the analysis sections (summary, entry logic,
+ * risk, market fit, coverage map, overlap, recommendation). Script bodies
+ * are loaded fresh from `scripts` at generation time (never duplicated).
+ */
+export const comparisonReports = pgTable(
+  'comparison_reports',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    title: varchar('title', { length: 200 }).notNull(),
+    // 2 or 3 script IDs (enforced at app layer + Zod)
+    scriptIds: integer('script_ids').array().notNull(),
+    report: jsonb('report').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // List + recency for a user: WHERE user_id = ? ORDER BY created_at DESC
+    index('comparison_reports_user_id_created_at_idx').on(
+      table.userId,
+      table.createdAt.desc(),
+    ),
+  ],
+);

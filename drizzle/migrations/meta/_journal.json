@@ -36,6 +36,13 @@
       "when": 1779865392263,
       "tag": "0004_nervous_morg",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779958237053,
+      "tag": "0005_loud_sprite",
+      "breakpoints": true
     }
   ]
 }

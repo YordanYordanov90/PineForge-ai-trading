@@ -49,6 +49,9 @@ type HistoryEntryProps = {
   onLoad: (entry: SavedScript) => void;
   onClose: () => void;
   onToggleTagFilter: (tag: string) => void;
+  // Comparison multi-select (spec 63)
+  selectedIds?: ReadonlySet<number>;
+  onToggleSelect?: (id: number) => void;
 };
 
 export function HistoryEntry({
@@ -61,8 +64,12 @@ export function HistoryEntry({
   onLoad,
   onClose,
   onToggleTagFilter,
+  selectedIds,
+  onToggleSelect,
 }: HistoryEntryProps) {
   const { rename, tags, star, collection, deleteEntry } = editing;
+  const isSelected = selectedIds?.has(Number(entry.id)) ?? false;
+  const showCompareCheckbox = typeof onToggleSelect === 'function';
   const isEditingTags = tags.tagEditingId === entry.id;
   const starPending = star.isStarPending(entry.id);
   const tagPending = tags.isTagPending(entry.id);
@@ -79,9 +86,20 @@ export function HistoryEntry({
         'pf-history-entry mb-2 rounded-xl p-3 last:mb-0',
         entry.isStarred &&
           'border border-amber-500/25 bg-amber-500/[0.06] dark:border-amber-400/20',
+        isSelected && 'ring-1 ring-neon-500/50',
       )}
     >
       <div className="flex items-start gap-2.5">
+        {showCompareCheckbox ? (
+          <label className="mt-1 flex shrink-0 cursor-pointer items-center" aria-label={`Select ${entry.name} for comparison`}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelect!(Number(entry.id))}
+              className="h-4 w-4 accent-neon-500"
+            />
+          </label>
+        ) : null}
         <StrategyFingerprint entry={entry} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           {rename.editingId === entry.id ? (

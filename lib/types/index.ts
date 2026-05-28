@@ -82,3 +82,37 @@ export type {
   AgentUserProfile,
   SavedConversation,
 } from './agent';
+
+/**
+ * Strategy Comparison Report (spec 63).
+ * Stored in `comparison_reports` table. The `report` field holds the
+ * structured analysis sections produced by the LLM (never includes raw
+ * script bodies — those are re-fetched by ID at render time).
+ */
+export type ComparisonReportData = {
+  summary: string;
+  entryLogicComparison: string;
+  riskProfileComparison: string;
+  marketConditionFit: Array<{
+    scriptId: number;
+    scriptTitle: string;
+    bestFor: string;
+    avoidIn: string;
+  }>;
+  coverageMap: {
+    trendy: number | null;
+    ranging: number | null;
+    breakout: number | null;
+  };
+  overlapAssessment: 'high' | 'medium' | 'low';
+  overlapNotes: string;
+  recommendation: string;
+};
+
+export type SavedComparisonReport = {
+  id: number;
+  title: string;
+  scriptIds: number[];
+  report: ComparisonReportData;
+  createdAt: string;
+};

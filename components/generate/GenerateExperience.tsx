@@ -3,7 +3,7 @@
 import { useAuth, UserButton } from '@clerk/nextjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useClerkAppearance } from '@/hooks/useClerkAppearance';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
@@ -98,6 +98,16 @@ export function GenerateExperience({
                 >
                   New
                 </span>
+              </Link>
+            ) : null}
+            {isLoaded && isSignedIn ? (
+              <Link
+                href="/reports"
+                className="pf-nav-muted inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+                aria-label="View comparison reports"
+              >
+                <FileText className="size-3.5" aria-hidden />
+                Reports
               </Link>
             ) : null}
             <Link
