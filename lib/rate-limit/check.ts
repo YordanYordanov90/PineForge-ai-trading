@@ -1,9 +1,7 @@
 import 'server-only';
 
 import { headers } from 'next/headers';
-import { eq } from 'drizzle-orm';
-import { users } from '@/drizzle/schema';
-import { db } from '@/lib/db';
+import { getUserPlanByClerkId } from '@/lib/db';
 import {
   ipRatelimit,
   freeUserRatelimit,
@@ -36,13 +34,7 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
     };
   }
 
-  const [user] = await db
-    .select({ plan: users.plan })
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .limit(1);
-
-  const plan = user?.plan ?? 'free';
+  const plan = await getUserPlanByClerkId(userId);
   const limiter = plan === 'pro' ? proUserRatelimit : freeUserRatelimit;
   const userResult = await limiter.limit(userId);
 

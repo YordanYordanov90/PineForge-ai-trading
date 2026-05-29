@@ -15,9 +15,9 @@ import { LandingFooter } from "./LandingFooter";
 
 export function LandingPage() {
   return (
-    <div className="pf-page relative flex min-h-screen w-full min-w-0 flex-1 flex-col overflow-x-hidden font-sans selection:bg-neon-500/20 selection:text-neon-800 dark:selection:bg-neon-500/30 dark:selection:text-neon-200">
+    <div className="pf-page relative flex min-h-screen w-full min-w-0 flex-1 flex-col font-sans selection:bg-neon-500/20 selection:text-neon-800 dark:selection:bg-neon-500/30 dark:selection:text-neon-200">
       <LandingBackground />
-      <div className="sticky top-0 z-50 w-full max-w-full overflow-x-hidden">
+      <div className="sticky top-0 z-50 w-full">
         <LandingTicker />
         <LandingNavbar />
       </div>

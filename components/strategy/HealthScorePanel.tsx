@@ -25,6 +25,8 @@ type HealthScorePanelProps = {
   onResultChange?: (result: HealthScoreResult | null) => void;
   /** Spec 60: passed through to the health-score request for assumption cross-reference. */
   assumptions?: import('@/lib/ai/parse-assumptions').StrategyAssumptions | null;
+  /** Spec 65: numeric DB id of the currently loaded script (if any). When present, successful Health Score runs are persisted server-side for the progression dashboard. */
+  scriptId?: number;
 };
 
 function buildRunInput(props: HealthScorePanelProps): HealthScoreRunInput {
@@ -34,6 +36,7 @@ function buildRunInput(props: HealthScorePanelProps): HealthScoreRunInput {
     model: props.model,
     balance: props.balance,
     structuredInputs: props.structuredInputs,
+    scriptId: props.scriptId,
   };
 }
 
@@ -47,6 +50,7 @@ export function HealthScorePanel({
   resetKey,
   onPrefillRefine,
   onResultChange,
+  scriptId,
 }: HealthScorePanelProps) {
   const { phase, result, errorMessage, run, isLoading } = useHealthScore(resetKey);
 
@@ -59,7 +63,16 @@ export function HealthScorePanel({
 
   const handleRun = () => {
     void run(
-      buildRunInput({ prompt, script, model, balance, structuredInputs, isScriptFinal, resetKey }),
+      buildRunInput({
+        prompt,
+        script,
+        model,
+        balance,
+        structuredInputs,
+        isScriptFinal,
+        resetKey,
+        scriptId,
+      }),
     );
   };
 

@@ -8,6 +8,29 @@ import { resolveOwnedScriptRoute } from '@/lib/api/resolve-owned-script-route';
 
 type RouteContext = { params: Promise<{ scriptId: string }> };
 
+export async function GET(_req: Request, context: RouteContext) {
+  const guard = await protectDataRoute();
+  if (!guard.ok) return guard.response;
+
+  const { scriptId: scriptIdParam } = await context.params;
+  const route = await resolveOwnedScriptRoute(guard.ctx.userId, scriptIdParam);
+  if (!route.ok) return route.response;
+
+  const { userId, scriptId } = route;
+
+  const [row] = await db
+    .select()
+    .from(scripts)
+    .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
+    .limit(1);
+
+  if (!row) {
+    return apiError('Script not found', 404);
+  }
+
+  return apiSuccess({ script: rowToSavedScript(row) });
+}
+
 export async function PATCH(req: Request, context: RouteContext) {
   const guard = await protectDataRoute();
   if (!guard.ok) return guard.response;

@@ -136,7 +136,7 @@
   html,
   body {
     @apply min-h-full bg-background font-sans text-foreground;
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: none;
   }
   body {

@@ -44,6 +44,9 @@ import { ScriptOutput } from '@/components/strategy/ScriptOutput';
 import type { ValidationResult } from '@/components/strategy/ScriptOutput';
 import { TerminalOutputChrome } from '@/components/strategy/TerminalOutputChrome';
 import { WebhookJsonPanel } from '@/components/strategy/WebhookJsonPanel';
+import { VariantStrip } from '@/components/strategy/VariantStrip';
+import type { VariantCardData } from '@/components/strategy/VariantCard';
+import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   pfOutputMuted,
@@ -139,8 +142,22 @@ type StrategyOutputCardProps = {
    * "Discuss with Forge" entry point in the action bar (spec 57).
    */
   forgeScriptId?: number | null;
+  /**
+   * Spec 65: numeric id of the currently loaded persisted script (from history).
+   * When present, Health Score runs are persisted to its metadata.healthScore
+   * so the Quality Progression dashboard can aggregate real user data.
+   */
+  loadedScriptId?: number | null;
   /** Spec 60: assumptions parsed from the current generation / loaded script. */
   assumptions?: StrategyAssumptions | null;
+  // Spec 64
+  variants?: VariantCardData[];
+  isGeneratingVariants?: boolean;
+  variantsOpen?: boolean;
+  onToggleVariants?: () => void;
+  onGenerateVariants?: () => void;
+  onLoadVariant?: (v: VariantCardData) => void;
+  plan?: string;
 };
 
 export function StrategyOutputCard({
@@ -189,7 +206,15 @@ export function StrategyOutputCard({
   exportTitle,
   exportCreatedAt = null,
   forgeScriptId = null,
+  loadedScriptId = null,
   assumptions,
+  variants = [],
+  isGeneratingVariants = false,
+  variantsOpen = false,
+  onToggleVariants,
+  onGenerateVariants,
+  onLoadVariant,
+  plan = 'free',
 }: StrategyOutputCardProps) {
   const [successPulse, setSuccessPulse] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
@@ -349,19 +374,35 @@ export function StrategyOutputCard({
                 Stop
               </Button>
             ) : (
-              <OutputActionBar
-                generatedScript={generatedScript}
-                isOutputBusy={isOutputBusy}
-                copied={copied}
-                webhookPanelOpen={webhookPanelOpen}
-                exportPanelOpen={exportPanelOpen}
-                onCopy={onCopy}
-                onDownload={onDownload}
-                onOpenInTradingView={onOpenInTradingView}
-                onToggleWebhookPanel={onToggleWebhookPanel}
-                onToggleExportPanel={() => setExportPanelOpen((open) => !open)}
-                forgeScriptId={forgeScriptId}
-              />
+              <>
+                <OutputActionBar
+                  generatedScript={generatedScript}
+                  isOutputBusy={isOutputBusy}
+                  copied={copied}
+                  webhookPanelOpen={webhookPanelOpen}
+                  exportPanelOpen={exportPanelOpen}
+                  onCopy={onCopy}
+                  onDownload={onDownload}
+                  onOpenInTradingView={onOpenInTradingView}
+                  onToggleWebhookPanel={onToggleWebhookPanel}
+                  onToggleExportPanel={() => setExportPanelOpen((open) => !open)}
+                  forgeScriptId={forgeScriptId}
+                />
+                {generatedScript && !isOutputBusy && onGenerateVariants && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onGenerateVariants}
+                    disabled={isGeneratingVariants}
+                    className="ml-1 h-8 gap-1.5 border border-zinc-800 text-[11px] uppercase tracking-widest text-neon-300 hover:bg-neon-500/10 hover:text-neon-400 hover:border-neon-500/30"
+                    aria-label="Generate 1-3 strategy variants"
+                  >
+                    <Layers className="h-3.5 w-3.5" aria-hidden />
+                    Generate Variants
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -502,6 +543,7 @@ export function StrategyOutputCard({
                 onPrefillRefine={onPrefillRefine}
                 onResultChange={setHealthExportResult}
                 assumptions={assumptions ?? null}
+                scriptId={loadedScriptId ?? undefined}
               />
             </TabsContent>
             <TabsContent value="backtest" forceMount className="mt-0 data-[state=inactive]:hidden">
@@ -558,6 +600,21 @@ export function StrategyOutputCard({
             resetKey={refineResetKey}
             prefillInstruction={refinePrefillInstruction}
             prefillNonce={refinePrefillNonce}
+          />
+        )}
+
+        {/* Spec 64: Variants strip (collapsible, appears after user clicks Generate Variants) */}
+        {onGenerateVariants && (variants.length > 0 || isGeneratingVariants || variantsOpen) && (
+          <VariantStrip
+            isOpen={variantsOpen}
+            onToggle={onToggleVariants ?? (() => {})}
+            variants={variants}
+            isGenerating={isGeneratingVariants}
+            plan={plan}
+            onLoadVariant={onLoadVariant ?? (() => {})}
+            onUpgradeClick={() => {
+              window.location.assign('/pricing');
+            }}
           />
         )}
 

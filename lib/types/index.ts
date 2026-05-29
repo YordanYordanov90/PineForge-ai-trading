@@ -50,6 +50,19 @@ export type SavedScript = {
    * scripts and templates. Null or absent means "no assumptions recorded".
    */
   assumptions?: StrategyAssumptions | null;
+  /**
+   * Spec 64: Variant axis recorded when this entry was created by the
+   * "Generate Variants" quick flow. Stored in scripts.metadata jsonb.
+   * Absent for normal generations and refinements.
+   */
+  variantAxis?: 'risk-tight' | 'signal-quality' | 'indicator-swap';
+  /**
+   * Spec 65 (Quality Progression Tracker): full HealthScoreResult persisted
+   * server-side when Health Score is run on this saved script. Enables
+   * dashboard trend/risk aggregation. Populated via /api/health-score when
+   * a scriptId is supplied. Absent/null for older scripts or unscored ones.
+   */
+  healthScore?: import('@/lib/api/validation').HealthScoreResult | null;
 };
 
 /**

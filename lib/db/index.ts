@@ -3,6 +3,7 @@ export {
   getDbUserIdByClerk,
   ensureDbUser,
   ensureDbUserForClerkId,
+  getUserPlanByClerkId,
 } from './scripts-user';
 export {
   rowToSavedScript,
@@ -52,3 +53,4 @@ export {
   getComparisonReportForUser,
   deleteComparisonReportForUser,
 } from './comparison-reports';
+export { getProgressStats } from './progress-stats';

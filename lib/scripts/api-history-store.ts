@@ -60,6 +60,17 @@ export async function fetchApiScripts(): Promise<SavedScript[]> {
   return parsed.scripts;
 }
 
+export async function fetchApiScriptById(id: number): Promise<SavedScript | null> {
+  const res = await fetch(`/api/scripts/${id}`, { method: 'GET' });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error('Failed to load script');
+  }
+  const data: unknown = await res.json();
+  const parsed = parseApiSuccessEnvelope(data, scriptOneDataSchema);
+  return parsed?.script ?? null;
+}
+
 async function syncUserAccount(): Promise<boolean> {
   const res = await fetch('/api/users/sync', { method: 'POST' });
   return res.ok;

@@ -14,6 +14,8 @@ export type HealthScoreRunInput = {
   model: GrokModel['id'];
   balance: string;
   structuredInputs: StructuredInputsValue;
+  /** Spec 65: when provided (from a loaded DB-backed SavedScript), the route will persist the result to that script's metadata.healthScore */
+  scriptId?: number;
 };
 
 type HealthScoreApiResponse = {
@@ -59,6 +61,7 @@ export function useHealthScore(resetKey: number) {
           timeframe: structuredInputs.timeframe ?? null,
           direction: structuredInputs.direction ?? null,
           indicators: structuredInputs.indicators,
+          scriptId: input.scriptId,
         }),
       });
 

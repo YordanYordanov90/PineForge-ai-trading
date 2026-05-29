@@ -115,8 +115,8 @@ Tool Contracts, Conversation CRUD routes, Streaming Endpoint, Memory
 Extraction, `/forge` UI, and Guardrails.
 
 **Phase 7 — Depth & Polish** (`59`–`68`): 
-- **Complete**: Strategy Templates Library (`59`), Strategy Assumptions Block (`60`), Research → Generate Pipeline (`61` + 61.1 + 61.2 script attach), Strategy DNA Fingerprint (`62`), Strategy Comparison Reports (`63`)
-- **Still planned**: Strategy Variants Quick-Generate (`64`), Quality Progression Tracker (`65`), Strategy Snapshot Export (`66`), Contextual Tips in Forge (`67`), Keyboard Power User Mode (`68`)
+- **Complete**: Strategy Templates Library (`59`), Strategy Assumptions Block (`60`), Research → Generate Pipeline (`61` + 61.1 + 61.2 script attach), Strategy DNA Fingerprint (`62`), Strategy Comparison Reports (`63`), Strategy Variants Quick-Generate (`64`)
+- **Still planned**: Strategy Snapshot Export (`66`), Contextual Tips in Forge (`67`), Keyboard Power User Mode (`68`)
 
 ## Current Goal
 
@@ -137,7 +137,7 @@ tool-usage rules, and prompt-transparency rules; replaces the inline
 MVP block in `system-prompt.ts`; refine-script runner hardened with
 empty-output check to complete spec § Tool Result Validation).
 
-Phase 7: `59`–`63` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports) shipped. Next: `64` (Variants) and later Phase 7 items. Optional Phase 4 hardening
+Phase 7: `59`–`65` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports, Variants, Quality Progression Tracker + health persistence) shipped. Later Phase 7 items + optional Phase 4 hardening
 (`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs)
 can run in parallel as a background track.
 
@@ -220,8 +220,8 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 | `61` | Research → Generate Pipeline | **Complete** (new `type` column + migration `0004_nervous_morg.sql` applied on Neon 2026-05-27; research-optimised system prompt in `lib/ai/prompts/forge-research.ts`; `POST /api/forge/research-summary` (protectAiRoute + generateObject + Zod); `lib/research/read-research-handoff.ts`; Forge sidebar "New Research" CTA + FlaskConical icon + RESEARCH badges; "Generate from Research" action in chat footer (≥2 turns); `/generate` pre-fill of description + structured inputs + dismissable amber banner; `type` column wired through `listConversationsForUser` / `getConversationForUser` / `listRecentConversationsWithMessages` selects so research prompt + sidebar badges + footer action persist across reload/stream; defensive insert fallback + `as any` casts removed; `npm run lint` + `npm run build` clean) + 61.1 no-script banner |
 | `62` | Strategy DNA Fingerprint | **Complete** (pure `lib/scripts/fingerprint.ts` (`hashToInt` djb2 + `buildFingerprintSvg`); `StrategyFingerprint` component; deterministic 32×32 neon/zinc SVG (market bg + 4×4 indicator-hash grid + direction accent line + version dots); wired into `HistoryEntry` at left edge of every history row (`role="img"`, `aria-label`, `title`, fixed size); same inputs always identical badge; `npm run build` + lint clean) |
 | `63` | Strategy Comparison Reports | **Complete** (new `comparison_reports` table + migration `0005`; `lib/db/comparison-reports.ts` + `getScriptsByIds`; POST/GET/DELETE routes with `protectAiRoute` (AI) + `protectDataRoute` (list/delete) + Zod (loose llm + strict re-validate); `lib/ai/prompts/comparison-report.ts` (FORGE_GUARDRAILS + truncated scripts + build fn); `ComparisonReportCard` + `CoverageMap` (semantic overlap badges, fingerprint winners); `/reports` page (list + detail, script hydration for badges); ScriptHistory multi-select (2–3 checkboxes + "Compare Selected" footer → POST + navigate); ForgeConversationSidebar "Reports" link; proxy protection; `npm run build` clean) |
-| `64` | Strategy Variants Quick-Generate | Planned |
-| `65` | Quality Progression Tracker | Planned |
+| `64` | Strategy Variants Quick-Generate | **Complete** (new `app/api/generate-variants/route.ts` (protectAiRoute + plan-based count + extra Upstash deducts + Promise.allSettled generateText); `lib/ai/prompts/variants.ts` (3 axes + buildVariantUserPrompt); `lib/auth/model-entitlement.ts` (getVariantCountForPlan); extended ScriptMetadata + SavedScript + mappers + local schema + createScriptSchema + buildSavedScriptFrom* for variantAxis + parent/version; `VariantCard` + `VariantStrip` (Layers, collapsible, pro lock overlay on B/C for free); session hook state + generate/load fns with lineage save; OutputActionBar + Form wiring; `npm run build` clean) |
+| `65` | Quality Progression Tracker | **Complete** (persistence prereq + full dashboard: extended ScriptMetadata + SavedScript + mappers + local schema + buildSavedScript + health-score route (optional scriptId + ownership-scoped persist to metadata); useHealthScore/Panel/OutputCard/StrategyForm wiring for loaded scripts; new /progress page (RSC + plan load), /api/progress (protectDataRoute), lib/db/progress-stats (weekly JSON extract, version lineage, agent_memory insights, risk keyword aggregation); pure SVG neon HealthScoreTrendChart + 4 panels with free/pro gating; optional Progress link in generate header; all success criteria met; `npm run build` clean) |
 | `66` | Strategy Snapshot Export | Planned |
 | `67` | Contextual Tips in Forge | Planned |
 | `68` | Keyboard Power User Mode | Planned |
@@ -298,13 +298,14 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 
 ## Next Up
 
-- Phase 6 Forge Agent (`51`–`58`) complete. Phase 7 `59`–`62` (Templates, Assumptions Block, Research→Generate Pipeline + 61.1 + 61.2 script attach, DNA Fingerprint) shipped; next `63` (Comparison Reports).
+- Phase 6 Forge Agent (`51`–`58`) complete. Phase 7 `59`–`65` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports, Variants, Quality Progression Tracker with health persistence prereq) shipped.
 - Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
 
 ## Open Questions
 
 - Landing footer links `/pricing`, `/privacy`, `/terms` — routes not implemented yet (stubs)
+- **Spec 65 Quality Progression Tracker resolved** (see table entry for full implementation notes). Health score persistence prerequisite + dashboard shipped together. Open question retained for history; all prior ambiguities addressed in the delivered code.
 
 ## Architecture Decisions
 

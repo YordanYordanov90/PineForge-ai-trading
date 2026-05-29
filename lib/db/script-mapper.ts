@@ -49,7 +49,22 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
     tags: row.tags ?? [],
     collectionId: row.collectionId ?? null,
     assumptions: meta.assumptions ?? null,
+    variantAxis: meta.variantAxis,
+    healthScore: meta.healthScore ?? null,
   };
+}
+
+/**
+ * Type-safe merge of an existing `scripts.metadata` jsonb value with a partial
+ * patch. Preserves all unrelated fields and avoids `as any` casts in callers
+ * (e.g. when persisting Health Score results from `/api/health-score`).
+ */
+export function mergeScriptMetadata(
+  current: ScriptMetadata | null | undefined,
+  patch: Partial<ScriptMetadata>,
+): ScriptMetadata {
+  const base = (current ?? {}) as ScriptMetadata;
+  return { ...base, ...patch };
 }
 
 export function savedScriptToMetadata(entry: SavedScript): ScriptMetadata {
@@ -62,6 +77,8 @@ export function savedScriptToMetadata(entry: SavedScript): ScriptMetadata {
     indicators: entry.indicators,
     rr: entry.rr,
     assumptions: entry.assumptions ?? null,
+    variantAxis: entry.variantAxis,
+    healthScore: entry.healthScore ?? null,
   };
 }
 
