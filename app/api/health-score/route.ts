@@ -1,5 +1,6 @@
 import { xai } from '@ai-sdk/xai';
 import { generateObject } from 'ai';
+import { and, eq } from 'drizzle-orm';
 import {
   healthScoreRequestSchema,
   healthScoreResultSchema,
@@ -10,6 +11,8 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { HEALTH_SCORE_SYSTEM } from '@/lib/ai/prompts/health-score';
 import { HEALTH_SCORE_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
+import { db, getDbUserIdByClerk } from '@/lib/db';
+import { scripts } from '@/drizzle/schema';
 
 function buildHealthScoreUserPrompt(data: {
   prompt: string;
@@ -91,6 +94,33 @@ export async function POST(req: Request) {
         'Health score could not be validated. Please try again.',
         502,
       );
+    }
+
+    // Spec 65 prereq: if scriptId provided and owned by caller, persist the full
+    // result into scripts.metadata.healthScore (jsonb, no migration). This powers
+    // the Quality Progression dashboard without new tables or columns.
+    if (parsed.data.scriptId != null) {
+      const dbUserId = await getDbUserIdByClerk(guard.ctx.userId);
+      if (dbUserId != null) {
+        const [owned] = await db
+          .select({ id: scripts.id, metadata: scripts.metadata })
+          .from(scripts)
+          .where(
+            and(
+              eq(scripts.id, parsed.data.scriptId),
+              eq(scripts.userId, dbUserId),
+            ),
+          )
+          .limit(1);
+        if (owned) {
+          const current = (owned.metadata ?? {}) as Record<string, unknown>;
+          const updated = { ...current, healthScore: validated.data };
+          await db
+            .update(scripts)
+            .set({ metadata: updated as any, updatedAt: new Date() })
+            .where(eq(scripts.id, owned.id));
+        }
+      }
     }
 
     return apiSuccess(validated.data);

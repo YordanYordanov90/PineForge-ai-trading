@@ -16,6 +16,7 @@ import type {
   AgentUserProfile,
 } from '@/lib/types/agent';
 import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
+import type { HealthScoreResult } from '@/lib/api/validation';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -58,6 +59,20 @@ export type ScriptMetadata = {
    * Stored in the existing jsonb column (no migration required).
    */
   assumptions?: StrategyAssumptions | null;
+  /**
+   * Spec 64: Variant axis that produced this script via "Generate Variants".
+   * Stored in the existing jsonb column (no migration required). Only present
+   * on entries created through the quick-variants flow.
+   */
+  variantAxis?: 'risk-tight' | 'signal-quality' | 'indicator-swap';
+  /**
+   * Spec 65: Full Health Score result persisted when the user explicitly runs
+   * Health Score against this script (or a prior version in lineage). Stored in
+   * the existing metadata jsonb (no migration). Enables Quality Progression
+   * dashboard trends and risk theme aggregation. Absent for pre-65 scripts or
+   * scripts where Health Score was never run.
+   */
+  healthScore?: HealthScoreResult | null;
 };
 
 export const scripts = pgTable(

@@ -71,6 +71,8 @@ const scriptMetadataSchema = z.object({
   direction: z.string().max(32).optional(),
   indicators: z.array(z.string().max(32)).max(8).optional(),
   rr: z.string().max(10).optional(),
+  // Spec 64
+  variantAxis: z.enum(['risk-tight', 'signal-quality', 'indicator-swap']).optional(),
 });
 
 export const createScriptSchema = z.object({
@@ -260,6 +262,9 @@ export const healthScoreRequestSchema = z.object({
     })
     .nullable()
     .optional(),
+  // Spec 65: optional scriptId to persist the computed score into scripts.metadata.healthScore
+  // (only for scripts owned by the caller; ignored otherwise). Enables progression tracker.
+  scriptId: z.number().int().positive().optional(),
 });
 
 export const alertTemplateProviderEnum = z.enum([
@@ -416,6 +421,59 @@ export const backtestSummaryLlmResultSchema = z.object({
   title: z.string().trim().min(1).max(120),
   sections: backtestSummarySectionsSchema,
 });
+
+/**
+ * Request body for `POST /api/generate-variants` (spec 64).
+ * The original `prompt` + `script` + structured inputs from the successful
+ * generation are sent so the server can build faithful variant prompts.
+ * Server resolves plan via protectAiRoute and decides N (1 free / 3 pro).
+ */
+export const generateVariantsRequestSchema = z.object({
+  prompt: z
+    .string()
+    .trim()
+    .min(10, 'Strategy description too short')
+    .max(1500, 'Strategy description exceeds 1500 character limit'),
+  script: z
+    .string()
+    .trim()
+    .min(10, 'Script too short')
+    .max(20_000, 'Script exceeds maximum length'),
+  model: grokModelEnum,
+  balance: z
+    .string()
+    .regex(/^\$?[\d,]+(\.\d{1,2})?$/, 'Balance must be a valid number')
+    .optional()
+    .nullable(),
+  structuredInputs: z.object({
+    market: z.enum(['Stocks', 'Crypto', 'Forex', 'Futures']).optional().nullable(),
+    timeframe: z.enum(['1m', '5m', '15m', '1h', '4h', '1D']).optional().nullable(),
+    direction: z.enum(['Long only', 'Short only', 'Both']).optional().nullable(),
+    indicators: z
+      .array(z.enum(['RSI', 'MACD', 'VWAP', 'EMA', 'Bollinger']))
+      .optional(),
+    rr: z.string().optional().nullable(),
+  }),
+});
+
+export type GenerateVariantsRequest = z.infer<typeof generateVariantsRequestSchema>;
+
+export const variantAxisSchema = z.enum(['risk-tight', 'signal-quality', 'indicator-swap']);
+
+export const variantSchema = z.object({
+  axis: variantAxisSchema,
+  label: z.string().min(1).max(40),
+  script: z.string().min(10),
+  prompt: z.string().min(10), // the modified prompt actually sent to the model
+});
+
+export const generateVariantsResultSchema = z.object({
+  variants: z.array(variantSchema).max(3),
+});
+
+export type VariantAxis = z.infer<typeof variantAxisSchema>;
+export type VariantResult = z.infer<typeof variantSchema>;
+export type GenerateVariantsResult = z.infer<typeof generateVariantsResultSchema>;
 
 export type BacktestSummaryRequest = z.infer<typeof backtestSummaryRequestSchema>;
 export type BacktestSummarySections = z.infer<typeof backtestSummarySectionsSchema>;

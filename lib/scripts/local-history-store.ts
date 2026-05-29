@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { healthScoreResultSchema } from '@/lib/api/validation';
 
 export const STORAGE_KEY = 'pineforge:history';
 const MUTATION_EVENT = 'pineforge:history-mutated';
@@ -51,6 +52,8 @@ export const savedScriptSchema = z.object({
   isStarred: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
   collectionId: z.number().int().nullable().default(null),
+  variantAxis: z.enum(['risk-tight', 'signal-quality', 'indicator-swap']).optional(),
+  healthScore: healthScoreResultSchema.optional().nullable(),
 });
 
 export const savedScriptArraySchema = z.array(savedScriptSchema);

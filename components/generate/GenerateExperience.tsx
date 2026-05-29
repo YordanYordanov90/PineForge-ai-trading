@@ -1,13 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
+import { BarChart3 } from 'lucide-react';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
 import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
 import { toast } from 'sonner';
+import { fetchApiScriptById } from '@/lib/scripts/api-history-store';
 
 const USER_SYNC_SESSION_KEY = 'pineforge_user_synced';
 const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
@@ -15,12 +18,15 @@ const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
 type GenerateExperienceProps = {
   initialPlan: string;
   initialTemplateId?: string | null;
+  /** Deep-link from /progress — loads an owned DB script into the generator. */
+  initialScriptId?: number | null;
   templateLockedNotice?: boolean;
 };
 
 export function GenerateExperience({
   initialPlan,
   initialTemplateId,
+  initialScriptId = null,
   templateLockedNotice = false,
 }: GenerateExperienceProps) {
   const formRef = useRef<StrategyFormHandle>(null);
@@ -64,6 +70,32 @@ export function GenerateExperience({
     formRef.current?.loadSavedScript(entry);
   }, []);
 
+  useEffect(() => {
+    if (!initialScriptId || !isLoaded || !isSignedIn) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const script = await fetchApiScriptById(initialScriptId);
+        if (cancelled) return;
+        if (!script) {
+          toast.error('Script not found or you do not have access.');
+          return;
+        }
+        formRef.current?.loadSavedScript(script);
+      } catch {
+        if (!cancelled) {
+          toast.error('Could not load script from your library.');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialScriptId, isLoaded, isSignedIn]);
+
   return (
     <UserPlanProvider plan={initialPlan}>
       <header className="mb-10 sm:mb-12">
@@ -84,6 +116,14 @@ export function GenerateExperience({
               open={historyOpen}
               onOpenChange={setHistoryOpen}
             />
+            <Link
+              href="/progress"
+              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 bg-[#111111] px-3 py-1.5 text-xs text-zinc-400 transition hover:border-zinc-700 hover:text-neon-300"
+              title="View your strategy quality progression"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Progress</span>
+            </Link>
           </div>
         </div>
       </header>

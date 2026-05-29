@@ -8,7 +8,7 @@ import { db } from '@/lib/db';
 import { getTemplateById } from '@/lib/templates/templates';
 
 type GeneratePageProps = {
-  searchParams: Promise<{ templateId?: string }>;
+  searchParams: Promise<{ templateId?: string; scriptId?: string }>;
 };
 
 export default async function GeneratePage({ searchParams }: GeneratePageProps) {
@@ -24,7 +24,10 @@ export default async function GeneratePage({ searchParams }: GeneratePageProps) 
     initialPlan = user?.plan ?? 'free';
   }
 
-  const { templateId: rawTemplateId } = await searchParams;
+  const { templateId: rawTemplateId, scriptId: rawScriptId } = await searchParams;
+  const parsedScriptId = rawScriptId ? Number.parseInt(rawScriptId, 10) : NaN;
+  const initialScriptId =
+    Number.isFinite(parsedScriptId) && parsedScriptId > 0 ? parsedScriptId : null;
   const template = rawTemplateId ? getTemplateById(rawTemplateId) : undefined;
   const templateLocked =
     Boolean(template?.isPro) && initialPlan !== 'pro';
@@ -39,6 +42,7 @@ export default async function GeneratePage({ searchParams }: GeneratePageProps) 
         <GenerateExperience
           initialPlan={initialPlan}
           initialTemplateId={initialTemplateId}
+          initialScriptId={initialScriptId}
           templateLockedNotice={templateLocked}
         />
       </div>

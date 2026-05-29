@@ -49,6 +49,8 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
     tags: row.tags ?? [],
     collectionId: row.collectionId ?? null,
     assumptions: meta.assumptions ?? null,
+    variantAxis: meta.variantAxis,
+    healthScore: meta.healthScore ?? null,
   };
 }
 
@@ -62,6 +64,8 @@ export function savedScriptToMetadata(entry: SavedScript): ScriptMetadata {
     indicators: entry.indicators,
     rr: entry.rr,
     assumptions: entry.assumptions ?? null,
+    variantAxis: entry.variantAxis,
+    healthScore: entry.healthScore ?? null,
   };
 }
 

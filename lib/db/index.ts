@@ -52,3 +52,4 @@ export {
   getComparisonReportForUser,
   deleteComparisonReportForUser,
 } from './comparison-reports';
+export { getProgressStats } from './progress-stats';

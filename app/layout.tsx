@@ -63,9 +63,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, syne.variable)}
+      className={cn("antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, syne.variable)}
     >
-      <body className="flex min-h-full w-full flex-col">
+      <body className="flex min-h-svh w-full flex-col">
         <ThemeProvider>
           <ClerkProvider>
             {children}

@@ -35,6 +35,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       lineage,
       entries,
       addEntry,
+      plan,
     });
 
     const loadSavedScript = useCallback(
@@ -238,8 +239,17 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
             exportTitle={lineage.exportTitle}
             exportCreatedAt={lineage.exportCreatedAt}
             forgeScriptId={parseForgeScriptId(lineage.lineageState?.rootId)}
+            loadedScriptId={parseForgeScriptId(lineage.lineageState?.rootId)}
             // Spec 60
             assumptions={session.assumptions}
+            // Spec 64
+            variants={session.variants}
+            isGeneratingVariants={session.isGeneratingVariants}
+            variantsOpen={session.variantsOpen}
+            onToggleVariants={() => session.setVariantsOpen?.(!session.variantsOpen)}
+            onGenerateVariants={() => void session.generateVariants?.()}
+            onLoadVariant={session.loadVariant}
+            plan={session.plan}
           />
         </div>
       </>

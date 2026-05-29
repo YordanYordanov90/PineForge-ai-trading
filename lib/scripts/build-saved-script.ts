@@ -12,6 +12,7 @@ export function buildSavedScriptFromGeneration(params: {
   indicators?: string[];
   rr?: string;
   assumptions?: StrategyAssumptions | null;
+  variantAxis?: 'risk-tight' | 'signal-quality' | 'indicator-swap';
 }): SavedScript {
   const trim = params.prompt.trim();
   const base = trim.length <= 40 ? trim : `${trim.slice(0, 40)}…`;
@@ -33,6 +34,8 @@ export function buildSavedScriptFromGeneration(params: {
     tags: [],
     collectionId: null,
     assumptions: params.assumptions ?? null,
+    variantAxis: params.variantAxis,
+    healthScore: null,
   };
 }
 
@@ -50,6 +53,7 @@ export function buildSavedScriptFromRefinement(params: {
   indicators?: string[];
   rr?: string;
   assumptions?: StrategyAssumptions | null;
+  variantAxis?: 'risk-tight' | 'signal-quality' | 'indicator-swap';
 }): SavedScript {
   return {
     id: crypto.randomUUID(),
@@ -70,5 +74,7 @@ export function buildSavedScriptFromRefinement(params: {
     tags: [],
     collectionId: null,
     assumptions: params.assumptions ?? null,
+    variantAxis: params.variantAxis,
+    healthScore: null,
   };
 }

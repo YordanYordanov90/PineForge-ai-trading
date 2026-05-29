@@ -29,3 +29,12 @@ export function resolveModelForPlan(
 
   return { ok: true, model };
 }
+
+/**
+ * Spec 64: Number of quick variants allowed for the given plan.
+ * Free: 1 (Variant A only). Pro: 3 (A + B + C).
+ * The generate-variants route uses this to decide parallel calls and quota cost.
+ */
+export function getVariantCountForPlan(plan: string): number {
+  return plan === 'pro' ? 3 : 1;
+}
