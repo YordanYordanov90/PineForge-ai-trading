@@ -36,3 +36,22 @@ export async function ensureDbUserForClerkId(clerkId: string): Promise<number> {
   const email = clerkUser?.emailAddresses[0]?.emailAddress ?? null;
   return ensureDbUser(clerkId, email);
 }
+
+/**
+ * Resolve a Clerk user's plan tier ("free" | "pro").
+ *
+ * Centralizes the `select plan from users where clerkId = ?` lookup
+ * used by every protected RSC + the rate-limit gate. Returns `"free"`
+ * when no DB row exists yet (pre-sync, signed-out, or invalid clerkId).
+ */
+export async function getUserPlanByClerkId(
+  clerkId: string | null | undefined,
+): Promise<string> {
+  if (!clerkId) return 'free';
+  const [row] = await db
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1);
+  return row?.plan ?? 'free';
+}

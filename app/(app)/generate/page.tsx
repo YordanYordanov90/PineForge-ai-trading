@@ -1,10 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
-import { users } from '@/drizzle/schema';
 import { TerminalPriceTicker } from '@/components/auth/TerminalPriceTicker';
 import { GenerateExperience } from '@/components/generate/GenerateExperience';
 import { TerminalAmbientBackground } from '@/components/ui/terminal-ambient-background';
-import { db } from '@/lib/db';
+import { getUserPlanByClerkId } from '@/lib/db';
 import { getTemplateById } from '@/lib/templates/templates';
 
 type GeneratePageProps = {
@@ -13,16 +11,7 @@ type GeneratePageProps = {
 
 export default async function GeneratePage({ searchParams }: GeneratePageProps) {
   const { userId } = await auth();
-  let initialPlan = 'free';
-
-  if (userId) {
-    const [user] = await db
-      .select({ plan: users.plan })
-      .from(users)
-      .where(eq(users.clerkId, userId))
-      .limit(1);
-    initialPlan = user?.plan ?? 'free';
-  }
+  const initialPlan = await getUserPlanByClerkId(userId);
 
   const { templateId: rawTemplateId, scriptId: rawScriptId } = await searchParams;
   const parsedScriptId = rawScriptId ? Number.parseInt(rawScriptId, 10) : NaN;

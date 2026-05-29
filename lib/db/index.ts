@@ -3,6 +3,7 @@ export {
   getDbUserIdByClerk,
   ensureDbUser,
   ensureDbUserForClerkId,
+  getUserPlanByClerkId,
 } from './scripts-user';
 export {
   rowToSavedScript,

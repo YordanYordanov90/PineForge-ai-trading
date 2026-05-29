@@ -1,7 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
-import { users } from '@/drizzle/schema';
-import { db } from '@/lib/db';
+import { getUserPlanByClerkId } from '@/lib/db';
 import { TemplateGrid } from '@/components/templates/TemplateGrid';
 import { PRODUCT_NAME } from '@/lib/brand';
 import { TerminalAmbientBackground } from '@/components/ui/terminal-ambient-background';
@@ -13,16 +11,7 @@ export const metadata = {
 
 export default async function TemplatesPage() {
   const { userId } = await auth();
-  let initialPlan = 'free';
-
-  if (userId) {
-    const [user] = await db
-      .select({ plan: users.plan })
-      .from(users)
-      .where(eq(users.clerkId, userId))
-      .limit(1);
-    initialPlan = user?.plan ?? 'free';
-  }
+  const initialPlan = await getUserPlanByClerkId(userId);
 
   return (
     <div className="pf-page relative min-h-screen">

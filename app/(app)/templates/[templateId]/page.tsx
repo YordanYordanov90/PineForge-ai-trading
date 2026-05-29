@@ -1,9 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
-import { users } from '@/drizzle/schema';
-import { db } from '@/lib/db';
+import { getUserPlanByClerkId } from '@/lib/db';
 import { getTemplateById } from '@/lib/templates/templates';
 import { PRODUCT_NAME } from '@/lib/brand';
 import { TerminalAmbientBackground } from '@/components/ui/terminal-ambient-background';
@@ -28,11 +26,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
   }
 
   const { userId } = await auth();
-  let plan = 'free';
-  if (userId) {
-    const [u] = await db.select({ plan: users.plan }).from(users).where(eq(users.clerkId, userId)).limit(1);
-    plan = u?.plan ?? 'free';
-  }
+  const plan = await getUserPlanByClerkId(userId);
 
   const canAccess = !template.isPro || plan === 'pro';
 

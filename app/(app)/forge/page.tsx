@@ -7,10 +7,11 @@ import { ForgeExperience } from '@/components/forge/ForgeExperience';
 import {
   db,
   getDbUserIdByClerk,
+  getUserPlanByClerkId,
   listConversationsForUser,
   rowToSavedScript,
 } from '@/lib/db';
-import { scripts, users } from '@/drizzle/schema';
+import { scripts } from '@/drizzle/schema';
 import type { SavedConversation, SavedScript } from '@/lib/types';
 
 type ForgePageProps = {
@@ -37,16 +38,10 @@ export default async function ForgePage({ searchParams }: ForgePageProps) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect('/sign-in');
 
-  const dbUserId = await getDbUserIdByClerk(clerkId);
-
-  const [planRow] = dbUserId
-    ? await db
-        .select({ plan: users.plan })
-        .from(users)
-        .where(eq(users.clerkId, clerkId))
-        .limit(1)
-    : [];
-  const initialPlan = planRow?.plan ?? 'free';
+  const [dbUserId, initialPlan] = await Promise.all([
+    getDbUserIdByClerk(clerkId),
+    getUserPlanByClerkId(clerkId),
+  ]);
 
   const initialConversations: SavedConversation[] = dbUserId
     ? await listConversationsForUser(dbUserId)

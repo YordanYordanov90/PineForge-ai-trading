@@ -1,9 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { BarChart3, TrendingUp } from 'lucide-react';
-import { db, getDbUserIdByClerk, getProgressStats } from '@/lib/db';
-import { users } from '@/drizzle/schema';
+import {
+  getDbUserIdByClerk,
+  getProgressStats,
+  getUserPlanByClerkId,
+} from '@/lib/db';
 import { ProgressDashboard } from '@/components/progress/ProgressDashboard';
 import type { ProgressStats } from '@/lib/db/progress-stats';
 
@@ -13,16 +15,10 @@ export default async function ProgressPage() {
     redirect('/sign-in');
   }
 
-  const dbUserId = await getDbUserIdByClerk(clerkId);
-
-  const [planRow] = dbUserId
-    ? await db
-        .select({ plan: users.plan })
-        .from(users)
-        .where(eq(users.clerkId, clerkId))
-        .limit(1)
-    : [];
-  const plan = planRow?.plan ?? 'free';
+  const [dbUserId, plan] = await Promise.all([
+    getDbUserIdByClerk(clerkId),
+    getUserPlanByClerkId(clerkId),
+  ]);
 
   let stats: ProgressStats | null = null;
   if (dbUserId != null) {
