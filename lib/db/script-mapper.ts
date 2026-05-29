@@ -54,6 +54,19 @@ export function rowToSavedScript(row: ScriptRow): SavedScript {
   };
 }
 
+/**
+ * Type-safe merge of an existing `scripts.metadata` jsonb value with a partial
+ * patch. Preserves all unrelated fields and avoids `as any` casts in callers
+ * (e.g. when persisting Health Score results from `/api/health-score`).
+ */
+export function mergeScriptMetadata(
+  current: ScriptMetadata | null | undefined,
+  patch: Partial<ScriptMetadata>,
+): ScriptMetadata {
+  const base = (current ?? {}) as ScriptMetadata;
+  return { ...base, ...patch };
+}
+
 export function savedScriptToMetadata(entry: SavedScript): ScriptMetadata {
   return {
     prompt: entry.prompt,

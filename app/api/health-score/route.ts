@@ -13,6 +13,7 @@ import { HEALTH_SCORE_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import { db, getDbUserIdByClerk } from '@/lib/db';
 import { scripts } from '@/drizzle/schema';
+import { mergeScriptMetadata } from '@/lib/db/script-mapper';
 
 function buildHealthScoreUserPrompt(data: {
   prompt: string;
@@ -113,11 +114,12 @@ export async function POST(req: Request) {
           )
           .limit(1);
         if (owned) {
-          const current = (owned.metadata ?? {}) as Record<string, unknown>;
-          const updated = { ...current, healthScore: validated.data };
+          const updated = mergeScriptMetadata(owned.metadata, {
+            healthScore: validated.data,
+          });
           await db
             .update(scripts)
-            .set({ metadata: updated as any, updatedAt: new Date() })
+            .set({ metadata: updated, updatedAt: new Date() })
             .where(eq(scripts.id, owned.id));
         }
       }
