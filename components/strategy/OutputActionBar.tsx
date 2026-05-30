@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import {
+  Camera,
   Check,
   Copy,
   Download,
   ExternalLink,
   FileText,
+  Lock,
   Sparkles,
   Webhook,
 } from 'lucide-react';
@@ -39,6 +41,9 @@ type OutputActionBarProps = {
    * user is signed-out / mid-stream — same gating spec defines.
    */
   forgeScriptId?: number | null;
+  /** Plan for Pro-only Snapshot Export button (spec 66). */
+  plan?: string;
+  onSnapshotExport: () => void;
 };
 
 export function OutputActionBar({
@@ -53,6 +58,8 @@ export function OutputActionBar({
   onToggleWebhookPanel,
   onToggleExportPanel,
   forgeScriptId,
+  plan = 'free',
+  onSnapshotExport,
 }: OutputActionBarProps) {
   const canUseActions = Boolean(generatedScript.trim()) && !isOutputBusy;
 
@@ -146,6 +153,31 @@ export function OutputActionBar({
             className={cn(iconActionClass, exportPanelOpen && terminalActivePressed)}
           >
             <FileText className="h-4 w-4" aria-hidden />
+          </Button>
+        </ActionTooltip>
+
+        <ActionTooltip
+          label={plan === 'pro' ? 'Download self-contained HTML snapshot (Pro)' : 'Snapshot export (Pro only)'}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onSnapshotExport}
+            aria-label={plan === 'pro' ? 'Download strategy snapshot HTML' : 'Snapshot export requires Pro'}
+            className={cn(
+              iconActionClass,
+              plan !== 'pro' && 'opacity-60 hover:bg-transparent hover:border-zinc-800 cursor-not-allowed',
+            )}
+          >
+            {plan === 'pro' ? (
+              <Camera className="h-4 w-4" aria-hidden />
+            ) : (
+              <div className="relative">
+                <Camera className="h-4 w-4" aria-hidden />
+                <Lock className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 text-amber-400" aria-hidden />
+              </div>
+            )}
           </Button>
         </ActionTooltip>
 

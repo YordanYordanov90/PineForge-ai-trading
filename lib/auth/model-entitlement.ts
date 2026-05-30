@@ -38,3 +38,10 @@ export function resolveModelForPlan(
 export function getVariantCountForPlan(plan: string): number {
   return plan === 'pro' ? 3 : 1;
 }
+
+/**
+ * Spec 66: Whether the current plan can use the premium Strategy Snapshot HTML export.
+ */
+export function canExportSnapshot(plan: string): boolean {
+  return plan === 'pro';
+}

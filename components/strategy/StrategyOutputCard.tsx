@@ -35,7 +35,11 @@ import type {
 } from '@/lib/api/validation';
 import { buildExportMarkdownFromContext } from '@/lib/export/build-export-markdown';
 import { downloadMarkdownFile } from '@/lib/export/download-markdown';
+import { downloadBlob, snapshotExportFilename } from '@/lib/export/download';
 import { DEFAULT_EXPORT_TITLE } from '@/lib/export/source';
+import { exportStrategySnapshot } from '@/actions/export-snapshot';
+import type { StrategyExportSource } from '@/lib/export/source';
+import { buildStrategyExportSource } from '@/lib/export/source';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
 import type { GrokModel } from '@/lib/config/constants';
 import { RefineChat } from '@/components/strategy/RefineChat';
@@ -298,6 +302,64 @@ export function StrategyOutputCard({
     toast.success('Markdown file downloaded.');
   }, [buildMarkdown, exportTitle]);
 
+  const handleSnapshotExport = useCallback(async () => {
+    if (!generatedScript.trim()) {
+      toast.error('Nothing to export yet. Generate a script first.');
+      return;
+    }
+    const title = exportTitle?.trim() || DEFAULT_EXPORT_TITLE;
+    const src: StrategyExportSource = buildStrategyExportSource({
+      title,
+      prompt: strategyPrompt,
+      script: generatedScript,
+      model: selectedModel ?? null,
+      structuredInputs: {
+        ...structuredInputs,
+        balance: accountBalance,
+      },
+      breakdown: breakdownText,
+      createdAt: exportCreatedAt,
+    });
+
+    const snapOptions = {
+      healthScore: healthExportResult,
+      alertTemplates: alertExportResult,
+      backtestSummary: backtestExportResult,
+      comparisonBaseline: compareBeforeScript || undefined,
+    };
+
+    try {
+      const res = await exportStrategySnapshot(src, snapOptions);
+      if (!res.success || !res.data?.html) {
+        if (res.error?.includes('Pro')) {
+          toast.error(res.error, {
+            action: { label: 'View pricing', onClick: () => (window.location.href = '/pricing') },
+          });
+        } else {
+          toast.error(res.error || 'Snapshot export failed.');
+        }
+        return;
+      }
+      downloadBlob(res.data.html, snapshotExportFilename(title), 'text/html');
+      toast.success('Snapshot HTML downloaded. Open in any browser (offline ready).');
+    } catch {
+      toast.error('Snapshot generation failed. Please try again.');
+    }
+  }, [
+    generatedScript,
+    exportTitle,
+    strategyPrompt,
+    selectedModel,
+    structuredInputs,
+    accountBalance,
+    breakdownText,
+    exportCreatedAt,
+    healthExportResult,
+    alertExportResult,
+    backtestExportResult,
+    compareBeforeScript,
+  ]);
+
   // Detect the `isGenerating: true → false` transition during render so
   // we don't `setState` inside `useEffect`. The follow-up timer that
   // turns the pulse off lives in an effect that depends on the pulse
@@ -387,6 +449,8 @@ export function StrategyOutputCard({
                   onToggleWebhookPanel={onToggleWebhookPanel}
                   onToggleExportPanel={() => setExportPanelOpen((open) => !open)}
                   forgeScriptId={forgeScriptId}
+                  plan={plan}
+                  onSnapshotExport={handleSnapshotExport}
                 />
                 {generatedScript && !isOutputBusy && onGenerateVariants && (
                   <Button
