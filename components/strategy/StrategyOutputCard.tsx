@@ -11,6 +11,7 @@ import {
   Code2,
   FlaskConical,
   GitCompareArrows,
+  Layers,
   ListChecks,
   Radio,
   ShieldCheck,
@@ -52,7 +53,6 @@ import { TerminalOutputChrome } from '@/components/strategy/TerminalOutputChrome
 import { WebhookJsonPanel } from '@/components/strategy/WebhookJsonPanel';
 import { VariantStrip } from '@/components/strategy/VariantStrip';
 import type { VariantCardData } from '@/components/strategy/VariantCard';
-import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   pfOutputMuted,
@@ -138,25 +138,11 @@ type StrategyOutputCardProps = {
   onPrefillRefine?: (instruction: string) => void;
   refinePrefillInstruction?: string;
   refinePrefillNonce?: number;
-  /** Display title for Markdown export (history name or prompt excerpt). */
   exportTitle?: string;
-  /** ISO createdAt when loaded from history; omitted for fresh drafts. */
   exportCreatedAt?: string | null;
-  /**
-   * DB id of the currently-loaded script lineage root, when the user
-   * is signed in and the script has been persisted. Surfaces the
-   * "Discuss with Forge" entry point in the action bar (spec 57).
-   */
   forgeScriptId?: number | null;
-  /**
-   * Spec 65: numeric id of the currently loaded persisted script (from history).
-   * When present, Health Score runs are persisted to its metadata.healthScore
-   * so the Quality Progression dashboard can aggregate real user data.
-   */
   loadedScriptId?: number | null;
-  /** Spec 60: assumptions parsed from the current generation / loaded script. */
   assumptions?: StrategyAssumptions | null;
-  // Spec 64
   variants?: VariantCardData[];
   isGeneratingVariants?: boolean;
   variantsOpen?: boolean;
@@ -233,8 +219,6 @@ export function StrategyOutputCard({
   const [backtestExportResult, setBacktestExportResult] =
     useState<BacktestSummaryResult | null>(null);
 
-  // React-docs pattern for "adjusting state when a prop changes": detect
-  // reset-key changes during render via a tracked composite, no effect.
   const resetKeysComposite = `${explainCancelKey}::${healthScoreResetKey}::${backtestSummaryResetKey}::${alertTemplatesResetKey}`;
   const [prevResetKeys, setPrevResetKeys] = useState(resetKeysComposite);
   if (prevResetKeys !== resetKeysComposite) {
@@ -362,11 +346,6 @@ export function StrategyOutputCard({
     compareBeforeScript,
   ]);
 
-  // Detect the `isGenerating: true → false` transition during render so
-  // we don't `setState` inside `useEffect`. The follow-up timer that
-  // turns the pulse off lives in an effect that depends on the pulse
-  // itself (cleanup-only setState happens inside `setTimeout`, which
-  // the lint rule allows).
   const [prevIsGenerating, setPrevIsGenerating] = useState(isGenerating);
   if (prevIsGenerating !== isGenerating) {
     setPrevIsGenerating(isGenerating);
@@ -685,7 +664,6 @@ export function StrategyOutputCard({
           />
         )}
 
-        {/* Spec 64: Variants strip (collapsible, appears after user clicks Generate Variants) */}
         {onGenerateVariants && (variants.length > 0 || isGeneratingVariants || variantsOpen) && (
           <VariantStrip
             isOpen={variantsOpen}

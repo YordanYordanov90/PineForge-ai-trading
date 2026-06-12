@@ -271,10 +271,9 @@ export function mergeProfiles(
   extracted: ExtractedAgentUserProfile,
   scriptCount: number,
 ): AgentUserProfile {
-  // seenTips never from LLM; merge defensively for schema compat.
   const mergedSeen = uniqueMerge(
     existing.seenTips,
-    (extracted as unknown as { seenTips?: string[] | undefined }).seenTips,
+    extracted.seenTips,
     50,
     false,
   );

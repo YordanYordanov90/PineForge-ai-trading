@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { ForgeAssistantMarkdown } from '@/components/forge/ForgeAssistantMarkdown';
 import { ForgeTipCard } from '@/components/forge/ForgeTipCard';
 import { ForgeToolCallCard } from '@/components/forge/ForgeToolCallCard';
+import type { ForgeTip } from '@/lib/agent/tips';
 import {
   ForgeTypingIndicator,
   getActiveLoadingToolLabel,
@@ -163,14 +164,22 @@ function renderAssistantPart(
     return null;
   }
 
-  const p = part as { type?: string; data?: { id?: string; title?: string; body?: string; codeSnippet?: string; refineSuggestion?: string } };
+  const p = part as { type?: string; data?: { id?: string; title?: string; body?: string; codeSnippet?: string; refineSuggestion?: string; triggerTool?: string } };
   if (p.type === 'data-tip' && p.data?.id) {
-    const tipData = p.data;
+    const d = p.data;
+    const tip: ForgeTip = {
+      id: d.id!,
+      title: d.title ?? '',
+      body: d.body ?? '',
+      codeSnippet: d.codeSnippet,
+      refineSuggestion: d.refineSuggestion,
+      triggerTool: d.triggerTool ?? '',
+    };
     return (
       <ForgeTipCard
         key={`tip-${idx}`}
-        tip={tipData as unknown as import('@/lib/agent/tips').ForgeTip}
-        onDismiss={() => onTipDismiss?.(tipData.id!)}
+        tip={tip}
+        onDismiss={() => onTipDismiss?.(d.id!)}
         onRefine={onTipRefine}
       />
     );

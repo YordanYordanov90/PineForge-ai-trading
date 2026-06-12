@@ -34,8 +34,6 @@ export function RefineChat({
   const [prevPrefillNonce, setPrevPrefillNonce] = useState(prefillNonce);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // React-docs pattern: derive state from prop changes during render
-  // instead of `setState` inside `useEffect`.
   if (prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
     setInstruction('');
