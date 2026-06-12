@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ExplainScriptPanel } from '@/components/strategy/ExplainScriptPanel';
 import { AlertTemplatesPanel } from '@/components/strategy/AlertTemplatesPanel';
 import { BacktestSummaryPanel } from '@/components/strategy/BacktestSummaryPanel';
@@ -546,38 +547,40 @@ export function StrategyOutputCard({
               variant="line"
               className="pf-tabs-bar sticky top-0 z-20 w-full min-w-0 justify-start gap-0 overflow-x-auto rounded-none border-b px-1 pt-0 backdrop-blur-md supports-backdrop-filter:bg-zinc-50/95 dark:supports-backdrop-filter:bg-zinc-900/90 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              <ActionTooltip label="Script (1)">
-                <OutputTabTrigger value="script" icon={Code2} label="Script" />
-              </ActionTooltip>
-              <ActionTooltip label="Breakdown (2)">
-                <OutputTabTrigger value="breakdown" icon={BarChart3} label="Breakdown" />
-              </ActionTooltip>
-              <ActionTooltip label="Checklist (3)">
-                <OutputTabTrigger value="checklist" icon={ListChecks} label="Checklist" />
-              </ActionTooltip>
-              {generatedScript.trim() ? (
-                <ActionTooltip label="Health (4)">
-                  <OutputTabTrigger value="health" icon={Activity} label="Health" />
+              <TooltipProvider>
+                <ActionTooltip label="Script (1)">
+                  <OutputTabTrigger value="script" icon={Code2} label="Script" />
                 </ActionTooltip>
-              ) : null}
-              {generatedScript.trim() ? (
-                <ActionTooltip label="Backtest (6)">
-                  <OutputTabTrigger value="backtest" icon={FlaskConical} label="Backtest" />
+                <ActionTooltip label="Breakdown (2)">
+                  <OutputTabTrigger value="breakdown" icon={BarChart3} label="Breakdown" />
                 </ActionTooltip>
-              ) : null}
-              {generatedScript.trim() ? (
-                <ActionTooltip label="Alerts (5)">
-                  <OutputTabTrigger value="alerts" icon={Bell} label="Alerts" />
+                <ActionTooltip label="Checklist (3)">
+                  <OutputTabTrigger value="checklist" icon={ListChecks} label="Checklist" />
                 </ActionTooltip>
-              ) : null}
-              <ActionTooltip label="Compare (7)">
-                <OutputTabTrigger
-                  value="compare"
-                  icon={GitCompareArrows}
-                  label="Compare"
-                  disabled={!compareAvailable}
-                />
-              </ActionTooltip>
+                {generatedScript.trim() ? (
+                  <ActionTooltip label="Health (4)">
+                    <OutputTabTrigger value="health" icon={Activity} label="Health" />
+                  </ActionTooltip>
+                ) : null}
+                {generatedScript.trim() ? (
+                  <ActionTooltip label="Backtest (6)">
+                    <OutputTabTrigger value="backtest" icon={FlaskConical} label="Backtest" />
+                  </ActionTooltip>
+                ) : null}
+                {generatedScript.trim() ? (
+                  <ActionTooltip label="Alerts (5)">
+                    <OutputTabTrigger value="alerts" icon={Bell} label="Alerts" />
+                  </ActionTooltip>
+                ) : null}
+                <ActionTooltip label="Compare (7)">
+                  <OutputTabTrigger
+                    value="compare"
+                    icon={GitCompareArrows}
+                    label="Compare"
+                    disabled={!compareAvailable}
+                  />
+                </ActionTooltip>
+              </TooltipProvider>
             </TabsList>
             <TabsContent value="script" forceMount className="mt-0 min-h-0 data-[state=inactive]:hidden">
               <ScriptOutput
