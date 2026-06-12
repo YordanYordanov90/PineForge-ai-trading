@@ -1,13 +1,6 @@
 /**
- * Forge Agent type contracts (spec 52 — Forge Agent Memory Schema).
- *
- * Single source of truth for the agent's persistence shapes. Re-exported
- * from `lib/types/index.ts`. Mirrors the Vercel AI SDK's internal message
- * shape closely so serialization between the SDK and the DB is minimal.
- *
- * Scope of this file: types only. No Drizzle, no Zod, no AI SDK imports —
- * keeps the contract reusable from RSC, client components, and the DB
- * mappers without leaking heavy dependencies.
+ * Forge Agent type contracts for messages, profiles, conversations.
+ * Persistence shapes + UI hydration. No SDK/Drizzle imports here.
  */
 
 export type AgentMessageRole = 'user' | 'assistant' | 'tool';
@@ -26,6 +19,15 @@ export interface AgentMessage {
   toolResults?: AgentToolResult[];
   /** ISO timestamp (per-message, so the UI can show per-turn timing). */
   createdAt: string;
+  /** When present, renders as tip card instead of normal assistant bubble (spec 67). */
+  tip?: {
+    id: string;
+    title: string;
+    body: string;
+    codeSnippet?: string;
+    refineSuggestion?: string;
+    triggerTool?: string;
+  };
 }
 
 export interface AgentToolCall {
@@ -63,6 +65,8 @@ export interface AgentUserProfile {
   totalStrategiesGenerated?: number;
   insights?: string[];
   lastExtractedAt?: string;
+  /** Tip ids the user has already been shown. Prevents re-delivery globally. */
+  seenTips?: string[];
 }
 
 /**
@@ -76,11 +80,7 @@ export interface SavedConversation {
   title: string | null;
   messages: AgentMessage[];
   scriptId: number | null;
-  /**
-   * Conversation mode (spec 61). 'research' uses the research-optimised
-   * system prompt and exposes the "Generate from Research" handoff flow.
-   * All pre-61 conversations default to 'general'.
-   */
+  /** 'research' uses research-optimised prompt + handoff; older default to 'general'. */
   type: 'general' | 'research';
   createdAt: string;
   updatedAt: string;

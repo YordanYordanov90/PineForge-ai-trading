@@ -26,12 +26,8 @@ import { ForgeScrollToBottomFab } from '@/components/forge/ForgeScrollToBottomFa
 import { ResearchScriptBanner } from '@/components/forge/ResearchScriptBanner';
 
 /**
- * Forge chat panel (spec 57 § ForgeChat).
- *
- * Owns the active conversation and wires the AI SDK's `useChat` to
- * the `POST /api/forge` streaming endpoint via a custom
- * `DefaultChatTransport` that swaps the SDK's default `{ messages }`
- * body shape for the spec-55 `{ conversationId, message }` payload.
+ * Forge chat panel.
+ * Wires useChat to the /api/forge stream with custom transport for conversation persistence.
  */
 
 type ForgeChatProps = {
@@ -78,6 +74,7 @@ export function ForgeChat({
   const [activeScriptId, setActiveScriptId] = useState<number | null>(null);
   const [activeScriptName, setActiveScriptName] = useState<string | null>(null);
   const [isGeneratingFromResearch, setIsGeneratingFromResearch] = useState(false);
+  const [dismissedTipIds, setDismissedTipIds] = useState<string[]>([]);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -182,6 +179,7 @@ export function ForgeChat({
       setActiveConvType(null);
       setActiveScriptId(null);
       setActiveScriptName(null);
+      setDismissedTipIds([]);
       return () => {
         cancelled = true;
       };
@@ -225,6 +223,7 @@ export function ForgeChat({
         setActiveConvType(conversation?.type ?? 'general');
         setActiveScriptId(conversation?.scriptId ?? null);
         setActiveScriptName(null);
+        setDismissedTipIds([]); // fresh view for this conversation load
       } catch {
         if (!cancelled) {
           setHydrationError('Network error — could not load conversation.');
@@ -271,6 +270,42 @@ export function ForgeChat({
         ? { id: activeScriptId, name: activeScriptName }
         : null,
     [activeScriptId, activeScriptName],
+  );
+
+  // Tips are persisted; local dismiss only hides for this session (already recorded server-side).
+  const visibleMessages = useMemo(() => {
+    if (dismissedTipIds.length === 0) return messages;
+    return messages.filter((m) => {
+      const parts = m.parts as readonly unknown[] | undefined;
+      const tipPart = parts?.find(
+        (p): p is { type: string; data?: { id?: string } } =>
+          p != null &&
+          typeof p === 'object' &&
+          'type' in p &&
+          (p as { type?: unknown }).type === 'data-tip',
+      );
+      if (tipPart?.data?.id) {
+        return !dismissedTipIds.includes(tipPart.data.id);
+      }
+      return true;
+    });
+  }, [messages, dismissedTipIds]);
+
+  const handleTipDismiss = useCallback((id: string) => {
+    setDismissedTipIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
+
+  const handleTipRefine = useCallback(
+    (suggestion?: string) => {
+      if (suggestion && typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(suggestion).catch(() => {
+          /* ignore */
+        });
+        toast('Refine suggestion copied. Open /generate and use the Refine Chat to apply it.');
+      }
+      router.push('/generate');
+    },
+    [router],
   );
 
   const handleUpdateScript = useCallback(
@@ -452,10 +487,12 @@ export function ForgeChat({
               </>
             ) : (
               <ForgeMessageList
-                messages={messages}
+                messages={visibleMessages}
                 isStreaming={isStreaming}
                 bottomRef={bottomRef}
                 userAwayFromBottomRef={userAwayFromBottomRef}
+                onTipDismiss={handleTipDismiss}
+                onTipRefine={handleTipRefine}
               />
             )}
           </>

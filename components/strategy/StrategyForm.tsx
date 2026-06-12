@@ -36,6 +36,7 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
       entries,
       addEntry,
       plan,
+      onOpenHistory: onRequestOpenHistory,
     });
 
     const loadSavedScript = useCallback(
@@ -169,6 +170,18 @@ export const StrategyForm = forwardRef<StrategyFormHandle, StrategyFormProps>(
           onStop={session.stop}
           outputTab={session.outputTab}
           onOutputTabChange={session.setOutputTab}
+          onRunHealthScore={() => {
+            session.setOutputTab('health');
+            session.bumpHealthScore?.();
+          }}
+          onRunBacktestSummary={() => {
+            session.setOutputTab('backtest');
+            session.bumpBacktestSummary?.();
+          }}
+          onRunAlertTemplates={() => {
+            session.setOutputTab('alerts');
+            session.bumpAlertTemplates?.();
+          }}
         />
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">

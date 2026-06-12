@@ -20,73 +20,20 @@ import type {
 import type { GrokModelId } from '@/lib/types';
 
 /**
- * Forge Agent memory extraction (spec 56).
- *
- * Background process invoked from spec 55's `onFinish` callback after
- * a Forge turn has already streamed back to the client. Pulls the most
- * recent conversations + the existing profile, asks the LLM to update
- * the structured `AgentUserProfile`, validates the output against the
- * Zod schema below, merges it with the existing profile, and upserts
- * the result.
- *
- * Cost-control invariants (spec § Cost Control):
- *   - `generateObject` (cheaper than `streamText`)
- *   - `temperature: 0` (deterministic, no creative drift)
- *   - `maxOutputTokens: 800` (the profile is small)
- *   - debounce: at most once per hour per user
- *   - input cap: ~6000 tokens (3 conversations × ~2000 tokens each,
- *     enforced by {@link PER_CONVERSATION_CHAR_BUDGET})
- *   - **does not** count against the user's daily AI quota — the
- *     parent Forge POST already paid for one quota slot, this is an
- *     internal maintenance pass piggy-backing on the same turn
- *
- * Privacy invariant: every helper here is owner-scoped via the
- * `userId` parameter. The extractor never sees a conversation, script
- * count, or memory row for any user other than the caller of the
- * parent Forge turn.
+ * Background memory profile extraction (spec 56).
+ * Runs post-stream in onFinish; uses generateObject + merge with debounce.
+ * Never counts against user quota; owner-scoped only.
  */
 
-/**
- * Spec § Trigger — at least four user messages in the conversation
- * (`enough signal to extract meaningful preferences — not on the first
- * quick question`).
- */
 export const MIN_USER_MESSAGES_FOR_EXTRACTION = 4;
-
-/**
- * Spec § Trigger — at least one hour since the last extraction.
- * Debounce runs against `agent_memory.updated_at`, not the in-memory
- * profile, so a rapid multi-tab session can't bypass it.
- */
 export const EXTRACTION_DEBOUNCE_MS = 60 * 60 * 1000;
-
-/**
- * Spec § Extraction Flow — fetch the 3 most recently updated
- * conversations (full messages). Older threads have already
- * contributed to a previous extraction window.
- */
 export const RECENT_CONVERSATIONS_LIMIT = 3;
 
-/**
- * Per-conversation excerpt char budget (~2000 tokens at 4 chars/token).
- * Enforced after the excerpt is built; older messages are kept in
- * favour of the head so the LLM sees the start of the conversation
- * (intent) plus as many later turns as fit.
- */
 const PER_CONVERSATION_CHAR_BUDGET = 8000;
 
 const MEMORY_EXTRACTION_MAX_OUTPUT_TOKENS = 800;
 
-/**
- * Zod schema matching spec 56 verbatim. The Zod schema is intentionally
- * tighter than {@link AgentUserProfile} (string-typed `riskTolerance`)
- * so the LLM output is guaranteed to land on one of the three canonical
- * values; storage stays string-typed for future flexibility.
- *
- * `lastExtractedAt` and `totalStrategiesGenerated` are accepted for
- * round-trip compatibility but always overwritten in the merge step
- * (spec § Output Schema — "set during the merge step, not by the LLM").
- */
+/** Zod schema for extraction (tighter enum etc than storage profile). */
 export const agentUserProfileSchema = z.object({
   preferredMarkets: z
     .array(z.string().max(20))
@@ -141,16 +88,16 @@ export const agentUserProfileSchema = z.object({
     .string()
     .optional()
     .describe('ISO timestamp — overwritten in the merge step.'),
+  // Internal append-only list of shown tip ids (never from LLM).
+  seenTips: z
+    .array(z.string().max(40))
+    .max(50)
+    .optional()
+    .describe('Internal bookkeeping (do not modify).'),
 });
 
 export type ExtractedAgentUserProfile = z.infer<typeof agentUserProfileSchema>;
 
-/**
- * Spec § Extraction Prompt — system prompt verbatim from the spec.
- * Kept as an exported constant so spec 58's guardrail audit can assert
- * the extraction prompt and the conversation prompt enforce the same
- * "do not invent / preserve unless contradicted" rules.
- */
 export const MEMORY_EXTRACTION_SYSTEM = `You are a preference extraction assistant. Given a user's recent conversations with a Pine Script strategy assistant, extract or update their trading preferences profile.
 
 Rules:
@@ -160,20 +107,17 @@ Rules:
 - Keep insights actionable and specific (not generic observations)
 - Cap arrays at their maximum lengths`;
 
-/**
- * Builds the user prompt from the existing profile + recent
- * conversations. Pure function — no DB reads, no LLM calls, no env
- * access — so spec 58's guardrail tests can snapshot the exact text
- * the LLM would see for any input.
- */
+/** Pure builder for the extraction user prompt (profile + recent conv excerpts). */
 export function buildMemoryExtractionUserPrompt(
   existingProfile: AgentUserProfile,
   conversations: SavedConversation[],
 ): string {
+  const { seenTips: _seen, ...profileForPrompt } = existingProfile;
+
   const profileSection =
-    Object.keys(existingProfile).length === 0
+    Object.keys(profileForPrompt).length === 0
       ? 'No profile yet.'
-      : JSON.stringify(existingProfile, null, 2);
+      : JSON.stringify(profileForPrompt, null, 2);
 
   const conversationSection =
     conversations.length === 0
@@ -219,10 +163,6 @@ function formatConversationExcerpt(
       }
       continue;
     }
-    // Assistant messages: surface only the tool-call decisions, not the
-    // free text. The user's own messages are the primary signal; the
-    // assistant's narrative is mostly a paraphrase that would dilute
-    // the prompt budget without adding extractable preferences.
     if (msg.toolCalls?.length) {
       const names = msg.toolCalls.map((c) => c.name).join(', ');
       lines.push(`Assistant called: ${names}`);
@@ -275,12 +215,7 @@ function summariseToolResult(result: AgentToolResult): string | null {
   return null;
 }
 
-/**
- * Counts user-role messages in a conversation. Spec 55's `onFinish`
- * uses this to evaluate the {@link MIN_USER_MESSAGES_FOR_EXTRACTION}
- * trigger before invoking the extractor — keeps the trigger logic in
- * one place.
- */
+/** Count user messages (used to decide if extraction has enough signal). */
 export function countUserMessages(messages: ReadonlyArray<AgentMessage>): number {
   let n = 0;
   for (const m of messages) {
@@ -289,13 +224,7 @@ export function countUserMessages(messages: ReadonlyArray<AgentMessage>): number
   return n;
 }
 
-/**
- * Case-insensitive union for markets / timeframes / indicators. New
- * items go to the end so the eviction (`out.length - cap`) trims the
- * oldest first when the array overflows. Empty inputs collapse to
- * `undefined` so the persisted JSON stays compact (spec § Output
- * Schema — every field is optional).
- */
+/** Array merge with cap + case-insensitive dedup (newest survive on overflow). */
 function uniqueMerge(
   existing: string[] | undefined,
   extracted: string[] | undefined,
@@ -324,11 +253,7 @@ function uniqueMerge(
   return out.slice(out.length - cap);
 }
 
-/**
- * Insights merge — spec § Merge Logic v1: append, dedup by trimmed
- * lowercase, trim oldest at the cap. A future spec can replace this
- * with semantic-similarity replacement; the signature stays the same.
- */
+/** Insights merge: append + lowercase dedup + cap (oldest evicted). */
 function mergeInsights(
   existing: string[] | undefined,
   extracted: string[] | undefined,
@@ -338,24 +263,22 @@ function mergeInsights(
 }
 
 /**
- * Spec § Merge Logic — combine the existing profile with the LLM's
- * extracted profile. Arrays are merged additively (with FIFO eviction
- * at the cap); scalars (`riskTolerance`, `averageHealthScore`) are
- * replacement when extracted, fall back to existing otherwise.
- *
- * `totalStrategiesGenerated` is always overwritten with the live
- * `count(*)` from the scripts table (spec § Output Schema). The LLM
- * does not get to set this even if it tries.
- *
- * `lastExtractedAt` is always set to the current ISO timestamp so the
- * debounce on the next turn measures from the actual write, not from
- * a value the LLM may have hallucinated.
+ * Merge extracted profile into existing (additive arrays with cap, scalar replace).
+ * Script count and lastExtractedAt are always server-authoritative.
  */
 export function mergeProfiles(
   existing: AgentUserProfile,
   extracted: ExtractedAgentUserProfile,
   scriptCount: number,
 ): AgentUserProfile {
+  // seenTips never from LLM; merge defensively for schema compat.
+  const mergedSeen = uniqueMerge(
+    existing.seenTips,
+    (extracted as unknown as { seenTips?: string[] | undefined }).seenTips,
+    50,
+    false,
+  );
+
   return {
     preferredMarkets: uniqueMerge(
       existing.preferredMarkets,
@@ -387,6 +310,7 @@ export function mergeProfiles(
     totalStrategiesGenerated: scriptCount,
     insights: mergeInsights(existing.insights, extracted.insights, 10),
     lastExtractedAt: new Date().toISOString(),
+    seenTips: mergedSeen,
   };
 }
 
@@ -411,21 +335,9 @@ export type MaybeExtractMemoryResult =
   | { ran: false; reason: MaybeExtractMemoryReason };
 
 /**
- * Conditional entry point — runs the full extraction flow when the
- * spec § Trigger conditions are met, no-ops silently otherwise. Spec
- * 55's `onFinish` callback is the only caller in v1.
- *
- * Failure modes are swallowed (returned as a `{ ran: false, reason }`
- * value) — extraction is fire-and-forget maintenance and must never
- * surface as an error in the chat UI. A failed extraction simply
- * leaves the existing profile in place; the next eligible turn will
- * try again.
- *
- * No `AbortSignal` parameter on purpose — extraction runs *after* the
- * user's stream completes, so coupling it to `req.signal` would
- * sometimes terminate it as the request is finalising. Vercel's
- * function timeout is the upper bound; the LLM call is sized at 800
- * output tokens to stay well under that ceiling.
+ * Runs extraction when trigger conditions met (min messages + debounce).
+ * Fire-and-forget; failures are silent and never affect the chat UX.
+ * Always called after the user stream has completed.
  */
 export async function maybeExtractAndPersistMemory(
   input: MaybeExtractMemoryInput,

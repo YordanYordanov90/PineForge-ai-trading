@@ -52,6 +52,8 @@ type HistoryEntryProps = {
   // Comparison multi-select (spec 63)
   selectedIds?: ReadonlySet<number>;
   onToggleSelect?: (id: number) => void;
+  // Keyboard nav ring (spec 68) — neon, not emerald
+  keyboardSelectedId?: number | string | null;
 };
 
 export function HistoryEntry({
@@ -66,9 +68,11 @@ export function HistoryEntry({
   onToggleTagFilter,
   selectedIds,
   onToggleSelect,
+  keyboardSelectedId,
 }: HistoryEntryProps) {
   const { rename, tags, star, collection, deleteEntry } = editing;
   const isSelected = selectedIds?.has(Number(entry.id)) ?? false;
+  const isKbdSelected = keyboardSelectedId != null && Number(keyboardSelectedId) === Number(entry.id);
   const showCompareCheckbox = typeof onToggleSelect === 'function';
   const isEditingTags = tags.tagEditingId === entry.id;
   const starPending = star.isStarPending(entry.id);
@@ -87,6 +91,7 @@ export function HistoryEntry({
         entry.isStarred &&
           'border border-amber-500/25 bg-amber-500/[0.06] dark:border-amber-400/20',
         isSelected && 'ring-1 ring-neon-500/50',
+        isKbdSelected && 'ring-2 ring-neon-500/40',
       )}
     >
       <div className="flex items-start gap-2.5">

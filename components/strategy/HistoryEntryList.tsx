@@ -20,6 +20,8 @@ type HistoryEntryListProps = {
   // Multi-select for comparison reports (spec 63)
   selectedIds?: ReadonlySet<number>;
   onToggleSelect?: (id: number) => void;
+  // Keyboard selection highlight ring (spec 68)
+  keyboardSelectedId?: number | string | null;
 };
 
 export function HistoryEntryList({
@@ -35,6 +37,7 @@ export function HistoryEntryList({
   onToggleTagFilter,
   selectedIds,
   onToggleSelect,
+  keyboardSelectedId,
 }: HistoryEntryListProps) {
   const entryCommon = {
     editing,
@@ -47,6 +50,7 @@ export function HistoryEntryList({
     onToggleTagFilter,
     selectedIds,
     onToggleSelect,
+    keyboardSelectedId,
   };
 
   return (

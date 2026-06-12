@@ -5,6 +5,7 @@ import type { RefObject } from 'react';
 import type { UIMessage } from 'ai';
 import { cn } from '@/lib/utils';
 import { ForgeAssistantMarkdown } from '@/components/forge/ForgeAssistantMarkdown';
+import { ForgeTipCard } from '@/components/forge/ForgeTipCard';
 import { ForgeToolCallCard } from '@/components/forge/ForgeToolCallCard';
 import {
   ForgeTypingIndicator,
@@ -12,12 +13,8 @@ import {
 } from '@/components/forge/ForgeTypingIndicator';
 
 /**
- * Renders the active conversation's messages (spec 57 § Message
- * Rendering).
- *
- * - User messages: right-aligned industrial chamfered bubble.
- * - Assistant messages: left-aligned with terminal prefix and accent rail.
- * - Auto-scrolls to the bottom when the user is already near the end.
+ * Renders conversation messages for Forge.
+ * Handles user/assistant bubbles, tool cards, and special data-tip parts.
  */
 
 type ForgeMessageListProps = {
@@ -25,6 +22,10 @@ type ForgeMessageListProps = {
   isStreaming: boolean;
   bottomRef: RefObject<HTMLDivElement | null>;
   userAwayFromBottomRef: RefObject<boolean>;
+  /** Called when user clicks × on a tip card (local session hide only) */
+  onTipDismiss?: (tipId: string) => void;
+  /** Called when user clicks the "Refine with this" CTA */
+  onTipRefine?: (suggestion?: string) => void;
 };
 
 export function ForgeMessageList({
@@ -32,6 +33,8 @@ export function ForgeMessageList({
   isStreaming,
   bottomRef,
   userAwayFromBottomRef,
+  onTipDismiss,
+  onTipRefine,
 }: ForgeMessageListProps) {
   useEffect(() => {
     if (userAwayFromBottomRef.current) return;
@@ -50,7 +53,12 @@ export function ForgeMessageList({
       className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 sm:py-8"
     >
       {messages.map((m) => (
-        <ForgeMessage key={m.id} message={m} />
+        <ForgeMessage
+          key={m.id}
+          message={m}
+          onTipDismiss={onTipDismiss}
+          onTipRefine={onTipRefine}
+        />
       ))}
 
       {isStreaming ? (
@@ -62,7 +70,15 @@ export function ForgeMessageList({
   );
 }
 
-function ForgeMessage({ message }: { message: UIMessage }) {
+function ForgeMessage({
+  message,
+  onTipDismiss,
+  onTipRefine,
+}: {
+  message: UIMessage;
+  onTipDismiss?: (tipId: string) => void;
+  onTipRefine?: (suggestion?: string) => void;
+}) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -92,7 +108,9 @@ function ForgeMessage({ message }: { message: UIMessage }) {
         [SYS] :: {formatMessageTime()}
       </header>
       <div className="space-y-1.5 text-sm leading-relaxed text-zinc-800 dark:text-zinc-100">
-        {message.parts.map((part, idx) => renderAssistantPart(part, idx))}
+        {message.parts.map((part, idx) =>
+          renderAssistantPart(part, idx, onTipDismiss, onTipRefine),
+        )}
       </div>
     </article>
   );
@@ -106,7 +124,12 @@ function UserContent({ message }: { message: UIMessage }) {
   return <p className="whitespace-pre-wrap break-words">{text}</p>;
 }
 
-function renderAssistantPart(part: UIMessage['parts'][number], idx: number) {
+function renderAssistantPart(
+  part: UIMessage['parts'][number],
+  idx: number,
+  onTipDismiss?: (tipId: string) => void,
+  onTipRefine?: (suggestion?: string) => void,
+) {
   if (part.type === 'text') {
     const { text, state } = part as { text: string; state?: 'streaming' | 'done' };
     return (
@@ -138,6 +161,19 @@ function renderAssistantPart(part: UIMessage['parts'][number], idx: number) {
 
   if (part.type === 'step-start') {
     return null;
+  }
+
+  const p = part as { type?: string; data?: { id?: string; title?: string; body?: string; codeSnippet?: string; refineSuggestion?: string } };
+  if (p.type === 'data-tip' && p.data?.id) {
+    const tipData = p.data;
+    return (
+      <ForgeTipCard
+        key={`tip-${idx}`}
+        tip={tipData as unknown as import('@/lib/agent/tips').ForgeTip}
+        onDismiss={() => onTipDismiss?.(tipData.id!)}
+        onRefine={onTipRefine}
+      />
+    );
   }
 
   if (part.type === 'dynamic-tool') {

@@ -16,7 +16,12 @@ import {
   getDbUserIdByClerk,
   rowToSavedScript,
   updateConversationTitle,
+  upsertAgentMemory,
 } from '@/lib/db';
+import {
+  evaluateTipsForTurn,
+  extractToolResultsFromSteps,
+} from '@/lib/agent/tips';
 import { db } from '@/lib/db/client';
 import { scripts } from '@/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
@@ -36,21 +41,8 @@ import { maybeExtractAndPersistMemory } from '@/lib/agent/memory-extraction';
 import type { AgentMessage } from '@/lib/types/agent';
 
 /**
- * Forge Agent streaming endpoint (spec 55).
- *
- * Single POST handler. Owns:
- *   - auth + rate limit + plan via {@link protectAiRoute}
- *   - one-stream-per-user concurrency lock via {@link acquireStreamLock}
- *   - conversation ownership check (foreign / missing / message-cap)
- *   - long-term memory injection ({@link getAgentMemoryForUser})
- *   - optional active-script context ({@link conversation.scriptId})
- *   - `streamText` orchestration with the spec-53 forge tools
- *   - persistence of the turn + auto-title on first exchange
- *
- * Per spec § Scope Limits: this route does NOT own conversation CRUD
- * (spec 54), memory extraction (spec 56), the UI (spec 57), or the
- * canonical guardrails block (spec 58 — for now, the system prompt
- * carries a minimum-viable guardrail block; spec 58 will replace it).
+ * Forge Agent streaming endpoint.
+ * Auth, rate limit, lock, memory injection, tool calling, persistence, tips, extraction.
  */
 export async function POST(req: Request) {
   const guard = await protectAiRoute(req);
@@ -96,9 +88,7 @@ export async function POST(req: Request) {
 
   const releaseLock = bindStreamLockRelease(lock, req.signal);
 
-  // Pre-stream IO that can fail without making the conversation broken — if
-  // any of these throw we release the lock and return 502 so the user can
-  // retry without orphaning a stream slot.
+  // Pre-stream IO; on failure release lock and return 502 (user can retry).
   let scriptContext: Awaited<ReturnType<typeof loadScriptContext>>;
   let profile: Awaited<ReturnType<typeof getAgentMemoryForUser>>;
   try {
@@ -172,10 +162,53 @@ export async function POST(req: Request) {
           }
         }
 
-        // Spec 56 — fire-and-forget memory extraction. Runs *after* the
-        // user has already received the stream, so any failure here is
-        // silent and never surfaces in the chat. The helper owns its
-        // own trigger / debounce checks.
+        // Evaluate contextual tips (spec 67) for tool results of this turn only.
+        try {
+          const toolResultsFromTurn = extractToolResultsFromSteps(event.steps ?? []);
+
+          const candidate = evaluateTipsForTurn(
+            toolResultsFromTurn,
+            profile.seenTips,
+            postTurnMessages,
+          );
+
+          if (candidate) {
+            const now = new Date().toISOString();
+            const tipMessage: AgentMessage = {
+              role: 'assistant',
+              content: '',
+              tip: {
+                id: candidate.id,
+                title: candidate.title,
+                body: candidate.body,
+                codeSnippet: candidate.codeSnippet,
+                refineSuggestion: candidate.refineSuggestion,
+                triggerTool: candidate.triggerTool,
+              },
+              createdAt: now,
+            };
+            await appendMessages(conversationId, userId, [tipMessage]);
+            postTurnMessages = [...postTurnMessages, tipMessage];
+
+            // Record immediately in long-term memory (separate from the LLM preference extraction).
+            // This guarantees the tip will not be offered again on future turns or conversations.
+            const updatedSeen = Array.from(
+              new Set([...(profile.seenTips ?? []), candidate.id]),
+            );
+            const updatedProfile = { ...profile, seenTips: updatedSeen };
+            void upsertAgentMemory(userId, updatedProfile).catch(() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('[forge] seen tip upsert failed (non-fatal)');
+              }
+            });
+          }
+        } catch (e) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[forge] tip evaluation failed (non-fatal)', e);
+          }
+        }
+
+        // Fire-and-forget memory extraction (post-stream; helper owns triggers).
         void maybeExtractAndPersistMemory({
           userId,
           conversation: { messages: postTurnMessages },
