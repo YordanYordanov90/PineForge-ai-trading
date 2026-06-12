@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { SavedScript } from '@/lib/types';
 import { useStrategyOutputTabGuards } from '@/hooks/strategy/useStrategyOutputTabGuards';
 import { useStrategyKeyboardShortcuts } from '@/hooks/strategy/useStrategyKeyboardShortcuts';
+import { useGeneratorShortcuts } from '@/hooks/strategy/useGeneratorShortcuts';
 import { useStrategyOutputResets } from '@/hooks/strategy/useStrategyOutputResets';
 import { useStrategyRefineSession } from '@/hooks/strategy/useStrategyRefineSession';
 import { useStrategyOutputActions } from '@/hooks/strategy/useStrategyOutputActions';
@@ -27,6 +28,7 @@ type UseStrategyGenerationSessionOptions = {
   entries: readonly SavedScript[];
   addEntry: (entry: SavedScript) => Promise<SavedScript | undefined>;
   plan?: string;
+  onOpenHistory?: () => void;
 };
 
 export function useStrategyGenerationSession({
@@ -35,6 +37,7 @@ export function useStrategyGenerationSession({
   entries,
   addEntry,
   plan,
+  onOpenHistory,
 }: UseStrategyGenerationSessionOptions) {
   const outputRef = useRef<HTMLDivElement>(null);
   const [webhookPanelOpen, setWebhookPanelOpen] = useState(false);
@@ -218,6 +221,18 @@ export function useStrategyGenerationSession({
     isOutputBusy: core.isOutputBusy,
   });
 
+  useGeneratorShortcuts({
+    setOutputTab: resets.setOutputTab,
+    compareAvailable: core.compare.compareAvailable,
+    onOpenHistory,
+    onDownload: actions.handleDownload,
+    onStop: core.stop,
+    isOutputBusy: core.isOutputBusy,
+    bumpHealthScore: resets.bumpHealthScore,
+    bumpBacktestSummary: resets.bumpBacktestSummary,
+    bumpAlertTemplates: resets.bumpAlertTemplates,
+  });
+
   const isStreaming = core.isOutputBusy && Boolean(core.generatedScript);
   const isIdle = !core.isOutputBusy && !core.generatedScript;
 
@@ -275,5 +290,9 @@ export function useStrategyGenerationSession({
     generateVariants,
     loadVariant,
     plan,
+    // Keyboard power user (68) run triggers
+    bumpHealthScore: resets.bumpHealthScore,
+    bumpBacktestSummary: resets.bumpBacktestSummary,
+    bumpAlertTemplates: resets.bumpAlertTemplates,
   };
 }

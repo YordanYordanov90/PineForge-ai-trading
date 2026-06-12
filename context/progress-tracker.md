@@ -115,8 +115,7 @@ Tool Contracts, Conversation CRUD routes, Streaming Endpoint, Memory
 Extraction, `/forge` UI, and Guardrails.
 
 **Phase 7 — Depth & Polish** (`59`–`68`): 
-- **Complete**: Strategy Templates Library (`59`), Strategy Assumptions Block (`60`), Research → Generate Pipeline (`61` + 61.1 + 61.2 script attach), Strategy DNA Fingerprint (`62`), Strategy Comparison Reports (`63`), Strategy Variants Quick-Generate (`64`)
-- **Still planned**: Contextual Tips in Forge (`67`), Keyboard Power User Mode (`68`)
+- **Complete**: Strategy Templates Library (`59`), Strategy Assumptions Block (`60`), Research → Generate Pipeline (`61` + 61.1 + 61.2 script attach), Strategy DNA Fingerprint (`62`), Strategy Comparison Reports (`63`), Strategy Variants Quick-Generate (`64`), Quality Progression Tracker (`65`), Strategy Snapshot Export (`66`), Contextual Tips in Forge (`67`), Keyboard Power User Mode (`68`). All Phase 7 specs shipped.
 
 ## Current Goal
 
@@ -137,7 +136,7 @@ tool-usage rules, and prompt-transparency rules; replaces the inline
 MVP block in `system-prompt.ts`; refine-script runner hardened with
 empty-output check to complete spec § Tool Result Validation).
 
-Phase 7: `59`–`65` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports, Variants, Quality Progression Tracker + health persistence) shipped. Later Phase 7 items + optional Phase 4 hardening
+Phase 7 (`59`–`68`) complete (Templates through Keyboard Power User Mode). Later optional Phase 4 hardening
 (`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs)
 can run in parallel as a background track.
 
@@ -223,8 +222,8 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 | `64` | Strategy Variants Quick-Generate | **Complete** (new `app/api/generate-variants/route.ts` (protectAiRoute + plan-based count + extra Upstash deducts + Promise.allSettled generateText); `lib/ai/prompts/variants.ts` (3 axes + buildVariantUserPrompt); `lib/auth/model-entitlement.ts` (getVariantCountForPlan); extended ScriptMetadata + SavedScript + mappers + local schema + createScriptSchema + buildSavedScriptFrom* for variantAxis + parent/version; `VariantCard` + `VariantStrip` (Layers, collapsible, pro lock overlay on B/C for free); session hook state + generate/load fns with lineage save; OutputActionBar + Form wiring; `npm run build` clean) |
 | `65` | Quality Progression Tracker | **Complete** (persistence prereq + full dashboard: extended ScriptMetadata + SavedScript + mappers + local schema + buildSavedScript + health-score route (optional scriptId + ownership-scoped persist to metadata); useHealthScore/Panel/OutputCard/StrategyForm wiring for loaded scripts; new /progress page (RSC + plan load), /api/progress (protectDataRoute), lib/db/progress-stats (weekly JSON extract, version lineage, agent_memory insights, risk keyword aggregation); pure SVG neon HealthScoreTrendChart + 4 panels with free/pro gating; optional Progress link in generate header; all success criteria met; `npm run build` clean) |
 | `66` | Strategy Snapshot Export | **Complete** (Pro-only self-contained `.html` export: `lib/export/strategy-snapshot-html.ts` + `snapshot-styles.ts` (exact neon `#c8ff00`, terminal zincs, Prism-ish Pine highlighter, tiny md→html for breakdown, native `<details>` alerts, side-by-side diff, QR via `qrcode` SVG to https://pineforge.app); generic `lib/export/download.ts` (downloadBlob + snapshot filename); Server Action `actions/export-snapshot.ts` (auth + `getUserPlanByClerkId` + `canExportSnapshot` enforcement, returns `{success,data:{html}}` envelope); `lib/auth/model-entitlement.ts` added `canExportSnapshot`; `OutputActionBar` + `StrategyOutputCard` wired with Camera/Lock button (visible locked for free, upgrade toast, passes lineage baseline + all loaded analyses); reuses StrategyExportSource + build path; offline, print-friendly, deterministic; `npm run build` clean) |
-| `67` | Contextual Tips in Forge | Planned |
-| `68` | Keyboard Power User Mode | Planned |
+| `67` | Contextual Tips in Forge | **Complete** (server-side evaluation in `/api/forge` onFinish using tool results only; `lib/agent/tips.ts` with exact priority table + pure `evaluateTipsForTurn`; immediate `seenTips` union + upsert on append; `AgentMessage.tip` + `AgentUserProfile.seenTips` contracts; `agentMessagesToUIMessages` emits `data-tip` part; `ForgeTipCard` (amber, Lightbulb, code snippet, subtle "Refine with this" CTA that copies suggestion + navigates to `/generate`); `ForgeMessageList` + `ForgeChat` session-dismiss + visible filter; memory-extraction preserves seenTips and strips from LLM prompt view; `npm run build` + lint clean) ✅ |
+| `68` | Keyboard Power User Mode | **Complete** (number keys 1-7 tab switch with typing guard; Ctrl/Cmd+H/D and Shift+H/B/A for history/download/run panels; j/k/Enter/d/s/Esc nav+actions in open history drawer with neon ring highlight; context status bar above ticker; new dedicated hook + bumps in resets + Command menu discover + tooltips on tabs; build + lint clean) |
 
 ## Completed
 
@@ -232,6 +231,7 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 - Phase 2 — Daily Driver Features ✅
 - `13-char-count.md` — Live character count with color thresholds (inputs card) ✅
 - `14-keyboard-shortcuts.md` — Ctrl/Cmd+Enter generate, Ctrl/Cmd+K command palette ✅
+- `68-keyboard-power-user-mode.md` — Full power-user keyboard (tabs 1-7, history nav j/k etc, new chords, status bar, palette entries). See spec + code. ✅
 - `16-strategy-comparison.md` — Output Compare tab: side-by-side diff vs previous lineage version (`lib/scripts/lineage.ts`, `ScriptComparePanel`) ✅
 - **Clerk auth (initial)** — `ClerkProvider`, custom `/sign-in` + `/sign-up` with `AuthFormShell`, `clerkAppearance` (glass + trust UX), `proxy.ts` route protection, `require-clerk-session` for APIs, CSP + keyless disabled for stable Clerk JS ✅
 - `18-neon-posgress.md` — Drizzle schema, `lib/db/`, `drizzle.config.ts`, migrations applied to Neon, `npm run build` passes ✅
@@ -294,14 +294,16 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 - `62-strategy-dna-fingerprint.md` — Strategy DNA Fingerprint (Priority 4). New pure module `lib/scripts/fingerprint.ts` (`hashToInt` djb2-style + `buildFingerprintSvg`); `StrategyFingerprint` component deriving inputs from `SavedScript` and rendering fixed 32×32 terminal neon/zinc procedural SVG (market-derived background, 4×4 indicator-hash grid, direction accent line, version dots); integrated at left edge of every row in `HistoryEntry` (history drawer) with `role="img"`, `aria-label`, `title` tooltip; fully deterministic (identical metadata → identical badge); zero DB/API changes; `npm run build` + lint clean. ✅
 - `63-strategy-comparison-reports.md` — Strategy Comparison Reports (Priority 5). Full end-to-end: Drizzle table + `0005` migration; DB layer (`getScriptsByIds`, CRUD); AI route (`protectAiRoute` + `generateObject` + loose→strict Zod + FORGE_GUARDRAILS prompt with 2000-char truncation per script); data routes + ownership; `CoverageMap` (3-cell regime grid with winning fingerprints) + `ComparisonReportCard` (all sections + semantic overlap badges neon/amber/rose); `/reports` page (list + detail + delete + refine CTAs); History drawer multi-select (checkboxes, 2–3 cap, footer "Compare Selected" → POST + /reports nav); Forge sidebar link; proxy protection. All success criteria met; `npm run build` clean. ✅
 - `66-strategy-snapshot-export.md` — Strategy Snapshot Export (Priority 8, Pro-only). New `lib/export/snapshot-styles.ts` (full inlined terminal CSS, exact `#c8ff00` neon, print white/black overrides with hairline neon); `lib/export/strategy-snapshot-html.ts` (async assemble with qrcode SVG, logo wordmark, metadata table, amber assumptions block, prompt blockquote, minimal md→html breakdown, pure Pine v5 tokenizer emitting Prism-style tokens, health card, native `<details>` collapsible alerts with JSON, backtest sections, side-by-side lineage diff when baseline present, footer + QR); `lib/export/download.ts` (generic `downloadBlob` + `snapshotExportFilename`, markdown refactored to use it); Server Action `actions/export-snapshot.ts` (`'use server'`, Clerk `auth()` + `getUserPlanByClerkId` + `canExportSnapshot` guard returning sanitized `{success, data: {html}, error}`); entitlement helper in `model-entitlement.ts`; `OutputActionBar` Snapshot button (Camera icon + Lock overlay for free, tooltip, always-visible per spec); `StrategyOutputCard` handler builds source from same context as markdown export (passes health/alerts/backtest + compareBeforeScript as baseline) and calls action + downloadBlob; upgrade toast with /pricing action for free users; fully offline, deterministic, no network in produced HTML; all 7 success criteria met; `npm run build` clean. ✅
+- `67-contextual-tips-forge.md` — Contextual Tips in Forge (Phase 7). Pure `lib/agent/tips.ts` (FORGE_TIPS priority table exactly as spec + `evaluateTipsForTurn` + safe tool-result narrowing for Health/Backtest/Alerts); tip decision + append + immediate `seenTips` union+upsert happens in `onFinish` of `app/api/forge/route.ts` (post main turn, pre memory-extraction, using `event.steps`); `AgentMessage` + `AgentUserProfile` extended with `tip` payload and `seenTips`; `lib/agent/ui-messages.ts` emits `data-tip` part on hydration for tips; `ForgeTipCard` (amber left rail, `Lightbulb`, title/body, optional mono snippet, subtle CTA); `ForgeMessageList` renders it for data-tip parts; `ForgeChat` owns per-mount dismissed set + visible filter + "Refine with this" (clipboard + toast + router.push('/generate')); memory-extraction strips seenTips from LLM prompt view and unions on merge; "at most once per conversation" via history scan + global via seenTips; no tips without tool results in the turn; build + lint clean. ✅
 
 ## In Progress
 
 ## Next Up
 
-- Phase 6 Forge Agent (`51`–`58`) complete. Phase 7 `59`–`66` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports, Variants, Quality Progression Tracker, Strategy Snapshot Export) shipped.
+- Phase 6 Forge Agent (`51`–`58`) complete. Phase 7 `59`–`68` (Templates, Assumptions Block, Research→Generate + 61.x, DNA Fingerprint, Comparison Reports, Variants, Quality Progression Tracker, Strategy Snapshot Export, Contextual Tips in Forge, Keyboard Power User Mode) shipped.
 - Optional: `15-theme-toggle.md` follow-ups (generator cards light polish)
 - Optional: weighted quotas + audit logs (`context/fixes.md` Fix 3, 7)
+- All Phase 7 specs (`59`–`68`) complete. Optional follow-ups remain (theme, quotas, fixes).
 
 ## Open Questions
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Clock, GitCompare, Loader2 } from 'lucide-react';
@@ -64,6 +64,27 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
     () => new Map(collections.map((c) => [c.id, c.name] as const)),
     [collections],
   );
+
+  // Keyboard power user nav (spec 68) — index into the flat filtered list (starred then unstarred)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null);
+  const visibleEntries = useMemo(
+    () => [...filters.starred, ...filters.unstarred],
+    [filters.starred, filters.unstarred],
+  );
+
+  // Reset on close; clamp on list shrink
+  useEffect(() => {
+    if (!open) {
+      setKeyboardSelectedIndex(null);
+      return;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (keyboardSelectedIndex != null && keyboardSelectedIndex >= visibleEntries.length) {
+      setKeyboardSelectedIndex(visibleEntries.length > 0 ? visibleEntries.length - 1 : null);
+    }
+  }, [visibleEntries.length, keyboardSelectedIndex]);
 
   // Multi-select for Comparison Reports (spec 63) — max 3 scripts
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -142,6 +163,84 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
     if (!next && isComparing) return;
     onOpenChange(next);
   };
+
+  // Keyboard nav for history drawer (spec 68): j/k move, Enter load, d delete (confirm), s star, Esc close.
+  // Guard typing so search input in filter bar works normally. Only active while open.
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) return; // let mod shortcuts bubble to generator hook
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target != null &&
+        (target.tagName === 'TEXTAREA' ||
+          target.tagName === 'INPUT' ||
+          target.isContentEditable);
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onOpenChange(false);
+        return;
+      }
+
+      if (typing) return;
+
+      const len = visibleEntries.length;
+      if (len === 0) return;
+
+      if (e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setKeyboardSelectedIndex((prev) => {
+          if (prev == null) return 0;
+          return (prev + 1) % len;
+        });
+        return;
+      }
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setKeyboardSelectedIndex((prev) => {
+          if (prev == null) return len - 1;
+          return (prev - 1 + len) % len;
+        });
+        return;
+      }
+      if (e.key === 'Enter') {
+        if (keyboardSelectedIndex != null) {
+          e.preventDefault();
+          const entry = visibleEntries[keyboardSelectedIndex];
+          if (entry) {
+            onLoad(entry);
+          }
+        }
+        return;
+      }
+      if (e.key.toLowerCase() === 'd') {
+        if (keyboardSelectedIndex != null) {
+          e.preventDefault();
+          const entry = visibleEntries[keyboardSelectedIndex];
+          if (entry && window.confirm('Delete this script from history?')) {
+            editing.deleteEntry(entry.id);
+            setKeyboardSelectedIndex(null);
+          }
+        }
+        return;
+      }
+      if (e.key.toLowerCase() === 's') {
+        if (keyboardSelectedIndex != null) {
+          e.preventDefault();
+          const entry = visibleEntries[keyboardSelectedIndex];
+          if (entry) {
+            editing.star.handleToggleStar(entry);
+          }
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, visibleEntries, keyboardSelectedIndex, onOpenChange, onLoad, editing]);
 
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
@@ -225,6 +324,8 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                   // Comparison multi-select (spec 63)
                   selectedIds={selectedIds}
                   onToggleSelect={toggleSelect}
+                  // Keyboard nav highlight (spec 68)
+                  keyboardSelectedId={keyboardSelectedIndex != null ? visibleEntries[keyboardSelectedIndex]?.id ?? null : null}
                 />
               )}
 

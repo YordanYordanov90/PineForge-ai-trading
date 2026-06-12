@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { BarChart3 } from 'lucide-react';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
+import { GeneratorStatusBar } from '@/components/generate/GeneratorStatusBar';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
 import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
@@ -135,6 +136,8 @@ export function GenerateExperience({
           initialTemplateId={initialTemplateId}
         />
       </div>
+
+      <GeneratorStatusBar isHistoryOpen={historyOpen} isGenerating={false} />
     </UserPlanProvider>
   );
 }

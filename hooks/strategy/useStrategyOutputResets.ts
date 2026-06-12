@@ -21,6 +21,16 @@ export function useStrategyOutputResets() {
     bumpKey(setAlertTemplatesResetKey);
   }, []);
 
+  const bumpHealthScore = useCallback(() => {
+    bumpKey(setHealthScoreResetKey);
+  }, []);
+  const bumpBacktestSummary = useCallback(() => {
+    bumpKey(setBacktestSummaryResetKey);
+  }, []);
+  const bumpAlertTemplates = useCallback(() => {
+    bumpKey(setAlertTemplatesResetKey);
+  }, []);
+
   return {
     outputTab,
     setOutputTab,
@@ -29,5 +39,8 @@ export function useStrategyOutputResets() {
     backtestSummaryResetKey,
     alertTemplatesResetKey,
     resetPanelKeys,
+    bumpHealthScore,
+    bumpBacktestSummary,
+    bumpAlertTemplates,
   };
 }

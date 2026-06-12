@@ -33,6 +33,9 @@ export type GeneratorCommandMenuProps = {
   onStop: () => void;
   outputTab: OutputTab;
   onOutputTabChange: (tab: OutputTab) => void;
+  onRunHealthScore?: () => void;
+  onRunBacktestSummary?: () => void;
+  onRunAlertTemplates?: () => void;
 };
 
 const itemClass =
@@ -55,6 +58,9 @@ export function GeneratorCommandMenu({
   onStop,
   outputTab,
   onOutputTabChange,
+  onRunHealthScore,
+  onRunBacktestSummary,
+  onRunAlertTemplates,
 }: GeneratorCommandMenuProps) {
   const router = useRouter();
   const mod = useModKeyLabel();
@@ -123,6 +129,7 @@ export function GeneratorCommandMenu({
               value="open script history"
             >
               Open Script History
+              <CommandShortcut className="font-mono text-zinc-500">{mod}+H</CommandShortcut>
             </CommandItem>
           </CommandGroup>
 
@@ -263,6 +270,64 @@ export function GeneratorCommandMenu({
                 <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
               ) : null}
             </CommandItem>
+            <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                closeThen(() => onOutputTabChange('backtest'));
+              }}
+              value="tab backtest"
+            >
+              Backtest tab
+              {outputTab === 'backtest' ? (
+                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
+              ) : null}
+            </CommandItem>
+          </CommandGroup>
+
+          <CommandSeparator className="bg-zinc-800/70" />
+
+          <CommandGroup heading="Run">
+            <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                if (onRunHealthScore) closeThen(onRunHealthScore);
+                else closeThen(() => onOutputTabChange('health'));
+              }}
+              value="run health score"
+            >
+              Run Health Score
+              <CommandShortcut className="font-mono text-zinc-500">{mod}+⇧H</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                if (onRunBacktestSummary) closeThen(onRunBacktestSummary);
+                else closeThen(() => onOutputTabChange('backtest'));
+              }}
+              value="run backtest summary"
+            >
+              Run Backtest Summary
+              <CommandShortcut className="font-mono text-zinc-500">{mod}+⇧B</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              disabled={!hasScript}
+              className={itemClass}
+              onSelect={() => {
+                if (!hasScript) return;
+                if (onRunAlertTemplates) closeThen(onRunAlertTemplates);
+                else closeThen(() => onOutputTabChange('alerts'));
+              }}
+              value="run alert templates"
+            >
+              Run Alert Templates
+              <CommandShortcut className="font-mono text-zinc-500">{mod}+⇧A</CommandShortcut>
+            </CommandItem>
           </CommandGroup>
 
           <CommandSeparator className="bg-zinc-800/70" />
@@ -289,6 +354,14 @@ export function GeneratorCommandMenu({
             >
               Go to landing page
             </CommandItem>
+          </CommandGroup>
+
+          <CommandSeparator className="bg-zinc-800/70" />
+
+          <CommandGroup heading="Keyboard Shortcuts">
+            <div className="px-2 py-1 text-[11px] leading-snug text-zinc-500">
+              [1–7] Switch tabs · [⌘H] History · [⌘D] Download · [⌘⇧H/B/A] Run Health/Backtest/Alerts · [j/k] nav history (open) · [⌘.] Stop
+            </div>
           </CommandGroup>
         </CommandList>
 

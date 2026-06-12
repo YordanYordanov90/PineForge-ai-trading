@@ -6,19 +6,8 @@ import type {
 } from '@/lib/types/agent';
 
 /**
- * Forge Agent UI message helpers (spec 57).
- *
- * Hydration helpers between the persisted {@link AgentMessage[]} shape
- * (spec 52) and the AI SDK's parts-based {@link UIMessage[]} consumed
- * by `useChat` in the chat view. The streaming endpoint persists the
- * canonical thread via `appendMessages()`; this module is the read
- * path that turns it back into something `useChat` can render.
- *
- * The agent's tool layer keys tool calls as `tool-<name>` (per AI SDK
- * `streamText({ tools })` convention) so when we hydrate from
- * persisted messages we emit the same `tool-<name>` shape. Tool
- * results without a matching call are dropped — they shouldn't occur
- * with the spec-55 persistence rules, but the helper stays defensive.
+ * Hydrate persisted AgentMessage[] (DB) into AI SDK UIMessage[] for useChat.
+ * Folds tool results into assistant parts; emits data-tip parts for tips.
  */
 
 type TextPart = { type: 'text'; text: string };
@@ -74,6 +63,21 @@ export function agentMessagesToUIMessages(
     }
 
     if (msg.role === 'assistant') {
+      if (msg.tip) {
+        const tipPayload = msg.tip;
+        out.push({
+          id: nextHydratedId(),
+          role: 'assistant',
+          parts: [
+            {
+              type: 'data-tip' as const,
+              data: tipPayload,
+            },
+          ] as UIMessage['parts'],
+        } as UIMessage);
+        continue;
+      }
+
       const next = history[i + 1];
       const matchedResults =
         next && next.role === 'tool' && next.toolResults
@@ -105,9 +109,6 @@ export function agentMessagesToUIMessages(
       continue;
     }
 
-    // Orphan tool row (no preceding assistant). Render as a
-    // standalone assistant message so the user sees *something*
-    // rather than dropping the row entirely.
     if (msg.role === 'tool' && msg.toolResults) {
       const parts: ForgeUIPart[] = msg.toolResults.map((result) =>
         toolPartFromResult(result),
@@ -131,10 +132,6 @@ function toolPartFromCall(
   const result = results.find((r) => r.toolCallId === call.id);
   const type = `tool-${call.name}` as `tool-${string}`;
   if (!result) {
-    // The persisted shape has a `tool` row whenever the assistant
-    // step had any tool calls, but defensively treat a missing
-    // result as a generic error rather than leaving the tool part
-    // dangling in the UI.
     return {
       type,
       toolCallId: call.id,
