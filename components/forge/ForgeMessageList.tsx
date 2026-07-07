@@ -1,10 +1,18 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import type { UIMessage } from 'ai';
 import { cn } from '@/lib/utils';
-import { ForgeAssistantMarkdown } from '@/components/forge/ForgeAssistantMarkdown';
+
+const ForgeAssistantMarkdown = dynamic(
+  () =>
+    import('@/components/forge/ForgeAssistantMarkdown').then((mod) => ({
+      default: mod.ForgeAssistantMarkdown,
+    })),
+  { ssr: false },
+);
 import { ForgeTipCard } from '@/components/forge/ForgeTipCard';
 import { ForgeToolCallCard } from '@/components/forge/ForgeToolCallCard';
 import type { ForgeTip } from '@/lib/agent/tips';

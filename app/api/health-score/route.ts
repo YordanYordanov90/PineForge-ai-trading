@@ -1,6 +1,5 @@
 import { xai } from '@ai-sdk/xai';
 import { generateObject } from 'ai';
-import { and, eq } from 'drizzle-orm';
 import {
   healthScoreRequestSchema,
   healthScoreResultSchema,
@@ -11,9 +10,7 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { HEALTH_SCORE_SYSTEM } from '@/lib/ai/prompts/health-score';
 import { HEALTH_SCORE_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
-import { db, getDbUserIdByClerk } from '@/lib/db';
-import { scripts } from '@/drizzle/schema';
-import { mergeScriptMetadata } from '@/lib/db/script-mapper';
+import { persistHealthScoreIfOwned } from '@/lib/db/persist-health-score';
 
 function buildHealthScoreUserPrompt(data: {
   prompt: string;
@@ -97,32 +94,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Spec 65 prereq: if scriptId provided and owned by caller, persist the full
-    // result into scripts.metadata.healthScore (jsonb, no migration). This powers
-    // the Quality Progression dashboard without new tables or columns.
     if (parsed.data.scriptId != null) {
-      const dbUserId = await getDbUserIdByClerk(guard.ctx.userId);
-      if (dbUserId != null) {
-        const [owned] = await db
-          .select({ id: scripts.id, metadata: scripts.metadata })
-          .from(scripts)
-          .where(
-            and(
-              eq(scripts.id, parsed.data.scriptId),
-              eq(scripts.userId, dbUserId),
-            ),
-          )
-          .limit(1);
-        if (owned) {
-          const updated = mergeScriptMetadata(owned.metadata, {
-            healthScore: validated.data,
-          });
-          await db
-            .update(scripts)
-            .set({ metadata: updated, updatedAt: new Date() })
-            .where(eq(scripts.id, owned.id));
-        }
-      }
+      await persistHealthScoreIfOwned(
+        guard.ctx.userId,
+        parsed.data.scriptId,
+        validated.data,
+      );
     }
 
     return apiSuccess(validated.data);

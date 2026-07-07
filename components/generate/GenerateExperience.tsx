@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
+import { useUserSync } from '@/hooks/useUserSync';
 import { BarChart3 } from 'lucide-react';
 import { StrategyForm, type StrategyFormHandle } from '@/components/strategy/StrategyForm';
 import { ScriptHistory } from '@/components/strategy/ScriptHistory';
@@ -12,9 +13,6 @@ import { PRODUCT_NAME } from '@/lib/brand';
 import type { SavedScript } from '@/lib/types';
 import { toast } from 'sonner';
 import { fetchApiScriptById } from '@/lib/scripts/api-history-store';
-
-const USER_SYNC_SESSION_KEY = 'pineforge_user_synced';
-const LEGACY_USER_SYNC_SESSION_KEY = 'grokts_user_synced';
 
 type GenerateExperienceProps = {
   initialPlan: string;
@@ -33,6 +31,7 @@ export function GenerateExperience({
   const formRef = useRef<StrategyFormHandle>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { isSignedIn, isLoaded } = useAuth();
+  useUserSync();
 
   useEffect(() => {
     if (!templateLockedNotice) return;
@@ -45,27 +44,6 @@ export function GenerateExperience({
       },
     });
   }, [templateLockedNotice]);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || typeof window === 'undefined') return;
-    if (
-      sessionStorage.getItem(USER_SYNC_SESSION_KEY) === '1' ||
-      sessionStorage.getItem(LEGACY_USER_SYNC_SESSION_KEY) === '1'
-    ) {
-      return;
-    }
-
-    void (async () => {
-      try {
-        const res = await fetch('/api/users/sync', { method: 'POST' });
-        if (res.ok) {
-          sessionStorage.setItem(USER_SYNC_SESSION_KEY, '1');
-        }
-      } catch {
-        // retry on next visit
-      }
-    })();
-  }, [isLoaded, isSignedIn]);
 
   const handleLoad = useCallback((entry: SavedScript) => {
     formRef.current?.loadSavedScript(entry);

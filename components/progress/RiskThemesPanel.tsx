@@ -1,5 +1,3 @@
-'use client';
-
 import type { RiskThemeCount } from '@/lib/db/progress-stats';
 
 type Props = {

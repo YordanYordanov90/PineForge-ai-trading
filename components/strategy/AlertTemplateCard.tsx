@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AlertTemplateItem } from '@/lib/api/validation';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   pfOutputBorder,
@@ -63,16 +64,12 @@ export function AlertTemplateCard({ template, isActive, onSelect }: AlertTemplat
           <h3 className={cn('text-sm font-medium', pfOutputHeading)}>{template.label}</h3>
           <p className={cn('mt-0.5 text-xs', pfOutputMuted)}>{template.description}</p>
         </div>
-        <span
-          className={cn(
-            'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
-            isActive
-              ? 'border-neon-500/40 bg-neon-500/10 text-neon-700 dark:text-neon-300'
-              : 'border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-500',
-          )}
+        <Badge
+          variant={isActive ? 'active' : 'default'}
+          className="shrink-0"
         >
           {template.provider}
-        </span>
+        </Badge>
       </button>
 
       {isActive ? (

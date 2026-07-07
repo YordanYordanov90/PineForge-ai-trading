@@ -17,6 +17,7 @@ import {
   CHAR_DANGER_THRESHOLD,
   type GrokModel,
 } from '@/lib/config/constants';
+import { Badge } from '@/components/ui/badge';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useFormatShortcut } from '@/hooks/useShortcutLabel';
@@ -148,20 +149,14 @@ export function StrategyInputsCard({
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="strategy">Strategy description</Label>
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
-                  healthStyles.badge,
-                )}
+              <Badge
+                className={healthStyles.badge}
+                dotClassName={healthStyles.dot}
                 title={promptHealth.hint}
                 aria-label={`Prompt quality: ${promptHealth.label}. ${promptHealth.hint}`}
               >
-                <span
-                  className={cn('h-1.5 w-1.5 shrink-0 rounded-full', healthStyles.dot)}
-                  aria-hidden
-                />
                 {promptHealth.label}
-              </span>
+              </Badge>
               <span className={`text-xs tabular-nums ${charColor}`} aria-live="polite">
                 {charCount} / {MAX_PROMPT_LENGTH}
               </span>

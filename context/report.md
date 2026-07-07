@@ -1,97 +1,101 @@
-## Scan Results — full — 2026-07-07
+# Scan Results — full — 2026-07-07
 
-### 🔴 Critical
-- None.
+> **Verification (2026-07-07, second pass)**: All 18 findings below re-checked against the current code — every fix is correctly implemented. `tsc --noEmit`, `eslint --quiet`, and `next build` all pass clean. The CSP fix went further than suggested: the header moved from `next.config.ts` to Clerk's strict nonce-based CSP in `proxy.ts` (`lib/security/csp-directives.ts`), removing `unsafe-inline`/`unsafe-eval` entirely. Two minor follow-ups from reviewing the new code:
+> - `hooks/strategy/useScriptComparisonSelection.ts:63-70` — `const json = await res.json()` is implicitly `any` and `json.error` goes straight to `toast.error`; convention elsewhere is `const json: unknown` + `messageFromApiErrorJson()`. (Low)
+> - `lib/scripts/stream-script-response.ts:16-24` and `hooks/strategy/useExplainScriptStream.ts:151-158` — the reader loops never call `decoder.decode()` (no args) after the loop to flush, so a multi-byte UTF-8 character split across the final chunk would be dropped. Pre-existing behavior carried over in the refactor; ASCII-heavy Pine output makes it unlikely in practice. (Low)
 
-### 🟠 High
-- **File**: `components/strategy/StrategyOutputCard.tsx` · **Lines**: 1–708 (full file)
-  **Issue**: 708-line client component acts as multi-panel orchestrator for 7 tabs (`script`, `breakdown`, `checklist`, `health`, `backtest`, `alerts`, `compare`). Owns cross-panel reset keys, export markdown + snapshot flows, variant strip state, success pulse, refine chat integration, and tab coordination. Violates "one job per component" and "functions under 50 lines" from code-standards.md and AGENTS.md.
-  **Fix**: Reduce to thin layout host + tab primitives. Extract per-panel orchestration/state (e.g. dedicated hooks for export coordination, compare, reset key fan-out) into focused modules.
-  **Re-validation**: ✅ **Confirmed.** `wc -l` = 708. Child panels (`HealthScorePanel`, `BacktestSummaryPanel`, `ExplainScriptPanel`, etc.) are already extracted; the remaining problem is the orchestrator's prop surface (~50 props), tab wiring, and local export/snapshot coordination — not missing panel splits.
+## 🔴 Critical
+None found.
 
-- **File**: `components/forge/ForgeChat.tsx` · **Lines**: 1–595
-  **Issue**: Large client component owns streaming chat (`useChat`), message list integration, tool call rendering, research banner, scroll-to-bottom, input wiring, max-conversation guard, and multiple side effects. Does too many jobs in one file.
-  **Fix**: Split message list / tool rendering concerns, input, and orchestration into smaller sub-components or hooks while keeping the transport and high-level flow.
-  **Re-validation**: ⚠️ **Partially overstated.** `wc -l` = 595. Message list, tool cards, typing indicator, input, scroll FAB, and empty state are already delegated to `ForgeMessageList`, `ForgeToolCallCard`, `ForgeInput`, `ForgeScrollToBottomFab`, `ForgeEmptyState`. The file is still a valid structural concern (~595 lines of `useChat` transport, hydration, conversation lifecycle, research banner, and scroll orchestration), but "owns tool call rendering" is inaccurate — that lives in `ForgeMessageList`.
+## 🟠 High
 
-- **File**: `app/api/forge/route.ts` · **Lines**: 47–236 (POST handler) · file total 311
-  **Issue**: The POST handler function is monolithic (~190 lines of orchestration): pre-flight sequence (protect + parse + user + conv + cap + model + key + lock), parallel loads, system prompt, message assembly, streamText + tools + stopWhen + onFinish (persist title + messages + tips + memory extraction), lock release, and multiple catch paths. Violates size and single-responsibility rules.
-  **Fix**: Extract pre-flight into a helper, persist logic into `lib/agent/persist-turn.ts` (already partially there) or dedicated coordinator; keep route as thin composition.
-  **Re-validation**: ✅ **Confirmed.** POST spans lines 47–236. `persist-turn.ts` and `maybeExtractAndPersistMemory` already absorb some logic; the route still coordinates the full turn inline.
+- ✅ **File**: `app/api/comparison-reports/route.ts` · **Line**: 48-51
+  **Issue**: The `POST` catch block returns `err.message` directly to the client (`apiError(message, 502)`). The try block wraps a Drizzle DB write and an xAI `generateObject` call, so a failure can leak driver/SQL internals (column/constraint names, query fragments) to the caller — every sibling AI route returns a fixed generic message instead.
+  **Fix**: Log the real error server-side (`devWarn`) and return a fixed generic string, matching the pattern used in the other 22 routes.
 
-- **File**: `hooks/strategy/useStrategyGenerationSession.ts` · **Lines**: 126, 195, 213
-  **Issue**: Two `useCallback` hooks trigger `react-hooks/exhaustive-deps` for missing `'core'`. Also `catch (e)` at line 126 is unused.
-  **Fix**: Prefix unused error as `_e` or use `catch {}`. For deps: either add `core`, destructure stable refs with an eslint-disable comment, or restructure.
-  **Re-validation**: ⚠️ **Lint confirmed; stale-closure risk overstated.** ESLint reports missing `core` on `loadVariant` (195) and `handleGenerate` (213), but both callbacks already list the specific methods they use (`core.setGeneratedScript`, `core.handleGenerate`) — stable `useCallback` refs from `useStrategyGenerationCore`. Adding whole `core` would satisfy the linter but is not required for correctness. Unused `catch (e)` at line 126 is a real lint issue.
+- ✅ **File**: `components/forge/ForgeConversationSidebar.tsx` · **Line**: 1-458
+  **Issue**: 458-line file mixes the sidebar list, inline rename editing, a dropdown action menu, and a delete-confirmation dialog (204-234) in one module; `ConversationButton`/`ConversationRenameRow`/`ConversationActions` are already defined in-file (239-443) but never split out.
+  **Fix**: Extract the delete dialog into `components/forge/DeleteConversationDialog.tsx` and move the three sub-components into their own files under `components/forge/`.
 
-### 🟡 Medium
-- **File**: `app/api/generate-variants/route.ts` · **Lines**: 5, 53
-  **Issue**: Imports `apiError` (never used; `jsonApiError` / `apiSuccess` used instead). Destructures `model` from parsed data but never uses the local binding (`entitlement.model` is used at line 81).
-  **Fix**: Remove unused import and `model` from destructure.
-  **Re-validation**: ✅ **Confirmed.** ESLint warnings at lines 5 and 53.
+- ✅ **File**: `components/strategy/ScriptHistory.tsx` · **Line**: 1-391 (keyboard nav 169-243, compare-select 90-141, inline fetch 122-135)
+  **Issue**: Mixes sheet UI, a custom keyboard-navigation engine, multi-select-for-comparison state, and a raw `fetch('/api/comparison-reports', …)` call inline — even though this same file already delegates comparable logic to `useHistoryFilters`/`useHistoryEntryEditing`.
+  **Fix**: Extract the keyboard-nav effect into `hooks/strategy/useHistoryKeyboardNav.ts` and the compare-selection + fetch logic into `hooks/strategy/useScriptComparisonSelection.ts`.
 
-- **File**: `actions/export-snapshot.ts` · **Line**: 40
-  **Issue**: `catch (err)` parameter defined but never referenced. Intentional sanitized error path is correct.
-  **Fix**: Rename to `catch (_err)` or `catch {}`.
-  **Re-validation**: ✅ **Confirmed.** ESLint warning at line 40.
+- ✅ **File**: `components/strategy/ExplainScriptPanel.tsx` · **Line**: 57-253
+  **Issue**: A full state machine (phase, cache `Map` ref, `AbortController` ref, streamed-fetch reader loop against `/api/explain-script`) is inlined ahead of the render with no extraction, despite the established `hooks/strategy/` convention for this exact pattern.
+  **Fix**: Extract into `hooks/strategy/useExplainScriptStream.ts`; leave the component to just render `phase`/`text`.
 
-- **File**: `app/api/progress/route.ts` · **Line**: 1
-  **Issue**: Imports `apiError` but the route only returns `apiSuccess` or delegates to `protectDataRoute` error responses.
-  **Fix**: Remove the unused import.
-  **Re-validation**: ✅ **Confirmed.** ESLint warning at line 1.
+- ✅ **File**: `hooks/useScriptGeneration.ts` · **Line**: 48-169 (`generate`, ~120 lines) and 171-274 (`refine`, ~103 lines)
+  **Issue**: Both functions are well over the 50-line convention and duplicate the same logic three times over: the reader/decoder streaming loop (127-139 vs. 230-242), the HTTP-status-to-toast mapping (76-117 vs. 201-220), and the "parse assumptions block on finish" step (153-165 vs. 259-269).
+  **Fix**: Extract a shared `streamScriptResponse(res, { onChunk })` helper and a shared `mapGenerationErrorStatus(status)` helper used by both `generate` and `refine`.
 
-- **File**: `components/forge/ForgeExperience.tsx` · **Lines**: 4, 52
-  **Issue**: `useAuth` imported; `isLoaded` and `isSignedIn` destructured but never referenced anywhere in the file.
-  **Fix**: Remove the import and destructuring (auth gating is at route/proxy level).
-  **Re-validation**: ✅ **Confirmed.** ESLint warnings at line 52; `useAuth` appears only on import + call.
+## 🟡 Medium
 
-- **File**: `lib/agent/memory-extraction.ts` · **Line**: 115
-  **Issue**: `const { seenTips: _seen, ...profileForPrompt } = existingProfile` — `_seen` is assigned but flagged as unused.
-  **Fix**: `void _seen;` after destructure, or omit via a small helper that strips `seenTips`.
-  **Re-validation**: ✅ **Confirmed.** ESLint warning at line 115.
+- ✅ **File**: `lib/export/snapshot-renderers.ts` · **Line**: 163-170 (`renderBacktest`)
+  **Issue**: `b.markdown` (free-form LLM output, up to 8000 chars) is interpolated into the exported HTML with only a `\n → <br>` replacement — no `escapeHtml()`, unlike every other field in this file (`renderHealth`, title above it on line 167). This markdown is model output driven by attacker-influenceable prompt/script input to `/api/backtesting-summary`, and lands in a self-contained `.html` snapshot the user downloads and opens/shares (`actions/export-snapshot.ts`). A model coaxed into emitting `<script>`/`<img onerror>` text would have it execute when the file is opened.
+  **Fix**: Run `b.markdown` (or each underlying bullet) through `escapeHtml()` before interpolation, same as the other renderers in this file.
 
-- **File**: `hooks/strategy/useStrategyGenerationSession.ts` · **Line**: 126
-  **Issue**: `catch (e)` unused (separate from the exhaustive-deps item above).
-  **Fix**: `catch {}` or `catch (_e)`.
-  **Re-validation**: ✅ **Confirmed.** (Grouped with High item; listed here for lint inventory parity.)
+- ✅ **File**: `app/(app)/forge/page.tsx` · **Line**: 46-51
+  **Issue**: `listConversationsForUser(dbUserId)` and `loadSeedScript(dbUserId, scriptIdParam)` are independent DB reads but are awaited sequentially rather than via `Promise.all`, adding a full extra round-trip to every `/forge` load.
+  **Fix**: Await `searchParams` alongside the existing `Promise.all` at line 41, then run both reads through `Promise.all`.
 
-### 🔵 Low
-- Several files contain long functions / components (>50–100+ lines) that are currently single-purpose but would benefit from further internal extraction for readability (e.g. parts of `lib/agent/tool-runners.ts`, `lib/agent/memory-extraction.ts`, `lib/db/*` helpers). No correctness impact.
-- Lint reports **10 warnings, 0 errors** (unchanged since original scan). `npx tsc --noEmit` is clean.
-- Minor: some catch paths in AI routes only `console.warn` under `NODE_ENV === 'development'` (correct for prod sanitization, but could centralize dev logging).
+- ✅ **File**: `app/(app)/progress/page.tsx` · **Line**: whole file
+  **Issue**: No sibling `loading.tsx` exists for this route (unlike `/forge` and `/generate`), and `getProgressStats` does a DB read plus in-memory aggregation with no `Suspense` boundary, so navigation blocks on a blank screen.
+  **Fix**: Add `app/(app)/progress/loading.tsx` or wrap the dashboard in `<Suspense>`.
 
-### ❌ False positives
-- **None fully invalid.** Every lint warning reproduces on re-scan. Structural High items are real maintainability violations against project standards, not runtime bugs.
-- **Overstated (not false)**:
-  1. `useStrategyGenerationSession` "stale closure risk" — callbacks already depend on the specific `core.*` methods they call.
-  2. `ForgeChat` "owns tool call rendering" — delegated to `ForgeMessageList` / `ForgeToolCallCard`; orchestration size is the real issue.
+- ✅ **File**: `components/progress/ProgressDashboard.tsx`, `HealthScoreTrendChart.tsx`, `RiskThemesPanel.tsx`, `RefinementDepthPanel.tsx`, `MemoryInsightsPanel.tsx` · **Line**: 1 (directive)
+  **Issue**: All five are pure presentational components (no `useState`/`useEffect`/handlers) but carry `'use client'`, forcing the entire progress dashboard subtree into client JS/hydration unnecessarily.
+  **Fix**: Drop `'use client'` and render as Server Components, passing data straight from `progress/page.tsx`.
 
-### ✅ No issues found in:
-- **Security**: No hardcoded secrets, tokens, or keys in source (only `process.env.XAI_API_KEY` / Clerk keys via env; placeholders like "YOUR_API_KEY" are example data in normalize helpers). `NEXT_PUBLIC_*` limited to Clerk publishable key and Pro plan ID (intentionally public). All 24 API routes use `protectAiRoute` or `protectDataRoute` + ownership resolvers where applicable. Every route with a request body validates via Zod `safeParse` before logic or LLM calls (`progress` GET has no body — N/A). No raw SQL string concatenation (Drizzle + parameterized `sql` templates). Errors sanitized via `apiError` / envelope (no stacks, no raw LLM text). `dangerouslySetInnerHTML` only in `ScriptOutputHighlighted` (shiki) and `StrategyFingerprint` (deterministic SVG). No custom cookies; Clerk handles auth. Prompt injection surface limited (structured output + guardrails + tool input schemas). No unvalidated LLM outputs rendered to UI.
-- **Performance**: No N+1 query patterns on hot paths (`Promise.all` for recent+starred). Composite indexes on `scripts` and `agent_conversations` in `drizzle/schema.ts`. Shiki via dynamic `import()`. `loading.tsx` at `app/loading.tsx`, `app/(app)/generate/loading.tsx`, `app/(app)/forge/loading.tsx`. No raw `<img>`. Streaming on AI paths. Parallel loads in RSC entry points (e.g. Forge page).
-- **Code quality**: Zero `any` types in application source (only a comment in `lib/db/script-mapper.ts` mentioning `as any`). Strict TS clean. Consistent `{ success, data, error }` envelope on JSON routes and Server Actions. External input validated at boundaries. No active `TODO`/`FIXME` in source. Dead code limited to the 10 lint warnings above.
-- **Component structure**: Prior large files (`StrategyForm`, `ScriptHistory`, `HealthScorePanel`, `ScriptOutput`) remain thin after historical splits. Current growth isolated to the High items above. `'use client'` justified on all current client leaves. No client components wrapping server components unnecessarily. Forge and Strategy output areas already use sub-component extraction; remaining debt is orchestrator size.
+- ✅ **File**: `components/forge/ForgeAssistantMarkdown.tsx` · **Line**: 1-5
+  **Issue**: `react-markdown` + `remark-gfm` are imported eagerly at module scope and pulled into the initial `/forge` bundle via `ForgeExperience → ForgeChat → ForgeMessageList → ForgeAssistantMarkdown`, with no lazy-loading anywhere in that chain.
+  **Fix**: Load it via `next/dynamic(() => import(...), { ssr: false })` from `ForgeMessageList.tsx` so the markdown parser loads only when a message needs rendering.
 
-**Verification performed (re-scan)**:
-- `npm run lint` → 10 warnings, 0 errors (identical to original scan)
-- `npx tsc --noEmit` → clean
-- `wc -l` on High-severity files (708 / 595 / 311)
-- Manual re-read of all flagged files and POST handler span
-- Spot-check: API route protection (24/24), `NEXT_PUBLIC_*`, `dangerouslySetInnerHTML`, `any` types, `loading.tsx` presence
+- ✅ **File**: `app/api/generate-variants/route.ts` · **Line**: 15-103 (POST, ~89 lines)
+  **Issue**: Mixes auth, entitlement checks, a manual extra-quota-deduction loop, prompt normalization, and parallel generation in a single function.
+  **Fix**: Extract the quota-deduction loop (35-48) into a small helper.
 
----
+- ✅ **File**: `app/api/generate/route.ts` · **Line**: 21-103 (POST, ~83 lines)
+  **Issue**: Mixes validation, template-entitlement gating, lock handling, and inline prompt-context building (70-80) that duplicates the builder-function pattern used elsewhere (e.g. `buildHealthScoreUserPrompt`).
+  **Fix**: Extract a `buildGenerateContextBlock()` helper.
 
-**After Scanning (per SCANNER.md)**
+- ✅ **File**: `app/api/health-score/route.ts` · **Line**: 60-132 (POST, ~73 lines)
+  **Issue**: Health-score generation and the "persist to `scripts.metadata`" side effect (103-126) are two separate concerns handled in one function.
+  **Fix**: Extract `persistHealthScoreIfOwned(clerkId, scriptId, result)`.
 
-Do not automatically act on findings. This report is a permanent record.
+- ✅ **File**: `components/forge/ForgeChat.tsx` · **Line**: 185-209
+  **Issue**: An inline `useEffect` fetches `/api/scripts` to resolve a script name, duplicating the fetch-in-hook pattern this same file otherwise follows (`useForgeChatTransport`, `useForgeConversationHydration`, `useForgeChatScroll`, `useForgeResearchHandoff`).
+  **Fix**: Move this effect into `useForgeConversationHydration` or a new `hooks/forge/useActiveScriptName.ts`.
 
-**Re-validation summary**: Original scan is **accurate**. No findings were fixed since the first run; all 10 lint warnings still present. Two descriptions were slightly overstated (ForgeChat tool rendering ownership; exhaustive-deps stale-closure severity). High-severity items are **standards/maintainability** issues, not security or correctness defects.
+- ✅ **File**: `components/strategy/GeneratorCommandMenu.tsx` · **Line**: 188-287
+  **Issue**: The "View" `CommandGroup` repeats an identical `CommandItem` block seven times, differing only in tab id and label.
+  **Fix**: Derive from a `const TAB_COMMANDS = [...]` array and `.map()` over it.
 
-For quick wins, low-risk self-contained items (lint cleanups only) could be candidates to add to `context/progress-tracker.md` as a new feature/task:
+## 🔵 Low
 
-- Remove unused imports/vars flagged by lint (5–6 sites)
-- Fix or document exhaustive-deps warnings (1 hook — prefer stable method refs + targeted eslint comment over adding whole `core`)
+- ✅ **File**: `next.config.ts` · **Line**: 20
+  **Issue**: CSP `script-src` includes `'unsafe-inline' 'unsafe-eval'`. Not a standalone bug (commonly required for Clerk/Next.js), but it means CSP provides no mitigation if the `renderBacktest` XSS gap above (or any future unescaped-output bug) is triggered.
+  **Fix**: Move to a nonce-based CSP once feasible, as defense-in-depth.
 
-Would you like me to add any low-risk fixes to `context/progress-tracker.md` as a new feature?
+- ✅ **File**: `components/strategy/StrategyInputsCard.tsx:150-159` and `components/strategy/AlertTemplateCard.tsx:66-73`
+  **Issue**: Near-identical pill/badge markup duplicated verbatim in two files; no shared `Badge` component exists in `components/ui/`.
+  **Fix**: Add `components/ui/badge.tsx` and use it in both.
 
-Only low-risk, self-contained, one-file changes unrelated to unimplemented features would be proposed.
+- ✅ **File**: `lib/agent/ui-messages.ts` · **Line**: 48-126 (`agentMessagesToUIMessages`, ~78 lines)
+  **Issue**: Exceeds the 50-line convention, handling three message roles in one function.
+  **Fix**: Split per-role handling into helper functions, parallel to the existing `toolPartFromCall`/`toolPartFromResult`.
+
+- ✅ **File**: `hooks/useForgeConversations.ts` · **Line**: 50-168
+  **Issue**: `createConversation`, `renameConversation`, `deleteConversation` each repeat the same fetch → optimistic-update → error-toast → rollback shape.
+  **Fix**: Factor a shared `withOptimisticMutation` helper.
+
+- ✅ **File**: Multiple — `components/forge/ForgeExperience.tsx:108`, `components/generate/GenerateExperience.tsx:60`, `components/forge/ScriptPickerDialog.tsx:49`, `components/strategy/ExplainScriptPanel.tsx:132`
+  **Issue**: Several components call `fetch` directly instead of going through a hook, inconsistent with the established `hooks/*` data-fetching convention (`useCollections.ts`, `useComparisonReports.ts`).
+  **Fix**: Move these into small dedicated hooks to match convention.
+
+## ✅ No issues found in
+
+- **Security**: Auth/ownership — all 23 API routes correctly use `protectAiRoute`/`protectDataRoute`, enforce ownership on PATCH/DELETE via `resolveOwnedScriptRoute`/`resolveOwnedConversationRoute`/`resolveOwnedCollectionRoute`, and validate bodies with Zod. No hardcoded secrets; both `NEXT_PUBLIC_` vars are intentionally public (Clerk publishable key, a plan-ID string). No raw SQL concatenation — all `sql\`...\`` usages are parameterized. Prompt injection — `lib/agent/guardrails.ts` and `lib/agent/system-prompt.ts` treat embedded content as data. No cookie-setting code (Clerk manages sessions). `dangerouslySetInnerHTML` usages elsewhere render deterministic, non-user-controlled output.
+- **Performance**: No N+1 patterns in `lib/db/*.ts` (all use batched/`inArray`/`Promise.all`). Drizzle schema indexes match query patterns. No `<img>` tags found anywhere. `/generate` page and its `loading.tsx` are fine.
+- **Code quality**: Zero real `any` violations found. ESLint spot-checks across `lib/db`, `lib/export`, `lib/scripts`, `lib/agent`, `lib/ai`, and all API routes came back clean (no unused imports/vars). All 23 routes consistently use the `{ success, data, error }` envelope (streaming routes correctly bypass it only for the streamed body). `actions/export-snapshot.ts` already returns the correct envelope shape and re-checks entitlement server-side.
+- **Component structure**: `StrategyOutputCard.tsx`, `ProCheckoutDialog.tsx`, `HistoryEntry.tsx` are large but already cleanly decomposed. `'use client'` placement is otherwise appropriate — top-level "Experience" components own real state, and other pages are Server Components except where genuinely interactive.

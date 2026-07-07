@@ -17,6 +17,7 @@ import { ResearchScriptBanner } from '@/components/forge/ResearchScriptBanner';
 import { SeedScriptBanner } from '@/components/forge/SeedScriptBanner';
 import { useForgeChatScroll } from '@/hooks/forge/useForgeChatScroll';
 import { useForgeChatTransport } from '@/hooks/forge/useForgeChatTransport';
+import { useActiveScriptName } from '@/hooks/forge/useActiveScriptName';
 import { useForgeConversationHydration } from '@/hooks/forge/useForgeConversationHydration';
 import { useForgeResearchHandoff } from '@/hooks/forge/useForgeResearchHandoff';
 
@@ -182,31 +183,11 @@ export function ForgeChat({
     [onUpdateScriptId, setActiveScriptId, setActiveScriptName],
   );
 
-  useEffect(() => {
-    if (activeScriptId == null || activeScriptName != null) return;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch('/api/scripts');
-        const json: unknown = await res.json().catch(() => null);
-        if (cancelled || !res.ok) return;
-
-        const list =
-          (json as { data?: { scripts?: SavedScript[] } })?.data?.scripts ?? [];
-        const match = list.find((s) => Number.parseInt(s.id, 10) === activeScriptId);
-        if (match && !cancelled) {
-          setActiveScriptName(match.name ?? null);
-        }
-      } catch {
-        /* banner falls back to "Untitled strategy" */
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeScriptId, activeScriptName, setActiveScriptName]);
+  useActiveScriptName({
+    activeScriptId,
+    activeScriptName,
+    setActiveScriptName,
+  });
 
   const seedScriptDbId = useMemo(
     () => parseSavedScriptId(seedScript?.id),

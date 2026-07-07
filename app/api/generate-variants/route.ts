@@ -7,10 +7,7 @@ import { protectAiRoute, jsonApiError } from '@/lib/api/protected-ai-route';
 import { getVariantCountForPlan, resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import { buildVariantUserPrompt, VARIANT_DEFINITIONS, VARIANT_AXES, type VariantAxis } from '@/lib/ai/prompts/variants';
-import {
-  freeUserRatelimit,
-  proUserRatelimit,
-} from '@/lib/rate-limit/upstash';
+import { deductExtraVariantQuota } from '@/lib/rate-limit/deduct-extra-variant-quota';
 
 export async function POST(req: Request) {
   const guard = await protectAiRoute(req);
@@ -29,23 +26,12 @@ export async function POST(req: Request) {
 
   const variantCount = getVariantCountForPlan(guard.ctx.plan);
 
-  // Deduct additional quota slots for variants beyond the 1 consumed by protectAiRoute.
-  // Free (N=1): no extra. Pro (N=3): two extra .limit() calls before any generation.
-  const limiter = guard.ctx.plan === 'pro' ? proUserRatelimit : freeUserRatelimit;
-  for (let i = 1; i < variantCount; i += 1) {
-    const extra = await limiter.limit(guard.ctx.userId);
-    if (!extra.success) {
-      return jsonApiError(
-        429,
-        guard.ctx.plan === 'pro'
-          ? 'Daily limit reached. Try again tomorrow.'
-          : 'Free tier limit reached (3 AI requests/day). Upgrade to Pro for unlimited access.',
-        extra.reset
-          ? { 'Retry-After': String(Math.ceil((extra.reset - Date.now()) / 1000)) }
-          : undefined,
-      );
-    }
-  }
+  const quota = await deductExtraVariantQuota(
+    guard.ctx.userId,
+    guard.ctx.plan,
+    variantCount,
+  );
+  if (!quota.ok) return quota.response;
 
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) return missingKey;

@@ -10,6 +10,7 @@ import {
 } from '@/lib/db';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import { generateAndSaveComparisonReport } from '@/lib/ai/comparison-report-runner';
+import { devWarn } from '@/lib/dev-log';
 
 export async function POST(req: Request) {
   const guard = await protectAiRoute(req);
@@ -45,10 +46,9 @@ export async function POST(req: Request) {
       model: entitlement.model,
     });
     return apiSuccess({ report });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Comparison report generation failed';
-    return apiError(message, 502);
+  } catch (error) {
+    devWarn('[comparison-reports] generateAndSaveComparisonReport failed', error);
+    return apiError('Failed to generate comparison report. Please try again.', 502);
   }
 }
 

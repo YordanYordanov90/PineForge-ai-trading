@@ -52,77 +52,99 @@ export function agentMessagesToUIMessages(
 
   for (let i = 0; i < history.length; i += 1) {
     const msg = history[i];
-
-    if (msg.role === 'user') {
-      out.push({
-        id: nextHydratedId(),
-        role: 'user',
-        parts: [{ type: 'text', text: msg.content }],
-      } as UIMessage);
-      continue;
-    }
-
-    if (msg.role === 'assistant') {
-      if (msg.tip) {
-        const tipPayload = msg.tip;
-        out.push({
-          id: nextHydratedId(),
-          role: 'assistant',
-          parts: [
-            {
-              type: 'data-tip' as const,
-              data: tipPayload,
-            },
-          ] as UIMessage['parts'],
-        } as UIMessage);
-        continue;
-      }
-
-      const next = history[i + 1];
-      const matchedResults =
-        next && next.role === 'tool' && next.toolResults
-          ? next.toolResults
-          : [];
-
-      const parts: ForgeUIPart[] = [];
-      if (msg.content && msg.content.length > 0) {
-        parts.push({ type: 'text', text: msg.content });
-      }
-
-      for (const call of msg.toolCalls ?? []) {
-        parts.push(toolPartFromCall(call, matchedResults));
-      }
-
-      if (parts.length === 0) continue;
-
-      out.push({
-        id: nextHydratedId(),
-        role: 'assistant',
-        parts: parts as UIMessage['parts'],
-      } as UIMessage);
-
-      if (matchedResults.length > 0) {
-        // skip the tool row — its results are folded into the
-        // assistant message we just emitted
-        i += 1;
-      }
-      continue;
-    }
-
-    if (msg.role === 'tool' && msg.toolResults) {
-      const parts: ForgeUIPart[] = msg.toolResults.map((result) =>
-        toolPartFromResult(result),
-      );
-      if (parts.length === 0) continue;
-      out.push({
-        id: nextHydratedId(),
-        role: 'assistant',
-        parts: parts as UIMessage['parts'],
-      } as UIMessage);
+    const converted = convertAgentMessage(msg, history, i);
+    if (!converted) continue;
+    out.push(converted.message);
+    if (converted.skipNext) {
+      i += 1;
     }
   }
 
   return out;
+}
+
+function convertAgentMessage(
+  msg: AgentMessage,
+  history: ReadonlyArray<AgentMessage>,
+  index: number,
+): { message: UIMessage; skipNext: boolean } | null {
+  if (msg.role === 'user') {
+    return { message: userMessageToUI(msg), skipNext: false };
+  }
+  if (msg.role === 'assistant') {
+    return assistantMessageToUI(msg, history, index);
+  }
+  if (msg.role === 'tool' && msg.toolResults) {
+    const message = toolMessageToUI(msg);
+    return message ? { message, skipNext: false } : null;
+  }
+  return null;
+}
+
+function userMessageToUI(msg: AgentMessage): UIMessage {
+  return {
+    id: nextHydratedId(),
+    role: 'user',
+    parts: [{ type: 'text', text: msg.content }],
+  } as UIMessage;
+}
+
+function assistantMessageToUI(
+  msg: AgentMessage,
+  history: ReadonlyArray<AgentMessage>,
+  index: number,
+): { message: UIMessage; skipNext: boolean } | null {
+  if (msg.tip) {
+    return {
+      message: {
+        id: nextHydratedId(),
+        role: 'assistant',
+        parts: [
+          {
+            type: 'data-tip' as const,
+            data: msg.tip,
+          },
+        ] as UIMessage['parts'],
+      } as UIMessage,
+      skipNext: false,
+    };
+  }
+
+  const next = history[index + 1];
+  const matchedResults =
+    next && next.role === 'tool' && next.toolResults ? next.toolResults : [];
+
+  const parts: ForgeUIPart[] = [];
+  if (msg.content && msg.content.length > 0) {
+    parts.push({ type: 'text', text: msg.content });
+  }
+
+  for (const call of msg.toolCalls ?? []) {
+    parts.push(toolPartFromCall(call, matchedResults));
+  }
+
+  if (parts.length === 0) return null;
+
+  return {
+    message: {
+      id: nextHydratedId(),
+      role: 'assistant',
+      parts: parts as UIMessage['parts'],
+    } as UIMessage,
+    skipNext: matchedResults.length > 0,
+  };
+}
+
+function toolMessageToUI(msg: AgentMessage): UIMessage | null {
+  const parts: ForgeUIPart[] = (msg.toolResults ?? []).map((result) =>
+    toolPartFromResult(result),
+  );
+  if (parts.length === 0) return null;
+  return {
+    id: nextHydratedId(),
+    role: 'assistant',
+    parts: parts as UIMessage['parts'],
+  } as UIMessage;
 }
 
 function toolPartFromCall(

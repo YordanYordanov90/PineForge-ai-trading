@@ -67,7 +67,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-svh w-full flex-col">
         <ThemeProvider>
-          <ClerkProvider>
+          <ClerkProvider dynamic>
             {children}
           </ClerkProvider>
           <Toaster />

@@ -2,10 +2,16 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
 import type { GrokModelId } from '@/lib/types';
 import type { StructuredInputsValue } from '@/components/strategy/StructuredInputs';
-import { parseAssumptionsBlock, type StrategyAssumptions } from '@/lib/ai/parse-assumptions';
+import type { StrategyAssumptions } from '@/lib/ai/parse-assumptions';
+import {
+  mapGenerationErrorStatus,
+  mapRefineErrorStatus,
+  type GenerationRateLimitError,
+} from '@/lib/scripts/generation-errors';
+import { finalizeStreamedScript } from '@/lib/scripts/finalize-streamed-script';
+import { streamScriptResponse } from '@/lib/scripts/stream-script-response';
 
 type GeneratePayload = {
   prompt: string;
@@ -20,10 +26,7 @@ type UseScriptGenerationOptions = {
   onChunk?: () => void;
 };
 
-export type GenerationRateLimitError = {
-  message: string;
-  showUpgradeCta: boolean;
-};
+export type { GenerationRateLimitError };
 
 export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   const abortRef = useRef<AbortController | null>(null);
@@ -34,9 +37,6 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
   const [isRefining, setIsRefining] = useState(false);
   const [genStartTime, setGenStartTime] = useState<number | null>(null);
   const [genElapsed, setGenElapsed] = useState<number | null>(null);
-  // Spec 60: assumptions extracted client-side from generation/refine output.
-  // The streamed text may briefly contain the === ASSUMPTIONS block at the tail;
-  // on completion we swap generatedScript to the clean version and surface this.
   const [assumptions, setAssumptions] = useState<StrategyAssumptions | null>(null);
 
   const isOutputBusy = isGenerating || isRefining;
@@ -75,69 +75,20 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
-          if (res.status === 429) {
-            const message = messageFromApiErrorJson(
-              maybeJson,
-              'Too many requests. Please try again in a moment.',
-              'Too many requests. Please try again in a moment.',
-            );
-            setGenerationError({
-              message,
-              showUpgradeCta: message.includes('Upgrade to Pro'),
-            });
-            return;
+          const mapped = mapGenerationErrorStatus(res.status, maybeJson);
+          if (mapped.kind === 'rate_limit') {
+            setGenerationError(mapped.error);
+          } else {
+            toast.error(mapped.message);
           }
-          if (res.status === 403) {
-            toast.error(
-              messageFromApiErrorJson(
-                maybeJson,
-                'This model requires a Pro plan.',
-                'This model requires a Pro plan.',
-              ),
-            );
-            return;
-          }
-          if (res.status === 409) {
-            toast.error(
-              messageFromApiErrorJson(
-                maybeJson,
-                'A generation is already in progress.',
-                'A generation is already in progress.',
-              ),
-            );
-            return;
-          }
-          toast.error(
-            messageFromApiErrorJson(
-              maybeJson,
-              'Invalid input. Please check your fields.',
-              'Request failed. Please try again.',
-            ),
-          );
           return;
         }
 
-        if (!res.body) {
-          finalScript = await res.text();
-          setGeneratedScript(finalScript);
-          setGenElapsed(Math.round((Date.now() - startTime) / 100) / 10);
-          return;
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            finalScript += chunk;
-            setGeneratedScript((prev) => prev + chunk);
-            options.onChunk?.();
-          }
-        }
-
+        finalScript = await streamScriptResponse(res, (chunk) => {
+          setGeneratedScript((prev) => prev + chunk);
+          options.onChunk?.();
+        });
+        setGeneratedScript(finalScript);
         setGenElapsed(Math.round((Date.now() - startTime) / 100) / 10);
       } catch (e: unknown) {
         if (e instanceof DOMException && e.name === 'AbortError') {
@@ -151,16 +102,11 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
         setIsGenerating(false);
         abortRef.current = null;
         if (!generationAborted && finalScript.trim()) {
-          // Spec 60: extract assumptions (if present) and ensure only clean Pine Script
-          // is committed to state and passed to history / onGenerationComplete.
-          const parsed = parseAssumptionsBlock(finalScript);
-          const cleanScript = parsed.cleanScript || finalScript.trim();
-          const extracted = parsed.assumptions ?? null;
+          const { cleanScript, assumptions: extracted } = finalizeStreamedScript(finalScript);
           setGeneratedScript(cleanScript);
           setAssumptions(extracted);
           options.onGenerationComplete?.(cleanScript, payload, extracted);
         } else if (!generationAborted) {
-          // No script produced — clear any stale assumptions
           setAssumptions(null);
         }
       }
@@ -200,47 +146,16 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
 
         if (!res.ok) {
           const maybeJson: unknown = await res.json().catch(() => null);
-          const fallback =
-            res.status === 403
-              ? 'This model requires a Pro plan.'
-              : res.status === 409
-                ? 'A generation is already in progress.'
-                : res.status === 429
-                  ? 'Too many requests. Please try again in a moment.'
-                  : 'Request failed. Please try again.';
-          toast.error(
-            messageFromApiErrorJson(
-              maybeJson,
-              'Invalid input. Please check your refinement.',
-              fallback,
-            ),
-          );
+          toast.error(mapRefineErrorStatus(res.status, maybeJson));
           setGeneratedScript(previousScript);
           return;
         }
 
-        if (!res.body) {
-          finalScript = await res.text();
-          setGeneratedScript(finalScript);
-          setGenElapsed(Math.round((Date.now() - startTime) / 100) / 10);
-          refineSucceeded = true;
-          return;
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            finalScript += chunk;
-            setGeneratedScript((prev) => prev + chunk);
-            options.onChunk?.();
-          }
-        }
-
+        finalScript = await streamScriptResponse(res, (chunk) => {
+          setGeneratedScript((prev) => prev + chunk);
+          options.onChunk?.();
+        });
+        setGeneratedScript(finalScript);
         setGenElapsed(Math.round((Date.now() - startTime) / 100) / 10);
         refineSucceeded = true;
       } catch (e: unknown) {
@@ -257,11 +172,7 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
         setIsRefining(false);
         abortRef.current = null;
         if (!refineAborted && refineSucceeded && finalScript.trim()) {
-          // Spec 60: refine also runs the updated system prompt and may emit an
-          // assumptions block. Extract + clean exactly like generation.
-          const parsed = parseAssumptionsBlock(finalScript);
-          const cleanScript = parsed.cleanScript || finalScript.trim();
-          const extracted = parsed.assumptions ?? null;
+          const { cleanScript, assumptions: extracted } = finalizeStreamedScript(finalScript);
           setGeneratedScript(cleanScript);
           setAssumptions(extracted);
           options.onRefineComplete?.(cleanScript, extracted);
@@ -287,7 +198,6 @@ export function useScriptGeneration(options: UseScriptGenerationOptions = {}) {
     stop,
     generate,
     refine,
-    // Spec 60
     assumptions,
     setAssumptions,
   };

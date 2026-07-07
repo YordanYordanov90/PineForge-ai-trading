@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
+import { useScripts } from '@/hooks/useScripts';
 import type { SavedScript } from '@/lib/types';
 
 type ScriptPickerDialogProps = {
@@ -28,53 +28,22 @@ export function ScriptPickerDialog({
   onSelect,
   scripts: scriptsProp,
 }: ScriptPickerDialogProps) {
-  const [scripts, setScripts] = useState<SavedScript[]>(scriptsProp ?? []);
-  const [loading, setLoading] = useState(false);
+  const hasPrefetchedScripts = Boolean(scriptsProp && scriptsProp.length > 0);
+  const { scripts: fetchedScripts, loading } = useScripts({
+    enabled: open && !hasPrefetchedScripts,
+  });
+  const scripts = useMemo(
+    () => (hasPrefetchedScripts ? (scriptsProp ?? []) : fetchedScripts),
+    [hasPrefetchedScripts, scriptsProp, fetchedScripts],
+  );
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    if (!open) {
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
       setQuery('');
-      return;
     }
-    if (scriptsProp && scriptsProp.length > 0) {
-      setScripts(scriptsProp);
-      return;
-    }
-    // Fallback: fetch recent scripts (same source as history sheet)
-    let cancelled = false;
-    setLoading(true);
-    void (async () => {
-      try {
-        const res = await fetch('/api/scripts');
-        const json: unknown = await res.json().catch(() => null);
-        if (cancelled) return;
-        if (!res.ok) {
-          toast.error(
-            messageFromApiErrorJson(
-              json,
-              'Could not load scripts.',
-              'Could not load your script history.',
-            ),
-          );
-          setScripts([]);
-          return;
-        }
-        const list = (json as { data?: { scripts?: SavedScript[] } })?.data?.scripts ?? [];
-        setScripts(list);
-      } catch {
-        if (!cancelled) {
-          toast.error('Network error — could not load scripts.');
-          setScripts([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, scriptsProp]);
+    onOpenChange(next);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -97,7 +66,7 @@ export function ScriptPickerDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg">Load script from history</DialogTitle>

@@ -2,6 +2,7 @@ import {
   clerkMiddleware,
   createRouteMatcher,
 } from "@clerk/nextjs/server";
+import { clerkStrictCspOptions } from "@/lib/security/csp-directives";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -14,11 +15,16 @@ const isPublicRoute = createRouteMatcher([
 
 const isProtectedRoute = createRouteMatcher(["/generate(.*)", "/forge(.*)", "/reports(.*)"]);
 
-const clerkHandler = clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req) || !isPublicRoute(req)) {
-    await auth.protect();
-  }
-});
+const clerkHandler = clerkMiddleware(
+  async (auth, req) => {
+    if (isProtectedRoute(req) || !isPublicRoute(req)) {
+      await auth.protect();
+    }
+  },
+  {
+    contentSecurityPolicy: clerkStrictCspOptions,
+  },
+);
 
 export function proxy(
   ...args: Parameters<typeof clerkHandler>

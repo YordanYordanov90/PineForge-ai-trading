@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProgressStats } from '@/lib/db/progress-stats';
 import { HealthScoreTrendChart } from '@/components/progress/HealthScoreTrendChart';
 import { RiskThemesPanel } from '@/components/progress/RiskThemesPanel';

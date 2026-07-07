@@ -1,35 +1,15 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
-import {
-  Check,
-  FlaskConical,
-  MessageSquare,
-  MessageSquarePlus,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { FlaskConical, MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { ConversationActions } from '@/components/forge/ConversationActions';
+import { ConversationButton } from '@/components/forge/ConversationButton';
+import { ConversationRenameRow } from '@/components/forge/ConversationRenameRow';
+import { DeleteConversationDialog } from '@/components/forge/DeleteConversationDialog';
 import { groupConversationsByTime } from '@/lib/forge/conversation-groups';
+import { formatRelativeTime } from '@/lib/forge/format-relative-time';
+import { cn } from '@/lib/utils';
 import type { SavedConversation } from '@/lib/types';
 
 /**
@@ -201,258 +181,14 @@ export function ForgeConversationSidebar({
         )}
       </div>
 
-      <Dialog
-        open={Boolean(pendingDelete)}
+      <DeleteConversationDialog
+        conversation={pendingDelete}
+        isDeleting={isDeleting}
         onOpenChange={(open) => {
-          if (!open && !isDeleting) setPendingDelete(null);
+          if (!open) setPendingDelete(null);
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete conversation?</DialogTitle>
-            <DialogDescription>
-              This permanently removes &ldquo;{pendingDelete?.title?.trim() || 'New conversation'}&rdquo; and all of its messages. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setPendingDelete(null)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void confirmDelete()}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onConfirm={confirmDelete}
+      />
     </>
   );
-}
-
-type ConversationButtonProps = {
-  title: string;
-  relative: string;
-  type: 'general' | 'research';
-  isActive: boolean;
-  onClick: () => void;
-};
-
-function ConversationButton({
-  title,
-  relative,
-  type,
-  isActive,
-  onClick,
-}: ConversationButtonProps) {
-  const isResearch = type === 'research';
-  const Icon = isResearch ? FlaskConical : MessageSquare;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={isActive ? 'true' : undefined}
-      className="flex w-full min-w-0 flex-col items-start gap-0.5 pr-8 text-left"
-    >
-      <span className="flex w-full min-w-0 items-center gap-1.5">
-        <Icon
-          className={cn(
-            'size-3.5 shrink-0',
-            isResearch
-              ? 'text-amber-500 dark:text-amber-400'
-              : 'text-neon-600/70 dark:text-neon-400/60',
-          )}
-          aria-hidden
-        />
-        <span
-          className={cn(
-            'block min-w-0 flex-1 truncate text-sm font-medium',
-            isActive
-              ? 'text-neon-700 dark:text-neon-300'
-              : 'text-zinc-800 dark:text-zinc-200',
-          )}
-        >
-          {title}
-        </span>
-        {isResearch ? (
-          <span className="ml-1 shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 font-mono text-[8px] uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">
-            RESEARCH
-          </span>
-        ) : null}
-      </span>
-      <span className="pf-muted block pl-5 font-mono text-[10px] tabular-nums uppercase tracking-wide">
-        {relative}
-      </span>
-    </button>
-  );
-}
-
-type ConversationRenameRowProps = {
-  value: string;
-  onChange: (next: string) => void;
-  onSubmit: () => void | Promise<void>;
-  onCancel: () => void;
-  busy: boolean;
-};
-
-function ConversationRenameRow({
-  value,
-  onChange,
-  onSubmit,
-  onCancel,
-  busy,
-}: ConversationRenameRowProps) {
-  const ref = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    ref.current?.focus();
-    ref.current?.select();
-  }, []);
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      void onSubmit();
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onCancel();
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        ref={ref}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={handleKeyDown}
-        maxLength={200}
-        disabled={busy}
-        aria-label="Rename conversation"
-        className="pf-input h-7 px-2 text-sm"
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => void onSubmit()}
-        disabled={busy}
-        aria-label="Save rename"
-      >
-        <Check className="size-3" aria-hidden />
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        onClick={onCancel}
-        disabled={busy}
-        aria-label="Cancel rename"
-      >
-        <X className="size-3" aria-hidden />
-      </Button>
-    </div>
-  );
-}
-
-type ConversationActionsProps = {
-  onRename: () => void;
-  onDelete: () => void;
-};
-
-function ConversationActions({ onRename, onDelete }: ConversationActionsProps) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClickAway = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', onClickAway);
-    return () => window.removeEventListener('mousedown', onClickAway);
-  }, [open]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="absolute right-1.5 top-1.5 flex items-center"
-    >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Conversation actions"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((curr) => !curr)}
-        className={cn(
-          'opacity-0 transition-opacity group-hover/forge-conversation:opacity-100 focus-visible:opacity-100',
-          open && 'opacity-100',
-        )}
-      >
-        <MoreHorizontal className="size-3.5" aria-hidden />
-      </Button>
-
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-7 z-30 min-w-[10rem] overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onRename();
-            }}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            <Pencil className="size-3.5" aria-hidden />
-            Rename
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-rose-600 hover:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15"
-          >
-            <Trash2 className="size-3.5" aria-hidden />
-            Delete
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function formatRelativeTime(iso: string): string {
-  const parsed = new Date(iso).getTime();
-  if (!Number.isFinite(parsed)) return '';
-  const diffMs = Date.now() - parsed;
-  const diffMin = Math.round(diffMs / 60_000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.round(diffHr / 24);
-  if (diffDay === 1) return 'yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(parsed).toLocaleDateString();
 }

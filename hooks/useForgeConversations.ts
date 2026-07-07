@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
+import { readConversationPayload } from '@/lib/forge/chat-message-utils';
 import type { SavedConversation } from '@/lib/types';
 
 /**
@@ -39,6 +40,46 @@ type ConversationsState = {
   /** Bump `updatedAt` and (optionally) `title` after the chat persists a turn. */
   touchConversation: (id: number, patch?: { title?: string | null }) => void;
 };
+
+type OptimisticMutationMessages = {
+  apiErrorFallback: string;
+  apiErrorDefault: string;
+  networkErrorMessage: string;
+};
+
+async function withOptimisticMutation(
+  applyOptimistic: () => void,
+  rollback: () => void,
+  mutate: () => Promise<Response>,
+  messages: OptimisticMutationMessages,
+  onSuccess?: (json: unknown) => void,
+): Promise<boolean> {
+  applyOptimistic();
+
+  try {
+    const res = await mutate();
+    const json: unknown = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      rollback();
+      toast.error(
+        messageFromApiErrorJson(
+          json,
+          messages.apiErrorFallback,
+          messages.apiErrorDefault,
+        ),
+      );
+      return false;
+    }
+
+    onSuccess?.(json);
+    return true;
+  } catch {
+    rollback();
+    toast.error(messages.networkErrorMessage);
+    return false;
+  }
+}
 
 export function useForgeConversations(
   initial: SavedConversation[],
@@ -96,42 +137,33 @@ export function useForgeConversations(
       if (!trimmed) return false;
 
       const prev = conversations;
-      setConversations((curr) =>
-        curr.map((c) => (c.id === id ? { ...c, title: trimmed } : c)),
-      );
-
-      try {
-        const res = await fetch(`/api/forge/conversations/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: trimmed }),
-        });
-        const json: unknown = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          setConversations(prev);
-          toast.error(
-            messageFromApiErrorJson(
-              json,
-              'Could not rename conversation.',
-              'Could not rename this conversation.',
-            ),
-          );
-          return false;
-        }
-
-        const updated = readConversationPayload(json);
-        if (updated) {
+      return withOptimisticMutation(
+        () => {
           setConversations((curr) =>
-            curr.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+            curr.map((c) => (c.id === id ? { ...c, title: trimmed } : c)),
           );
-        }
-        return true;
-      } catch {
-        setConversations(prev);
-        toast.error('Network error — rename failed.');
-        return false;
-      }
+        },
+        () => setConversations(prev),
+        () =>
+          fetch(`/api/forge/conversations/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: trimmed }),
+          }),
+        {
+          apiErrorFallback: 'Could not rename conversation.',
+          apiErrorDefault: 'Could not rename this conversation.',
+          networkErrorMessage: 'Network error — rename failed.',
+        },
+        (json) => {
+          const updated = readConversationPayload(json);
+          if (updated) {
+            setConversations((curr) =>
+              curr.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+            );
+          }
+        },
+      );
     },
     [conversations],
   );
@@ -139,30 +171,21 @@ export function useForgeConversations(
   const deleteConversation = useCallback(
     async (id: number): Promise<boolean> => {
       const prev = conversations;
-      setConversations((curr) => curr.filter((c) => c.id !== id));
-
-      try {
-        const res = await fetch(`/api/forge/conversations/${id}`, {
-          method: 'DELETE',
-        });
-        if (!res.ok) {
-          setConversations(prev);
-          const json: unknown = await res.json().catch(() => null);
-          toast.error(
-            messageFromApiErrorJson(
-              json,
-              'Could not delete conversation.',
-              'Could not delete this conversation.',
-            ),
-          );
-          return false;
-        }
-        return true;
-      } catch {
-        setConversations(prev);
-        toast.error('Network error — delete failed.');
-        return false;
-      }
+      return withOptimisticMutation(
+        () => {
+          setConversations((curr) => curr.filter((c) => c.id !== id));
+        },
+        () => setConversations(prev),
+        () =>
+          fetch(`/api/forge/conversations/${id}`, {
+            method: 'DELETE',
+          }),
+        {
+          apiErrorFallback: 'Could not delete conversation.',
+          apiErrorDefault: 'Could not delete this conversation.',
+          networkErrorMessage: 'Network error — delete failed.',
+        },
+      );
     },
     [conversations],
   );
@@ -170,43 +193,33 @@ export function useForgeConversations(
   const updateScriptId = useCallback(
     async (id: number, scriptId: number | null): Promise<boolean> => {
       const prev = conversations;
-      // Optimistic update of the scriptId on the list item (sidebar + any consumers)
-      setConversations((curr) =>
-        curr.map((c) => (c.id === id ? { ...c, scriptId } : c)),
-      );
-
-      try {
-        const res = await fetch(`/api/forge/conversations/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scriptId }),
-        });
-        const json: unknown = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          setConversations(prev);
-          toast.error(
-            messageFromApiErrorJson(
-              json,
-              'Could not update attached script.',
-              'Could not attach or detach the script.',
-            ),
-          );
-          return false;
-        }
-
-        const updated = readConversationPayload(json);
-        if (updated) {
+      return withOptimisticMutation(
+        () => {
           setConversations((curr) =>
-            curr.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+            curr.map((c) => (c.id === id ? { ...c, scriptId } : c)),
           );
-        }
-        return true;
-      } catch {
-        setConversations(prev);
-        toast.error('Network error — script update failed.');
-        return false;
-      }
+        },
+        () => setConversations(prev),
+        () =>
+          fetch(`/api/forge/conversations/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scriptId }),
+          }),
+        {
+          apiErrorFallback: 'Could not update attached script.',
+          apiErrorDefault: 'Could not attach or detach the script.',
+          networkErrorMessage: 'Network error — script update failed.',
+        },
+        (json) => {
+          const updated = readConversationPayload(json);
+          if (updated) {
+            setConversations((curr) =>
+              curr.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+            );
+          }
+        },
+      );
     },
     [conversations],
   );
@@ -240,22 +253,4 @@ export function useForgeConversations(
     updateScriptId,
     touchConversation,
   };
-}
-
-/**
- * Extracts `{ conversation: SavedConversation }` out of the standard
- * `{ success, data, error }` envelope. Returns `null` for anything
- * unexpected so the caller surfaces an error instead of pretending
- * the call worked.
- */
-function readConversationPayload(
-  raw: unknown,
-): SavedConversation | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const envelope = raw as { data?: unknown };
-  if (!envelope.data || typeof envelope.data !== 'object') return null;
-  const payload = envelope.data as { conversation?: unknown };
-  const conversation = payload.conversation;
-  if (!conversation || typeof conversation !== 'object') return null;
-  return conversation as SavedConversation;
 }

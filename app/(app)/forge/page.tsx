@@ -38,17 +38,16 @@ export default async function ForgePage({ searchParams }: ForgePageProps) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect('/sign-in');
 
-  const [dbUserId, initialPlan] = await Promise.all([
+  const [{ scriptId: scriptIdParam }, dbUserId, initialPlan] = await Promise.all([
+    searchParams,
     getDbUserIdByClerk(clerkId),
     getUserPlanByClerkId(clerkId),
   ]);
 
-  const initialConversations: SavedConversation[] = dbUserId
-    ? await listConversationsForUser(dbUserId)
-    : [];
-
-  const { scriptId: scriptIdParam } = await searchParams;
-  const seedScript = await loadSeedScript(dbUserId, scriptIdParam);
+  const [initialConversations, seedScript] = await Promise.all([
+    dbUserId ? listConversationsForUser(dbUserId) : Promise.resolve([] as SavedConversation[]),
+    loadSeedScript(dbUserId, scriptIdParam),
+  ]);
 
   return (
     <div className="pf-page relative flex min-h-0 flex-1 flex-col overflow-hidden">

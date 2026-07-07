@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useForgeConversationTitleSync } from '@/hooks/forge/useForgeConversationTitleSync';
 import { useForgeConversations } from '@/hooks/useForgeConversations';
 import { UserPlanProvider } from '@/lib/providers/UserPlanContext';
 import { cn } from '@/lib/utils';
@@ -97,31 +98,8 @@ export function ForgeExperience({
     [conversations, activeId],
   );
 
-  const handleConversationActivity = useCallback(
-    (id: number) => {
-      // Re-fetch the freshly-bumped title from the server because the
-      // streaming endpoint auto-titles the first exchange. Doing a
-      // narrow GET keeps the response small and avoids drifting from
-      // the server-side canonical state.
-      void (async () => {
-        try {
-          const res = await fetch(`/api/forge/conversations/${id}`);
-          const json: unknown = await res.json().catch(() => null);
-          if (!res.ok) {
-            conversations.touchConversation(id);
-            return;
-          }
-          const envelope = json as { data?: { conversation?: SavedConversation } };
-          const conversation = envelope?.data?.conversation;
-          conversations.touchConversation(id, {
-            title: conversation?.title ?? null,
-          });
-        } catch {
-          conversations.touchConversation(id);
-        }
-      })();
-    },
-    [conversations],
+  const handleConversationActivity = useForgeConversationTitleSync(
+    conversations.touchConversation,
   );
 
   // When the user arrives via `/forge?scriptId=<id>`, focus the empty

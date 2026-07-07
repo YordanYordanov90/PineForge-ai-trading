@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import { Clock, GitCompare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +18,11 @@ import { useCollections } from '@/hooks/useCollections';
 import { useScriptHistory } from '@/hooks/useScriptHistory';
 import { useHistoryEntryEditing } from '@/hooks/strategy/useHistoryEntryEditing';
 import { useHistoryFilters } from '@/hooks/strategy/useHistoryFilters';
+import { useHistoryKeyboardNav } from '@/hooks/strategy/useHistoryKeyboardNav';
+import { useScriptComparisonSelection } from '@/hooks/strategy/useScriptComparisonSelection';
 import type { SavedScript } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { terminalActivePressed } from '@/lib/ui/terminal-texture';
-import { toast } from 'sonner';
 
 type ScriptHistoryProps = {
   onLoad: (entry: SavedScript) => void;
@@ -32,7 +32,6 @@ type ScriptHistoryProps = {
 
 export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps) {
   const { isSignedIn, isLoaded } = useUser();
-  const router = useRouter();
   const {
     entries,
     renameEntry,
@@ -60,85 +59,21 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
 
   const filters = useHistoryFilters(entries);
 
+  const comparison = useScriptComparisonSelection({ onOpenChange });
+
+  const keyboardNav = useHistoryKeyboardNav({
+    open,
+    starred: filters.starred,
+    unstarred: filters.unstarred,
+    onOpenChange,
+    onLoad,
+    editing,
+  });
+
   const collectionNameById = useMemo(
     () => new Map(collections.map((c) => [c.id, c.name] as const)),
     [collections],
   );
-
-  // Keyboard power user nav (spec 68) — index into the flat filtered list (starred then unstarred)
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null);
-  const visibleEntries = useMemo(
-    () => [...filters.starred, ...filters.unstarred],
-    [filters.starred, filters.unstarred],
-  );
-
-  // Reset on close; clamp on list shrink
-  useEffect(() => {
-    if (!open) {
-      setKeyboardSelectedIndex(null);
-      return;
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (keyboardSelectedIndex != null && keyboardSelectedIndex >= visibleEntries.length) {
-      setKeyboardSelectedIndex(visibleEntries.length > 0 ? visibleEntries.length - 1 : null);
-    }
-  }, [visibleEntries.length, keyboardSelectedIndex]);
-
-  // Multi-select for Comparison Reports (spec 63) — max 3 scripts
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [isComparing, setIsComparing] = useState(false);
-  const selectedCount = selectedIds.size;
-  const canCompare = selectedCount >= 2 && selectedCount <= 3;
-
-  const toggleSelect = (id: number) => {
-    if (isComparing) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        if (next.size >= 3) {
-          toast.info('Compare up to 3 strategies at a time');
-          return prev;
-        }
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const handleCompareSelected = async () => {
-    if (!canCompare || isComparing) return;
-    const scriptIds = Array.from(selectedIds).sort((a, b) => a - b);
-    setIsComparing(true);
-    const toastId = toast.loading('Generating comparison report…', {
-      description: 'Forge is analysing your strategies. This usually takes 10–30 seconds.',
-    });
-    try {
-      const res = await fetch('/api/comparison-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scriptIds }),
-      });
-      const json = await res.json();
-      if (json.success && json.data?.report) {
-        toast.success('Comparison report generated', { id: toastId });
-        clearSelection();
-        onOpenChange(false);
-        router.push('/reports');
-      } else {
-        toast.error(json.error ?? 'Failed to create comparison report', { id: toastId });
-      }
-    } catch {
-      toast.error('Comparison failed. Please try again.', { id: toastId });
-    } finally {
-      setIsComparing(false);
-    }
-  };
 
   const handleDeleteCollection = async (id: number): Promise<boolean> => {
     const ok = await deleteCollection(id);
@@ -154,93 +89,19 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
       : 'Saved on this device. Pin scripts to keep them when history is full. Sign in to use collections.';
 
   const closeSheet = () => {
-    if (isComparing) return;
-    clearSelection();
+    if (comparison.isComparing) return;
+    comparison.clearSelection();
+    keyboardNav.resetSelection();
     onOpenChange(false);
   };
 
   const handleSheetOpenChange = (next: boolean) => {
-    if (!next && isComparing) return;
+    if (!next) {
+      if (comparison.isComparing) return;
+      keyboardNav.resetSelection();
+    }
     onOpenChange(next);
   };
-
-  // Keyboard nav for history drawer (spec 68): j/k move, Enter load, d delete (confirm), s star, Esc close.
-  // Guard typing so search input in filter bar works normally. Only active while open.
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) return; // let mod shortcuts bubble to generator hook
-      const target = e.target as HTMLElement | null;
-      const typing =
-        target != null &&
-        (target.tagName === 'TEXTAREA' ||
-          target.tagName === 'INPUT' ||
-          target.isContentEditable);
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onOpenChange(false);
-        return;
-      }
-
-      if (typing) return;
-
-      const len = visibleEntries.length;
-      if (len === 0) return;
-
-      if (e.key.toLowerCase() === 'j') {
-        e.preventDefault();
-        setKeyboardSelectedIndex((prev) => {
-          if (prev == null) return 0;
-          return (prev + 1) % len;
-        });
-        return;
-      }
-      if (e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setKeyboardSelectedIndex((prev) => {
-          if (prev == null) return len - 1;
-          return (prev - 1 + len) % len;
-        });
-        return;
-      }
-      if (e.key === 'Enter') {
-        if (keyboardSelectedIndex != null) {
-          e.preventDefault();
-          const entry = visibleEntries[keyboardSelectedIndex];
-          if (entry) {
-            onLoad(entry);
-          }
-        }
-        return;
-      }
-      if (e.key.toLowerCase() === 'd') {
-        if (keyboardSelectedIndex != null) {
-          e.preventDefault();
-          const entry = visibleEntries[keyboardSelectedIndex];
-          if (entry && window.confirm('Delete this script from history?')) {
-            editing.deleteEntry(entry.id);
-            setKeyboardSelectedIndex(null);
-          }
-        }
-        return;
-      }
-      if (e.key.toLowerCase() === 's') {
-        if (keyboardSelectedIndex != null) {
-          e.preventDefault();
-          const entry = visibleEntries[keyboardSelectedIndex];
-          if (entry) {
-            editing.star.handleToggleStar(entry);
-          }
-        }
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, visibleEntries, keyboardSelectedIndex, onOpenChange, onLoad, editing]);
 
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
@@ -321,25 +182,22 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                   onLoad={onLoad}
                   onClose={closeSheet}
                   onToggleTagFilter={filters.toggleTagFilter}
-                  // Comparison multi-select (spec 63)
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  // Keyboard nav highlight (spec 68)
-                  keyboardSelectedId={keyboardSelectedIndex != null ? visibleEntries[keyboardSelectedIndex]?.id ?? null : null}
+                  selectedIds={comparison.selectedIds}
+                  onToggleSelect={comparison.toggleSelect}
+                  keyboardSelectedId={keyboardNav.keyboardSelectedId}
                 />
               )}
 
-              {/* Compare footer (spec 63) — appears when 2–3 scripts selected */}
-              {selectedCount > 0 && (
+              {comparison.selectedCount > 0 && (
                 <div
                   className="border-t border-zinc-800 bg-[#0a0a0a] p-3"
-                  aria-busy={isComparing}
+                  aria-busy={comparison.isComparing}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-xs text-zinc-400">
-                      {isComparing
+                      {comparison.isComparing
                         ? 'Generating report…'
-                        : `${selectedCount} selected for comparison`}
+                        : `${comparison.selectedCount} selected for comparison`}
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -347,20 +205,20 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                         size="sm"
                         variant="ghost"
                         className="h-8 px-2 text-xs"
-                        onClick={clearSelection}
-                        disabled={isComparing}
+                        onClick={comparison.clearSelection}
+                        disabled={comparison.isComparing}
                       >
                         Clear
                       </Button>
                       <Button
                         type="button"
                         size="sm"
-                        onClick={handleCompareSelected}
-                        disabled={!canCompare || isComparing}
+                        onClick={() => void comparison.handleCompareSelected()}
+                        disabled={!comparison.canCompare || comparison.isComparing}
                         aria-live="polite"
                         className="h-8 bg-neon-500/90 text-black hover:bg-neon-400 disabled:opacity-50"
                       >
-                        {isComparing ? (
+                        {comparison.isComparing ? (
                           <>
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                             Generating…
@@ -374,10 +232,10 @@ export function ScriptHistory({ onLoad, open, onOpenChange }: ScriptHistoryProps
                       </Button>
                     </div>
                   </div>
-                  {!isComparing && !canCompare && selectedCount === 1 && (
+                  {!comparison.isComparing && !comparison.canCompare && comparison.selectedCount === 1 && (
                     <p className="mt-1 text-[10px] text-amber-400/80">Select 1 more script to compare.</p>
                   )}
-                  {!isComparing && selectedCount > 3 && (
+                  {!comparison.isComparing && comparison.selectedCount > 3 && (
                     <p className="mt-1 text-[10px] text-rose-400/80">Maximum 3 scripts for a comparison.</p>
                   )}
                 </div>

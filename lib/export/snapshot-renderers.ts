@@ -165,6 +165,6 @@ export function renderBacktest(b: BacktestSummaryResult): string {
   return `
     <h2>Backtesting Summary</h2>
     ${b.title ? `<h3>${escapeHtml(b.title)}</h3>` : ''}
-    <div class="backtest">${b.markdown.replace(/\n/g, '<br>')}</div>
+    <div class="backtest">${escapeHtml(b.markdown).replace(/\n/g, '<br>')}</div>
   `;
 }

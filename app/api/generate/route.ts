@@ -5,6 +5,7 @@ import { apiError, apiInvalidRequest } from '@/lib/api/envelope';
 import { jsonApiError, protectAiRoute } from '@/lib/api/protected-ai-route';
 import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { DEFAULT_MODEL } from '@/lib/config/constants';
+import { buildGenerateContextBlock } from '@/lib/ai/prompts/generate-context';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-system';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 import {
@@ -57,27 +58,8 @@ export async function POST(req: Request) {
     return missingKey;
   }
 
-  const {
-    prompt: strategy,
-    balance,
-    market,
-    timeframe,
-    direction,
-    indicators,
-    rr,
-  } = parsed.data;
-
-  const contextParts: string[] = [];
-  if (market) contextParts.push(`Market: ${market}`);
-  if (timeframe) contextParts.push(`Timeframe: ${timeframe}`);
-  if (direction) contextParts.push(`Direction: ${direction}`);
-  if (indicators?.length)
-    contextParts.push(`Preferred indicators: ${indicators.join(', ')}`);
-  if (rr) contextParts.push(`Risk-Reward ratio: ${rr}:1`);
-
-  const contextBlock = contextParts.length
-    ? `\n\nAdditional context: ${contextParts.join('; ')}`
-    : '';
+  const { prompt: strategy, balance, ...structuredInputs } = parsed.data;
+  const contextBlock = buildGenerateContextBlock(structuredInputs);
 
   try {
     const result = streamText({

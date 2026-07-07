@@ -1,5 +1,3 @@
-'use client';
-
 import type { MostRefinedScript } from '@/lib/db/progress-stats';
 import Link from 'next/link';
 

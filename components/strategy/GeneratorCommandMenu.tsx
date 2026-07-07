@@ -41,6 +41,21 @@ export type GeneratorCommandMenuProps = {
 const itemClass =
   'rounded-xl text-zinc-200 data-[selected=true]:bg-neon-500/15 data-[selected=true]:text-neon-100';
 
+const VIEW_TAB_COMMANDS: ReadonlyArray<{
+  tab: OutputTab;
+  label: string;
+  value: string;
+  requiresCompare?: boolean;
+}> = [
+  { tab: 'script', label: 'Script tab', value: 'tab script' },
+  { tab: 'breakdown', label: 'Breakdown tab', value: 'tab breakdown' },
+  { tab: 'checklist', label: 'Checklist tab', value: 'tab checklist' },
+  { tab: 'health', label: 'Health tab', value: 'tab health score' },
+  { tab: 'alerts', label: 'Alerts tab', value: 'tab alert templates' },
+  { tab: 'compare', label: 'Compare tab', value: 'tab compare diff', requiresCompare: true },
+  { tab: 'backtest', label: 'Backtest tab', value: 'tab backtest' },
+];
+
 export function GeneratorCommandMenu({
   open,
   onOpenChange,
@@ -186,104 +201,26 @@ export function GeneratorCommandMenu({
           <CommandSeparator className="bg-zinc-800/70" />
 
           <CommandGroup heading="View">
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('script'));
-              }}
-              value="tab script"
-            >
-              Script tab
-              {outputTab === 'script' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('breakdown'));
-              }}
-              value="tab breakdown"
-            >
-              Breakdown tab
-              {outputTab === 'breakdown' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('checklist'));
-              }}
-              value="tab checklist"
-            >
-              Checklist tab
-              {outputTab === 'checklist' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('health'));
-              }}
-              value="tab health score"
-            >
-              Health tab
-              {outputTab === 'health' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('alerts'));
-              }}
-              value="tab alert templates"
-            >
-              Alerts tab
-              {outputTab === 'alerts' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!canOpenCompare}
-              className={itemClass}
-              onSelect={() => {
-                if (!canOpenCompare) return;
-                closeThen(() => onOutputTabChange('compare'));
-              }}
-              value="tab compare diff"
-            >
-              Compare tab
-              {outputTab === 'compare' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
-            <CommandItem
-              disabled={!hasScript}
-              className={itemClass}
-              onSelect={() => {
-                if (!hasScript) return;
-                closeThen(() => onOutputTabChange('backtest'));
-              }}
-              value="tab backtest"
-            >
-              Backtest tab
-              {outputTab === 'backtest' ? (
-                <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
-              ) : null}
-            </CommandItem>
+            {VIEW_TAB_COMMANDS.map(({ tab, label, value, requiresCompare }) => {
+              const disabled = requiresCompare ? !canOpenCompare : !hasScript;
+              return (
+                <CommandItem
+                  key={tab}
+                  disabled={disabled}
+                  className={itemClass}
+                  onSelect={() => {
+                    if (disabled) return;
+                    closeThen(() => onOutputTabChange(tab));
+                  }}
+                  value={value}
+                >
+                  {label}
+                  {outputTab === tab ? (
+                    <CommandShortcut className="text-neon-400/90">Active</CommandShortcut>
+                  ) : null}
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
 
           <CommandSeparator className="bg-zinc-800/70" />
