@@ -2,7 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { PINE_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts/pine-generate-system';
 import { generateVariantsRequestSchema } from '@/lib/api/validation';
-import { apiError, apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
+import { apiInvalidRequest, apiSuccess } from '@/lib/api/envelope';
 import { protectAiRoute, jsonApiError } from '@/lib/api/protected-ai-route';
 import { getVariantCountForPlan, resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   const missingKey = responseIfMissingXaiApiKey();
   if (missingKey) return missingKey;
 
-  const { prompt, script, balance, structuredInputs, model } = parsed.data;
+  const { prompt, script, balance, structuredInputs } = parsed.data;
 
   // Select the axes for this plan (A for free, A+B+C for pro)
   const axesToRun: VariantAxis[] = VARIANT_AXES.slice(0, variantCount);

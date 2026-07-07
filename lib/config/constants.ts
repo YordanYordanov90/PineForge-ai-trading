@@ -6,6 +6,9 @@ export const FREE_TIER_DAILY_GENERATIONS = 3;
 /** Pro-tier AI actions per 24h — keep in sync with `lib/rate-limit/upstash.ts`. */
 export const PRO_TIER_DAILY_GENERATIONS = 200;
 
+/** Marketing price label — keep in sync with the Clerk Billing "pro" plan price. */
+export const PRO_TIER_MONTHLY_PRICE_LABEL = '$29';
+
 /** Landing / auth social proof (marketing claim). */
 export const LANDING_TRADER_COUNT_LABEL = '2,400+ traders';
 

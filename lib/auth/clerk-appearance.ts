@@ -54,6 +54,18 @@ const clerkElementsDark: ClerkAppearance['elements'] = {
   userPreviewSecondaryIdentifier: '!text-zinc-400 text-sm',
   userButtonPopoverAccountName: '!text-zinc-50 font-medium',
   userButtonPopoverAccountIdentifier: '!text-zinc-400 text-sm',
+  // Checkout drawer (Clerk Billing). Needs an explicit opaque background —
+  // the shared `card` override above is transparent by design (it sits
+  // inside `cardBox`), but the drawer renders in a portal with no such shell.
+  drawerBackdrop: 'bg-zinc-950/70 backdrop-blur-sm',
+  drawerContent: '!bg-zinc-950 border-l border-zinc-800 shadow-2xl',
+  drawerRoot: 'z-[100]',
+  drawerHeader: '!bg-zinc-950 border-b border-zinc-800/80',
+  drawerTitle: '!text-zinc-50 font-heading font-semibold',
+  drawerBody: '!bg-zinc-950',
+  drawerFooter: '!bg-zinc-950 border-t border-zinc-800/80',
+  checkoutFormLineItemsRoot: '!bg-zinc-950',
+  checkoutFormElementsRoot: '!bg-zinc-950',
 };
 
 const clerkElementsLight: ClerkAppearance['elements'] = {
@@ -97,6 +109,15 @@ const clerkElementsLight: ClerkAppearance['elements'] = {
   userPreviewSecondaryIdentifier: '!text-zinc-500 text-sm',
   userButtonPopoverAccountName: '!text-zinc-900 font-medium',
   userButtonPopoverAccountIdentifier: '!text-zinc-500 text-sm',
+  drawerBackdrop: 'bg-zinc-900/40 backdrop-blur-sm',
+  drawerContent: '!bg-white border-l border-zinc-200 shadow-2xl',
+  drawerRoot: 'z-[100]',
+  drawerHeader: '!bg-white border-b border-zinc-200/80',
+  drawerTitle: '!text-zinc-900 font-heading font-semibold',
+  drawerBody: '!bg-white',
+  drawerFooter: '!bg-white border-t border-zinc-200/80',
+  checkoutFormLineItemsRoot: '!bg-white',
+  checkoutFormElementsRoot: '!bg-white',
 };
 
 /** Dark terminal shell — default PineForge auth UI. */

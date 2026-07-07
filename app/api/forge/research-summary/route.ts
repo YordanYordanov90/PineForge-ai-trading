@@ -12,6 +12,7 @@ import {
   researchSummaryRequestSchema,
 } from '@/lib/api/validation';
 import type { ResearchSummaryPayload } from '@/lib/api/validation';
+import { devWarn } from '@/lib/dev-log';
 
 /**
  * Research summarisation endpoint (spec 61).
@@ -95,9 +96,7 @@ Keep description and researchNotes factual and concise. Use the exact section gu
 
     return apiSuccess({ summary: payload });
   } catch (err) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[research-summary] generateObject failed', err);
-    }
+    devWarn('[research-summary] generateObject failed', err);
     return apiError('Research summarisation failed. Please try again.', 502);
   }
 }

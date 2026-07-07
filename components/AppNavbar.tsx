@@ -30,6 +30,7 @@ const navLinks: NavLink[] = [
   { href: '/forge', label: 'Forge', icon: Sparkles, signedInOnly: true, accent: true },
   { href: '/templates', label: 'Templates' },
   { href: '/reports', label: 'Reports', icon: FileText, signedInOnly: true },
+  { href: '/pricing', label: 'Pricing' },
 ];
 
 export default function AppNavbar() {

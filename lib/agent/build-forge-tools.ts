@@ -34,6 +34,7 @@ import {
   runRefineScriptInline,
   runSearchUserScripts,
 } from './tool-runners';
+import { devWarn } from '@/lib/dev-log';
 
 /**
  * Forge Agent tool composition (spec 55).
@@ -55,17 +56,6 @@ import {
  * it might (theoretically) leak into a tool's input payload.
  */
 
-/**
- * Note on the `agent_*_failed` log prefix: dev-only `console.warn` for
- * tool failures. Mirrors how `/api/health-score` and friends already
- * log non-fatal validation issues. Production stays silent.
- */
-function logToolError(scope: string, error: unknown) {
-  if (process.env.NODE_ENV === 'development') {
-    console.warn(`[forge-agent] ${scope} tool failed`, error);
-  }
-}
-
 export function buildForgeTools(ctx: AgentToolContext) {
   const runnerCtx = {
     userId: ctx.userId,
@@ -81,7 +71,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
         try {
           return await runSearchUserScripts(input, { userId: ctx.userId });
         } catch (error) {
-          logToolError(SEARCH_USER_SCRIPTS_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${SEARCH_USER_SCRIPTS_TOOL_NAME} tool failed`, error);
           return { error: SEARCH_USER_SCRIPTS_ERROR };
         }
       },
@@ -100,7 +90,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
           }
           return result;
         } catch (error) {
-          logToolError(GET_SCRIPT_DETAILS_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${GET_SCRIPT_DETAILS_TOOL_NAME} tool failed`, error);
           return { error: GET_SCRIPT_DETAILS_ERROR };
         }
       },
@@ -113,7 +103,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
         try {
           return await runHealthScoreInline(input, runnerCtx);
         } catch (error) {
-          logToolError(RUN_HEALTH_SCORE_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${RUN_HEALTH_SCORE_TOOL_NAME} tool failed`, error);
           return { error: RUN_HEALTH_SCORE_ERROR };
         }
       },
@@ -126,7 +116,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
         try {
           return await runBacktestSummaryInline(input, runnerCtx);
         } catch (error) {
-          logToolError(RUN_BACKTEST_SUMMARY_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${RUN_BACKTEST_SUMMARY_TOOL_NAME} tool failed`, error);
           return { error: RUN_BACKTEST_SUMMARY_ERROR };
         }
       },
@@ -139,7 +129,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
         try {
           return await runGenerateAlertTemplatesInline(input, runnerCtx);
         } catch (error) {
-          logToolError(GENERATE_ALERT_TEMPLATES_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${GENERATE_ALERT_TEMPLATES_TOOL_NAME} tool failed`, error);
           return { error: GENERATE_ALERT_TEMPLATES_ERROR };
         }
       },
@@ -152,7 +142,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
         try {
           return await runRefineScriptInline(input, runnerCtx);
         } catch (error) {
-          logToolError(REFINE_SCRIPT_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${REFINE_SCRIPT_TOOL_NAME} tool failed`, error);
           return { error: REFINE_SCRIPT_ERROR };
         }
       },
@@ -179,7 +169,7 @@ export function buildForgeTools(ctx: AgentToolContext) {
             unavailable: SEARCH_STRATEGY_KNOWLEDGE_UNAVAILABLE_MESSAGE,
           };
         } catch (error) {
-          logToolError(SEARCH_STRATEGY_KNOWLEDGE_TOOL_NAME, error);
+          devWarn(`[forge-agent] ${SEARCH_STRATEGY_KNOWLEDGE_TOOL_NAME} tool failed`, error);
           return { error: SEARCH_STRATEGY_KNOWLEDGE_ERROR };
         }
       },

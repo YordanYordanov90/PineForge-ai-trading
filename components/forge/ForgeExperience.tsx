@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +48,6 @@ export function ForgeExperience({
   const [hydrationToken, setHydrationToken] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
-  const { isLoaded, isSignedIn } = useAuth();
 
   const handleCreateConversation = useCallback(
     async (scriptId: number | null, type: 'general' | 'research' = 'general') => {

@@ -18,6 +18,7 @@ import type {
   SavedConversation,
 } from '@/lib/types/agent';
 import type { GrokModelId } from '@/lib/types';
+import { devWarn } from '@/lib/dev-log';
 
 /**
  * Background memory profile extraction (spec 56).
@@ -107,12 +108,21 @@ Rules:
 - Keep insights actionable and specific (not generic observations)
 - Cap arrays at their maximum lengths`;
 
+/** Strips internal bookkeeping before sending profile JSON to the LLM. */
+function profileWithoutSeenTips(
+  profile: AgentUserProfile,
+): Omit<AgentUserProfile, 'seenTips'> {
+  const { seenTips, ...rest } = profile;
+  void seenTips;
+  return rest;
+}
+
 /** Pure builder for the extraction user prompt (profile + recent conv excerpts). */
 export function buildMemoryExtractionUserPrompt(
   existingProfile: AgentUserProfile,
   conversations: SavedConversation[],
 ): string {
-  const { seenTips: _seen, ...profileForPrompt } = existingProfile;
+  const profileForPrompt = profileWithoutSeenTips(existingProfile);
 
   const profileSection =
     Object.keys(profileForPrompt).length === 0
@@ -333,6 +343,58 @@ export type MaybeExtractMemoryResult =
   | { ran: true }
   | { ran: false; reason: MaybeExtractMemoryReason };
 
+async function getMemoryExtractionSkipReason(
+  userId: number,
+  messages: ReadonlyArray<AgentMessage>,
+): Promise<MaybeExtractMemoryReason | null> {
+  if (countUserMessages(messages) < MIN_USER_MESSAGES_FOR_EXTRACTION) {
+    return 'too-few-user-messages';
+  }
+
+  const lastUpdated = await getMemoryLastUpdated(userId);
+  if (
+    lastUpdated &&
+    Date.now() - lastUpdated.getTime() < EXTRACTION_DEBOUNCE_MS
+  ) {
+    return 'debounced';
+  }
+
+  return null;
+}
+
+async function extractProfileViaLlm(
+  model: GrokModelId,
+  userPrompt: string,
+): Promise<ExtractedAgentUserProfile | null> {
+  try {
+    const { object } = await generateObject({
+      model: xai(model),
+      schema: agentUserProfileSchema,
+      system: MEMORY_EXTRACTION_SYSTEM,
+      prompt: userPrompt,
+      temperature: 0,
+      maxOutputTokens: MEMORY_EXTRACTION_MAX_OUTPUT_TOKENS,
+    });
+    return object;
+  } catch (error) {
+    devWarn('[forge-memory] generateObject failed', error);
+    return null;
+  }
+}
+
+async function persistMergedProfile(
+  userId: number,
+  merged: AgentUserProfile,
+): Promise<boolean> {
+  try {
+    await upsertAgentMemory(userId, merged);
+    return true;
+  } catch (error) {
+    devWarn('[forge-memory] upsert failed', error);
+    return false;
+  }
+}
+
 /**
  * Runs extraction when trigger conditions met (min messages + debounce).
  * Fire-and-forget; failures are silent and never affect the chat UX.
@@ -341,17 +403,12 @@ export type MaybeExtractMemoryResult =
 export async function maybeExtractAndPersistMemory(
   input: MaybeExtractMemoryInput,
 ): Promise<MaybeExtractMemoryResult> {
-  const userMessageCount = countUserMessages(input.conversation.messages);
-  if (userMessageCount < MIN_USER_MESSAGES_FOR_EXTRACTION) {
-    return { ran: false, reason: 'too-few-user-messages' };
-  }
-
-  const lastUpdated = await getMemoryLastUpdated(input.userId);
-  if (
-    lastUpdated &&
-    Date.now() - lastUpdated.getTime() < EXTRACTION_DEBOUNCE_MS
-  ) {
-    return { ran: false, reason: 'debounced' };
+  const skipReason = await getMemoryExtractionSkipReason(
+    input.userId,
+    input.conversation.messages,
+  );
+  if (skipReason) {
+    return { ran: false, reason: skipReason };
   }
 
   const [existingProfile, conversations, scriptCount] = await Promise.all([
@@ -364,37 +421,15 @@ export async function maybeExtractAndPersistMemory(
     return { ran: false, reason: 'no-conversations' };
   }
 
-  const userPrompt = buildMemoryExtractionUserPrompt(
-    existingProfile,
-    conversations,
-  );
-
-  let extracted: ExtractedAgentUserProfile;
-  try {
-    const { object } = await generateObject({
-      model: xai(input.model),
-      schema: agentUserProfileSchema,
-      system: MEMORY_EXTRACTION_SYSTEM,
-      prompt: userPrompt,
-      temperature: 0,
-      maxOutputTokens: MEMORY_EXTRACTION_MAX_OUTPUT_TOKENS,
-    });
-    extracted = object;
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[forge-memory] generateObject failed', error);
-    }
+  const userPrompt = buildMemoryExtractionUserPrompt(existingProfile, conversations);
+  const extracted = await extractProfileViaLlm(input.model, userPrompt);
+  if (!extracted) {
     return { ran: false, reason: 'extraction-failed' };
   }
 
   const merged = mergeProfiles(existingProfile, extracted, scriptCount);
-
-  try {
-    await upsertAgentMemory(input.userId, merged);
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[forge-memory] upsert failed', error);
-    }
+  const persisted = await persistMergedProfile(input.userId, merged);
+  if (!persisted) {
     return { ran: false, reason: 'persist-failed' };
   }
 

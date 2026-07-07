@@ -8,6 +8,7 @@ import { resolveModelForPlan } from '@/lib/auth/model-entitlement';
 import { ALERT_TEMPLATES_SYSTEM } from '@/lib/ai/prompts/alert-templates';
 import { ALERT_TEMPLATES_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
+import { devWarn } from '@/lib/dev-log';
 
 function buildAlertTemplatesUserPrompt(data: {
   prompt: string;
@@ -87,9 +88,7 @@ export async function POST(req: Request) {
 
     return apiSuccess(normalized);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[alert-templates] generateObject failed', error);
-    }
+    devWarn('[alert-templates] generateObject failed', error);
     return apiError('Failed to generate alert templates. Please try again.', 500);
   }
 }

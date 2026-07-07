@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from '@/lib/api/envelope';
+import { apiSuccess } from '@/lib/api/envelope';
 import { protectDataRoute } from '@/lib/api/protected-data-route';
 import { getDbUserIdByClerk } from '@/lib/db';
 import { getProgressStats } from '@/lib/db/progress-stats';

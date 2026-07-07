@@ -13,6 +13,7 @@ import {
   buildBacktestSummaryUserPrompt,
 } from '@/lib/ai/prompts/backtest-summary';
 import { assembleBacktestSummaryMarkdown } from '@/lib/ai/backtest-summary-markdown';
+import { devWarn } from '@/lib/dev-log';
 import { BACKTEST_SUMMARY_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
 import { responseIfMissingXaiApiKey } from '@/lib/ai/xai-env';
 
@@ -59,11 +60,9 @@ export async function POST(req: Request) {
     });
 
     if (!validated.success) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[backtesting-summary] strict validation failed', {
-          issues: validated.error.issues,
-        });
-      }
+      devWarn('[backtesting-summary] strict validation failed', {
+        issues: validated.error.issues,
+      });
       return apiError(
         'Backtesting summary could not be validated. Please try again.',
         502,
@@ -72,9 +71,7 @@ export async function POST(req: Request) {
 
     return apiSuccess(validated.data);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[backtesting-summary] generateObject failed', error);
-    }
+    devWarn('[backtesting-summary] generateObject failed', error);
     return apiError('Failed to generate backtesting summary. Please try again.', 500);
   }
 }

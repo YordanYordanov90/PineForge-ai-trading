@@ -9,6 +9,7 @@ import {
 import { buildComparisonReportUserPrompt } from '@/lib/ai/prompts/comparison-report';
 import { createComparisonReport } from '@/lib/db';
 import { COMPARISON_REPORT_MAX_OUTPUT_TOKENS } from '@/lib/config/constants';
+import { devWarn } from '@/lib/dev-log';
 import type {
   GrokModelId,
   SavedComparisonReport,
@@ -52,7 +53,5 @@ export async function generateAndSaveComparisonReport({
 }
 
 function logLooseFallback(issues: unknown): void {
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[comparison-report] strict validation failed', issues);
-  }
+  devWarn('[comparison-report] strict validation failed', issues);
 }

@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { users } from '@/drizzle/schema';
 import { db } from '@/lib/db/client';
@@ -38,20 +38,20 @@ export async function ensureDbUserForClerkId(clerkId: string): Promise<number> {
 }
 
 /**
- * Resolve a Clerk user's plan tier ("free" | "pro").
+ * Resolve the current Clerk session's plan tier ("free" | "pro").
  *
- * Centralizes the `select plan from users where clerkId = ?` lookup
- * used by every protected RSC + the rate-limit gate. Returns `"free"`
- * when no DB row exists yet (pre-sync, signed-out, or invalid clerkId).
+ * Source of truth is Clerk Billing, not the DB — `has({ plan: 'pro' })`
+ * reads the session's billing claim, which Clerk keeps current after
+ * checkout/cancellation. `clerkId` is only used as a signed-out guard;
+ * every caller already resolved it from the same request's `auth()`, so
+ * re-reading `auth()` here always reflects that same session. The
+ * `users.plan` DB column is unused for entitlement (kept for now, not
+ * backfilled).
  */
 export async function getUserPlanByClerkId(
   clerkId: string | null | undefined,
 ): Promise<string> {
   if (!clerkId) return 'free';
-  const [row] = await db
-    .select({ plan: users.plan })
-    .from(users)
-    .where(eq(users.clerkId, clerkId))
-    .limit(1);
-  return row?.plan ?? 'free';
+  const { has } = await auth();
+  return has({ plan: 'pro' }) ? 'pro' : 'free';
 }

@@ -7,6 +7,7 @@ import {
   type AlertTemplateProvider,
   type AlertTemplatesResult,
 } from '@/lib/api/validation';
+import { devWarn } from '@/lib/dev-log';
 
 function truncate(value: string, max: number): string {
   const trimmed = value.trim();
@@ -139,11 +140,9 @@ function buildFallbackTemplate(provider: AlertTemplateProvider): AlertTemplateIt
 export function normalizeAlertTemplatesOutput(raw: unknown): AlertTemplatesResult | null {
   const parsed = alertTemplatesLlmResultSchema.safeParse(raw);
   if (!parsed.success) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[alert-templates] loose schema rejected', {
-        issues: parsed.error.issues,
-      });
-    }
+    devWarn('[alert-templates] loose schema rejected', {
+      issues: parsed.error.issues,
+    });
     return null;
   }
 
@@ -182,16 +181,14 @@ export function normalizeAlertTemplatesOutput(raw: unknown): AlertTemplatesResul
   for (const template of parsed.data.templates) {
     const messageJson = normalizeMessageJson(template.messageJson);
     if (!messageJson) {
-      if (process.env.NODE_ENV === 'development') {
-        const preview =
-          typeof template.messageJson === 'string'
-            ? template.messageJson.slice(0, 120)
-            : typeof template.messageJson;
-        console.warn('[alert-templates] invalid messageJson', {
-          provider: template.provider,
-          preview,
-        });
-      }
+      const preview =
+        typeof template.messageJson === 'string'
+          ? template.messageJson.slice(0, 120)
+          : typeof template.messageJson;
+      devWarn('[alert-templates] invalid messageJson', {
+        provider: template.provider,
+        preview,
+      });
       deferred.push({ template, reason: 'invalid-message-json' });
       continue;
     }
@@ -243,8 +240,8 @@ export function normalizeAlertTemplatesOutput(raw: unknown): AlertTemplatesResul
     byProvider.set(provider, buildFallbackTemplate(provider));
   }
 
-  if (usedFallbacks.length > 0 && process.env.NODE_ENV === 'development') {
-    console.warn('[alert-templates] filled missing providers with starter templates', {
+  if (usedFallbacks.length > 0) {
+    devWarn('[alert-templates] filled missing providers with starter templates', {
       usedFallbacks,
       assembled: Array.from(byProvider.keys()),
       rejected: deferred.map((d) => ({

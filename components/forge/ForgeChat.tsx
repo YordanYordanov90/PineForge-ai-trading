@@ -1,34 +1,24 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FlaskConical, Loader2, ScrollText } from 'lucide-react';
+import { FlaskConical, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ResearchSummaryPayload } from '@/lib/api/validation';
 import { Button } from '@/components/ui/button';
-import { messageFromApiErrorJson } from '@/lib/api/message-from-api-error';
-import { agentMessagesToUIMessages } from '@/lib/agent/ui-messages';
 import { MAX_MESSAGES_PER_CONVERSATION } from '@/lib/config/constants';
+import { parseSavedScriptId } from '@/lib/forge/chat-message-utils';
 import type { SavedConversation, SavedScript } from '@/lib/types';
 import { ForgeEmptyState } from '@/components/forge/ForgeEmptyState';
 import { ForgeInput } from '@/components/forge/ForgeInput';
 import { ForgeMessageList } from '@/components/forge/ForgeMessageList';
 import { ForgeScrollToBottomFab } from '@/components/forge/ForgeScrollToBottomFab';
 import { ResearchScriptBanner } from '@/components/forge/ResearchScriptBanner';
-
-/**
- * Forge chat panel.
- * Wires useChat to the /api/forge stream with custom transport for conversation persistence.
- */
+import { SeedScriptBanner } from '@/components/forge/SeedScriptBanner';
+import { useForgeChatScroll } from '@/hooks/forge/useForgeChatScroll';
+import { useForgeChatTransport } from '@/hooks/forge/useForgeChatTransport';
+import { useForgeConversationHydration } from '@/hooks/forge/useForgeConversationHydration';
+import { useForgeResearchHandoff } from '@/hooks/forge/useForgeResearchHandoff';
 
 type ForgeChatProps = {
   activeConversationId: number | null;
@@ -56,6 +46,49 @@ export function ForgeChat({
   onScrollOffset,
 }: ForgeChatProps) {
   const router = useRouter();
+  const { transport, conversationIdRef, turnAbortRef } =
+    useForgeChatTransport(activeConversationId);
+
+  const { messages, sendMessage, status, stop, setMessages, error } = useChat({
+    transport,
+    onFinish: () => {
+      const id = conversationIdRef.current;
+      if (id != null) onConversationActivity(id);
+    },
+    onError: (err) => {
+      const raw = err?.message?.trim() || 'Forge encountered an error. Please try again.';
+      const message = raw.includes('already in progress')
+        ? 'Forge is still finishing another reply. Wait a moment, or press Stop on the conversation that is still running.'
+        : raw;
+      toast.error(message);
+    },
+  });
+
+  const abortActiveTurn = useCallback(() => {
+    turnAbortRef.current?.abort();
+    turnAbortRef.current = null;
+    void stop();
+  }, [stop, turnAbortRef]);
+
+  const {
+    hydratedMessages,
+    hydrating,
+    hydrationError,
+    persistedCount,
+    activeConvType,
+    setActiveConvType,
+    activeScriptId,
+    activeScriptName,
+    setActiveScriptId,
+    setActiveScriptName,
+    dismissedTipIds,
+    setDismissedTipIds,
+  } = useForgeConversationHydration({
+    hydrationToken,
+    conversationIdRef,
+    abortActiveTurn,
+    setMessages,
+  });
 
   useEffect(() => {
     if (activeConversationId == null) {
@@ -63,196 +96,30 @@ export function ForgeChat({
       setActiveScriptId(null);
       setActiveScriptName(null);
     }
-  }, [activeConversationId]);
-
-  const [hydratedMessages, setHydratedMessages] = useState<UIMessage[]>([]);
-  const [hydrating, setHydrating] = useState(false);
-  const [hydrationError, setHydrationError] = useState<string | null>(null);
-  const [persistedCount, setPersistedCount] = useState(0);
-  const [showScrollFab, setShowScrollFab] = useState(false);
-  const [activeConvType, setActiveConvType] = useState<'general' | 'research' | null>(null);
-  const [activeScriptId, setActiveScriptId] = useState<number | null>(null);
-  const [activeScriptName, setActiveScriptName] = useState<string | null>(null);
-  const [isGeneratingFromResearch, setIsGeneratingFromResearch] = useState(false);
-  const [dismissedTipIds, setDismissedTipIds] = useState<string[]>([]);
-
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const userAwayFromBottomRef = useRef(false);
-  const turnAbortRef = useRef<AbortController | null>(null);
-
-  const conversationIdRef = useRef<number | null>(activeConversationId);
-  conversationIdRef.current = activeConversationId;
-
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: '/api/forge',
-        fetch: async (input, init) => {
-          turnAbortRef.current?.abort();
-          const controller = new AbortController();
-          turnAbortRef.current = controller;
-
-          const upstream = init?.signal;
-          if (upstream) {
-            if (upstream.aborted) {
-              controller.abort(upstream.reason);
-            } else {
-              upstream.addEventListener(
-                'abort',
-                () => controller.abort(upstream.reason),
-                { once: true },
-              );
-            }
-          }
-
-          try {
-            return await fetch(input, { ...init, signal: controller.signal });
-          } finally {
-            if (turnAbortRef.current === controller) {
-              turnAbortRef.current = null;
-            }
-          }
-        },
-        prepareSendMessagesRequest: ({ messages }) => {
-          const conversationId = conversationIdRef.current;
-          const latest = messages.at(-1);
-          const text = extractText(latest);
-          return {
-            body: {
-              conversationId,
-              message: text,
-            },
-          };
-        },
-      }),
-    [],
-  );
-
-  const { messages, sendMessage, status, stop, setMessages, error } =
-    useChat({
-      transport,
-      onFinish: () => {
-        const id = conversationIdRef.current;
-        if (id != null) onConversationActivity(id);
-      },
-      onError: (err) => {
-        const raw =
-          err?.message?.trim() ||
-          'Forge encountered an error. Please try again.';
-        const message = raw.includes('already in progress')
-          ? 'Forge is still finishing another reply. Wait a moment, or press Stop on the conversation that is still running.'
-          : raw;
-        toast.error(message);
-      },
-    });
-
-  const abortActiveTurn = useCallback(() => {
-    turnAbortRef.current?.abort();
-    turnAbortRef.current = null;
-    void stop();
-  }, [stop]);
-
-  const isStreaming = status === 'submitted' || status === 'streaming';
+  }, [activeConversationId, setActiveConvType, setActiveScriptId, setActiveScriptName]);
 
   useEffect(() => {
-    if (error) {
-      abortActiveTurn();
-    }
+    if (error) abortActiveTurn();
   }, [error, abortActiveTurn]);
 
-  useEffect(() => {
-    if (hydrationToken === 0) return;
-
-    let cancelled = false;
-
-    // Abort any in-flight POST so the server releases the forge stream lock
-    // before the user can send in another thread.
-    abortActiveTurn();
-
-    const targetId = conversationIdRef.current;
-    if (targetId == null) {
-      setHydratedMessages([]);
-      setMessages([]);
-      setPersistedCount(0);
-      setHydrationError(null);
-      setActiveConvType(null);
-      setActiveScriptId(null);
-      setActiveScriptName(null);
-      setDismissedTipIds([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setHydrating(true);
-    setHydrationError(null);
-
-    void (async () => {
-      try {
-        const res = await fetch(`/api/forge/conversations/${targetId}`);
-        const json: unknown = await res.json().catch(() => null);
-
-        if (cancelled) return;
-
-        if (!res.ok) {
-          setHydrationError(
-            messageFromApiErrorJson(
-              json,
-              'Could not load conversation.',
-              'Could not load this Forge conversation.',
-            ),
-          );
-          setHydratedMessages([]);
-          setMessages([]);
-          setPersistedCount(0);
-          setActiveConvType(null);
-          setActiveScriptId(null);
-          setActiveScriptName(null);
-          return;
-        }
-
-        const conversation = readConversationPayload(json);
-        const ui = conversation
-          ? agentMessagesToUIMessages(conversation.messages)
-          : [];
-
-        setHydratedMessages(ui);
-        setMessages(ui);
-        setPersistedCount(conversation?.messages.length ?? 0);
-        setActiveConvType(conversation?.type ?? 'general');
-        setActiveScriptId(conversation?.scriptId ?? null);
-        setActiveScriptName(null);
-        setDismissedTipIds([]); // fresh view for this conversation load
-      } catch {
-        if (!cancelled) {
-          setHydrationError('Network error — could not load conversation.');
-          setHydratedMessages([]);
-          setMessages([]);
-          setPersistedCount(0);
-          setActiveConvType(null);
-          setActiveScriptId(null);
-          setActiveScriptName(null);
-        }
-      } finally {
-        if (!cancelled) setHydrating(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrationToken, abortActiveTurn]);
-
   useEffect(() => () => abortActiveTurn(), [abortActiveTurn]);
+
+  const {
+    scrollContainerRef,
+    bottomRef,
+    userAwayFromBottomRef,
+    showScrollFab,
+    handleScroll,
+    scrollToBottom,
+  } = useForgeChatScroll(onScrollOffset);
+  const research = useForgeResearchHandoff(activeConversationId);
 
   const localMessageCount = Math.max(
     persistedCount,
     persistedCount + Math.max(0, messages.length - hydratedMessages.length),
   );
   const reachedCap = localMessageCount >= MAX_MESSAGES_PER_CONVERSATION;
-
+  const isStreaming = status === 'submitted' || status === 'streaming';
   const isResearchConv = activeConvType === 'research';
   const canGenerateFromResearch =
     isResearchConv &&
@@ -261,18 +128,14 @@ export function ForgeChat({
     !hydrating &&
     !hydrationError;
 
-  const showResearchScriptBanner =
-    isResearchConv && !hydrating && !hydrationError;
+  const showResearchScriptBanner = isResearchConv && !hydrating && !hydrationError;
 
   const attachedScript = useMemo(
     () =>
-      activeScriptId != null
-        ? { id: activeScriptId, name: activeScriptName }
-        : null,
+      activeScriptId != null ? { id: activeScriptId, name: activeScriptName } : null,
     [activeScriptId, activeScriptName],
   );
 
-  // Tips are persisted; local dismiss only hides for this session (already recorded server-side).
   const visibleMessages = useMemo(() => {
     if (dismissedTipIds.length === 0) return messages;
     return messages.filter((m) => {
@@ -293,14 +156,12 @@ export function ForgeChat({
 
   const handleTipDismiss = useCallback((id: string) => {
     setDismissedTipIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }, []);
+  }, [setDismissedTipIds]);
 
   const handleTipRefine = useCallback(
     (suggestion?: string) => {
       if (suggestion && typeof navigator !== 'undefined' && navigator.clipboard) {
-        navigator.clipboard.writeText(suggestion).catch(() => {
-          /* ignore */
-        });
+        navigator.clipboard.writeText(suggestion).catch(() => {});
         toast('Refine suggestion copied. Open /generate and use the Refine Chat to apply it.');
       }
       router.push('/generate');
@@ -318,13 +179,11 @@ export function ForgeChat({
       }
       return ok;
     },
-    [onUpdateScriptId],
+    [onUpdateScriptId, setActiveScriptId, setActiveScriptName],
   );
 
-  // Resolve script title after hydration when only scriptId is known.
   useEffect(() => {
-    if (activeScriptId == null) return;
-    if (activeScriptName != null) return;
+    if (activeScriptId == null || activeScriptName != null) return;
 
     let cancelled = false;
     void (async () => {
@@ -335,9 +194,7 @@ export function ForgeChat({
 
         const list =
           (json as { data?: { scripts?: SavedScript[] } })?.data?.scripts ?? [];
-        const match = list.find(
-          (s) => Number.parseInt(s.id, 10) === activeScriptId,
-        );
+        const match = list.find((s) => Number.parseInt(s.id, 10) === activeScriptId);
         if (match && !cancelled) {
           setActiveScriptName(match.name ?? null);
         }
@@ -349,7 +206,7 @@ export function ForgeChat({
     return () => {
       cancelled = true;
     };
-  }, [activeScriptId, activeScriptName]);
+  }, [activeScriptId, activeScriptName, setActiveScriptName]);
 
   const seedScriptDbId = useMemo(
     () => parseSavedScriptId(seedScript?.id),
@@ -365,76 +222,11 @@ export function ForgeChat({
       }
       await sendMessage({ text });
     },
-    [onCreateConversation, seedScriptDbId, sendMessage],
+    [onCreateConversation, seedScriptDbId, sendMessage, conversationIdRef],
   );
 
-  const handleGenerateFromResearch = useCallback(async () => {
-    if (!activeConversationId) return;
-    setIsGeneratingFromResearch(true);
-    try {
-      const res = await fetch('/api/forge/research-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: activeConversationId }),
-      });
-      const json: unknown = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        toast.error(
-          messageFromApiErrorJson(
-            json,
-            'Could not generate research summary.',
-            'Research handoff failed. Please try again.',
-          ),
-        );
-        return;
-      }
-
-      const summary = (json as { data?: { summary?: ResearchSummaryPayload } })?.data
-        ?.summary;
-      if (!summary || typeof summary.description !== 'string') {
-        toast.error('Received an invalid research summary from Forge.');
-        return;
-      }
-
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        sessionStorage.setItem(
-          'pineforge_research_handoff',
-          JSON.stringify(summary),
-        );
-      }
-
-      router.push('/generate');
-    } catch {
-      toast.error('Network error — could not reach Forge summariser.');
-    } finally {
-      setIsGeneratingFromResearch(false);
-    }
-  }, [activeConversationId, router]);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const distanceFromBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight;
-    const away = distanceFromBottom > 120;
-    userAwayFromBottomRef.current = away;
-    setShowScrollFab(away);
-    onScrollOffset?.(el.scrollTop);
-  }, [onScrollOffset]);
-
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    userAwayFromBottomRef.current = false;
-    setShowScrollFab(false);
-  }, []);
-
   const showMessageList =
-    activeConversationId != null &&
-    !hydrating &&
-    !hydrationError &&
-    messages.length > 0;
+    activeConversationId != null && !hydrating && !hydrationError && messages.length > 0;
 
   const inputDisabled =
     (activeConversationId != null || seedScript != null) &&
@@ -444,9 +236,7 @@ export function ForgeChat({
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       {seedScript != null && activeConversationId == null ? (
         <div className="shrink-0 px-4 pt-3 sm:px-6">
-          <div className="mx-auto w-full max-w-3xl">
-            <SeedScriptBanner script={seedScript} />
-          </div>
+          <SeedScriptBanner script={seedScript} />
         </div>
       ) : null}
 
@@ -515,13 +305,13 @@ export function ForgeChat({
             <div className="mb-3 flex justify-end">
               <Button
                 type="button"
-                onClick={() => void handleGenerateFromResearch()}
-                disabled={isGeneratingFromResearch}
+                onClick={() => void research.handleGenerateFromResearch()}
+                disabled={research.isGeneratingFromResearch}
                 className="gap-2 rounded-sm border border-amber-500/40 bg-amber-500/10 font-mono text-xs uppercase tracking-widest text-amber-700 hover:bg-amber-500/15 disabled:opacity-60 dark:text-amber-400"
                 variant="ghost"
               >
                 <FlaskConical className="size-4" aria-hidden />
-                {isGeneratingFromResearch
+                {research.isGeneratingFromResearch
                   ? 'Synthesising…'
                   : 'Generate from Research'}
               </Button>
@@ -539,57 +329,4 @@ export function ForgeChat({
       </div>
     </div>
   );
-}
-
-function SeedScriptBanner({ script }: { script: SavedScript }) {
-  return (
-    <div className="mx-auto w-full max-w-3xl">
-      <div className="flex items-start gap-3 rounded-sm border border-neon-500/30 border-l-2 border-l-neon-500 bg-neon-500/[0.08] p-3 shadow-lg shadow-black/10 backdrop-blur-md dark:bg-neon-500/[0.12] dark:shadow-black/40">
-        <div className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-neon-500/30 bg-neon-500/10 text-neon-500 dark:text-neon-400">
-          <ScrollText className="size-3.5" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-neon-700 dark:text-neon-200">
-            Forge has loaded your script: {script.name || 'Untitled strategy'}
-          </p>
-          <p className="pf-muted mt-0.5 text-xs leading-relaxed">
-            Ask anything about it — Forge can run a Health Score, refine the script, or generate alerts.
-          </p>
-        </div>
-        <Button asChild variant="ghost" size="sm" className="shrink-0">
-          <Link href="/forge">Dismiss</Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function extractText(message: UIMessage | undefined): string {
-  if (!message) return '';
-  let text = '';
-  for (const part of message.parts) {
-    if (part.type === 'text') {
-      text += (part as { text: string }).text;
-    }
-  }
-  return text;
-}
-
-function readConversationPayload(
-  raw: unknown,
-): SavedConversation | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const envelope = raw as { data?: unknown };
-  if (!envelope.data || typeof envelope.data !== 'object') return null;
-  const payload = envelope.data as { conversation?: unknown };
-  const conversation = payload.conversation;
-  if (!conversation || typeof conversation !== 'object') return null;
-  return conversation as SavedConversation;
-}
-
-function parseSavedScriptId(id: string | undefined): number | null {
-  if (!id) return null;
-  const parsed = Number.parseInt(id, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return parsed;
 }

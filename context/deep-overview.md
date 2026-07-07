@@ -13,8 +13,11 @@ meant to help you understand:
 - why certain technical and product decisions were made
 
 This document is intentionally limited to the parts that are already built or
-actively wired into the current app, including the shipped Forge Agent in
-Phase 6.
+actively wired into the current app. It reflects the completed Phase 5 (high-
+/medium-value workflow features), Phase 6 (Forge Agent with memory, tools,
+guardrails, and research handoff), and Phase 7 (Templates Library, Assumptions,
+DNA fingerprints, Comparison Reports, Variants, Quality Tracker, Snapshot Export,
+Contextual Tips, and full Keyboard Power User Mode) surface.
 
 ---
 
@@ -97,20 +100,31 @@ strategy workflow instead of general trading chat.
 The current project includes these major areas:
 
 - marketing landing page at `/`
+- authenticated app shell under the `(app)` route group with shared `AppNavbar`
 - authenticated generator workspace at `/generate`
-- AI generation route
-- AI prompt improvement route
-- AI refine route
-- script explanation output tabs
-- health score analysis
-- alert template generation
-- backtesting summary generation
-- local and account-backed script history
-- tags, starred scripts, and collections
-- TradingView handoff workflow
-- markdown export workflow
 - authenticated Forge Agent workspace at `/forge`
-- Forge conversations, memory, and tool orchestration
+- curated Strategy Templates Library at `/templates` (plus detail pages)
+- Comparison Reports workspace at `/reports`
+- Quality Progression dashboard at `/progress`
+- AI generation, refine, improve-prompt, and explain routes
+- supporting AI analysis routes: health-score, alert-templates, backtesting-summary, generate-variants, forge/research-summary
+- script explanation output tabs (Script / Breakdown with Assumptions / Health / Backtest / Alerts / Compare)
+- full set of Phase 5 workflow tools (Health Score, Alert Templates, Backtesting Summary, TradingView handoff, Markdown + Snapshot export)
+- persistent per-user script history with stars, tags, collections, search, and lineage
+- unified `useScriptHistory` hook (localStorage for signed-out, Neon/Drizzle for signed-in with seamless migration import)
+- TradingView clipboard + Pine Editor handoff (Ctrl/Cmd+T + palette)
+- markdown export (Notion/Obsidian) + Pro-only self-contained HTML snapshot export
+- authenticated Forge Agent with:
+  - conversational tool calling over existing PineForge features
+  - persistent conversations (general + research `type`)
+  - long-term user memory (profile extraction)
+  - guardrails
+  - contextual tips
+  - research → generate handoff pipeline (with script attach in Forge)
+- Strategy DNA fingerprints (procedural 32×32 SVG badges in history)
+- Quick variants generation (risk-tight / signal-quality / indicator-swap)
+- Comparison reports (multi-select + AI analysis + coverage map + /reports surface)
+- Keyboard Power User Mode (tab numbers, j/k history nav, full shortcut surface + status bar)
 
 ---
 
@@ -395,64 +409,87 @@ Main folders:
 ## 9.1 App Routes
 
 - `/`
-  Marketing landing page
+  Marketing landing page (public)
 - `/generate`
-  Main product workspace
+  Core generator workspace (auth-gated via `(app)` group)
 - `/forge`
-  Authenticated AI strategy workflow workspace
+  Forge Agent conversational workspace (auth-gated)
+- `/templates`
+  Curated Pine Script v5 templates library + per-template detail pages (auth-gated)
+- `/reports`
+  Strategy comparison reports list + detail viewer (auth-gated)
+- `/progress`
+  Personal Quality Progression dashboard (Health Score trends, risk themes, insights) (auth-gated)
 - `/sign-in`
   Clerk sign-in page
 - `/sign-up`
   Clerk sign-up page
 
+Authenticated surfaces (`/generate`, `/forge`, `/templates`, `/reports`, `/progress`) share a common `AppNavbar` (Generator / Forge / Templates / Reports nav) via the `app/(app)/layout.tsx` route group. Landing and auth keep their own chrome.
+
 ## 9.2 Core AI Routes
 
 - `/api/generate`
-  Generate Pine Script from a strategy description
+  Generate Pine Script from a strategy description (with variants support via shared logic)
 - `/api/refine-script`
-  Refine an existing script based on instructions
+  Refine an existing script based on instructions (full replacement)
 - `/api/improve-prompt`
   Rewrite a weak prompt into a stronger structured prompt
 - `/api/explain-script`
-  Produce breakdown/checklist views from a script
+  Produce breakdown/checklist + Assumptions extraction from a script
 - `/api/health-score`
-  Score the generated strategy
+  Score the generated strategy (1–10 + verdict + actionable notes; persisted to script metadata when run)
 - `/api/alert-templates`
-  Produce webhook-ready alert message templates
+  Produce webhook-ready alert message templates (3Commas, Alertatron, WunderTrading, Custom)
 - `/api/backtesting-summary`
-  Produce a structured testing checklist
+  Produce a structured testing checklist (recommended timeframes/markets, equity curve checks, failure modes, test plan)
+- `/api/generate-variants`
+  Quick-generate 1–3 strategy variants (risk-tight / signal-quality / indicator-swap) with lineage
 - `/api/forge`
-  Run the Forge Agent as a streaming tool-calling conversation
+  Run the Forge Agent as a streaming tool-calling conversation (general + research modes)
+- `/api/forge/research-summary`
+  Structured research synthesis for the Research → Generate handoff pipeline
+- `/api/forge/conversations*`
+  Forge conversation CRUD (list/create/rename/delete) + message history
+- `/api/progress`
+  Personal stats aggregation for the Quality Progression dashboard
 
 ## 9.3 Data Routes
 
 - `/api/scripts`
-  List scripts, create script
+  List scripts, create script (from generation/refinement/variants)
 - `/api/scripts/search`
-  Search user scripts
+  Search/filter user scripts (free-text, tags, starred, collection)
 - `/api/scripts/[scriptId]`
-  Update or delete a specific script
+  Update (title) or delete a specific script
 - `/api/scripts/[scriptId]/star`
-  Toggle starred state
+  Toggle starred / pinned state (protects from FIFO eviction)
 - `/api/scripts/[scriptId]/tags`
-  Update tags
+  Update normalized tags (server re-normalization + length caps)
 - `/api/scripts/[scriptId]/collection`
-  Assign or clear collection
+  Assign or clear collection membership
 - `/api/collections`
   List or create collections
 - `/api/collections/[collectionId]`
-  Rename or delete a collection
+  Rename or delete a collection (auto-unassigns scripts on delete)
+- `/api/comparison-reports`
+  List or create AI-generated comparison reports (2–3 scripts)
+- `/api/comparison-reports/[reportId]`
+  Retrieve or delete a specific report
 - `/api/forge/conversations`
-  List or create Forge conversations
+  List or create Forge conversations (optionally seeded with `scriptId`)
 - `/api/forge/conversations/[conversationId]`
-  Rename or delete a Forge conversation
+  Rename, update script attachment, or delete a Forge conversation
 - `/api/forge/conversations/[conversationId]/messages`
   Load persisted Forge conversation messages
 - `/api/users/sync`
-  Ensure DB user row exists for the current Clerk user
+  Ensure DB user row exists for the current Clerk user (idempotent, called on first signed-in actions)
+- `/api/progress`
+  (Data-protected) personal progression stats (in addition to the AI-flavored aggregation route)
 
 This split reflects a core architectural choice: AI routes and CRUD routes are
 treated differently because they have different risks and cost profiles.
+`protectAiRoute` (plan + quotas + IP + concurrency) vs `protectDataRoute` (auth + lighter throttling).
 
 ---
 
@@ -463,73 +500,90 @@ treated differently because they have different risks and cost profiles.
 This holds route-level UI and route handlers.
 
 - `app/(auth)/`
-  auth pages and shell
+  auth pages and shell (terminal-styled sign-in/up)
+- `app/(app)/`
+  shared authenticated layout (`AppNavbar` + `UserPlanProvider` scope) wrapping:
+  - `app/(app)/generate/` — generator + error/loading/not-found boundaries
+  - `app/(app)/forge/` — Forge + loading
+  - `app/(app)/templates/` — library + `[templateId]` detail pages
+  - `app/(app)/reports/` — comparison reports list + detail
+  - `app/(app)/progress/` — quality progression dashboard
 - `app/api/`
-  API routes
-- `app/generate/`
-  generator page and route-level loading/error states
-- `app/forge/`
-  Forge Agent page and route-level loading states
+  All API routes (see 9.2 / 9.3)
+- `app/` root-level marketing (`page.tsx`), global error/not-found/loading
 
 ## 10.2 `components/`
 
 This is mostly presentational UI split by product area.
 
 - `components/landing/`
-  marketing page sections
+  marketing page sections (hero, features, examples, pricing teaser, FAQ, ticker)
 - `components/auth/`
-  auth visuals and trust UI
+  auth visuals, `AuthFormShell`, trust row
 - `components/strategy/`
-  generator, output, history, tabs, panels
+  generator, output card, tabs (Script/Breakdown/Health/Backtest/Alerts/Compare), history drawer, refine chat, panels for each tool, fingerprint, variant strip
 - `components/forge/`
-  Forge chat, sidebar, composer, and tool-call presentation
+  Forge chat experience, sidebar (conversations + reports link + new research), composer, tool-call cards, `ForgeTipCard`, research script banner/picker, empty states
+- `components/templates/`
+  template cards, detail view, "Use as base" prefill
+- `components/reports/`
+  `ComparisonReportCard`, `CoverageMap`, list + detail surfaces
+- `components/progress/`
+  dashboard panels, `HealthScoreTrendChart`, gating
+- `components/generate/`
+  `GenerateExperience` orchestrator (the authenticated generator chrome)
 - `components/error/`
-  custom terminal-style error screens
+  custom terminal-style error screens (`TerminalErrorScreen`)
 - `components/ui/`
-  shadcn-generated primitives
+  shadcn-generated primitives (never hand-edited)
+- `AppNavbar.tsx`, `mode-toggle.tsx`, `theme-provider.tsx`
 
 ## 10.3 `hooks/`
 
-Hooks are used heavily to prevent the generator page from becoming a giant
-stateful component.
+Hooks are used heavily to prevent the generator (and Forge) pages from becoming giant
+stateful components. Major families:
 
-Examples:
-
-- `useScriptHistory`
-- `useStrategyFormInputs`
-- `useStrategyGenerationSession`
-- `useApiScriptHistory`
-- `useLocalScriptHistory`
-- `useHealthScore`
-- `useAlertTemplates`
-- `useBacktestSummary`
+- Core generator: `useScriptHistory` (unified local/API switcher), `useStrategyFormInputs`, `useScriptGeneration`, `useStrategyGenerationCore` / `useStrategyGenerationSession`, `useStrategyLineageSync`, `useStrategyOutputResets`
+- Analysis tools: `useHealthScore`, `useAlertTemplates`, `useBacktestSummary`, `useComparisonReports`
+- Forge: `useForgeConversations`
+- Shared: `usePromptImprover`, `useCollections`, `useClerkAppearance`, `useShortcutLabel`, `usePrefersReducedMotion`, `useErrorLogger`
+- Strategy-specific subfolder: `hooks/strategy/*` for the narrower pieces (inputs, lineage, resets, etc.)
 
 ## 10.4 `lib/`
 
 This is the reusable systems layer.
 
 - `lib/ai/`
-  prompts, highlighting, env guards
+  prompts (generation, refine, health, alerts, backtest, variants, research, comparison, memory extraction, etc.), shiki highlighting, env guards, `parse-assumptions.ts`
 - `lib/api/`
-  schemas, response envelopes, boundary helpers
+  Zod schemas + validation, response envelopes (`apiSuccess`/`apiError`), boundary guards (`protectAiRoute`, `protectDataRoute`), ownership resolvers, error message helpers
 - `lib/auth/`
-  auth helpers and entitlement rules
+  Clerk session helpers, appearance, model entitlement (`resolveModelForPlan`, `getVariantCountForPlan`, `canExportSnapshot`), `require-clerk-session`
 - `lib/agent/`
-  Forge system prompt, tools, memory, and orchestration helpers
+  Forge system prompt builder, `guardrails.ts` (canonical `FORGE_GUARDRAILS`), tool contracts + runners (`lib/agent/tools/`, `tool-runners.ts`, `build-forge-tools.ts`), memory extraction, conversation persistence helpers, tips (`tips.ts`), UI message adapters
 - `lib/db/`
-  database access and row mapping
+  neon-http + pooled clients, all row mappers (`rowToSavedScript`, `rowToSavedCollection`, `rowToAgent*`), script/collection/agent/progress helpers, search, list, ownership primitives
 - `lib/scripts/`
-  history, lineage, compare, tags, TradingView helpers
+  history helpers (cap, partition by starred, filter), lineage, fingerprint (DNA SVG), tags normalization (single source of truth), TradingView handoff, local vs API stores, comparison report helpers
 - `lib/export/`
-  markdown export assembly and download helpers
+  `StrategyExportSource` + builders, markdown serializer, snapshot HTML assembler + styles + download utils; `actions/export-snapshot.ts` Server Action
 - `lib/rate-limit/`
-  Upstash-based controls
+  Upstash Redis limiters + concurrency stream lock
 - `lib/providers/`
-  shared React providers like user plan context
+  `UserPlanProvider` / `useUserPlan`
+- `lib/config/`
+  constants (MAX lengths, model list, caps, reset keys), prompt suggestions
+- `lib/research/`
+  research handoff reader (`read-research-handoff`)
+- `lib/collections/`, `lib/forge/`, `lib/prompt/`, `lib/progress/`, `lib/theme/`, `lib/types/`, `lib/ui/`, `lib/utils.ts`, `lib/brand.ts`
 
-## 10.5 `drizzle/`
+## 10.5 `actions/`
 
-Database schema and migrations live here.
+Server Actions (currently `export-snapshot.ts` for the Pro-only self-contained HTML export with auth + entitlement enforcement).
+
+## 10.6 `drizzle/`
+
+Database schema (`drizzle/schema.ts`) and versioned migrations (0000–0005+ applied to Neon) live here. Use `drizzle-kit generate` + `drizzle-kit migrate` (unpooled URL for migrate). Never `push` in prod.
 
 This separation makes the project easier to study because each folder has a
 clear job instead of mixing data, UI, and side effects together.
@@ -538,14 +592,17 @@ clear job instead of mixing data, UI, and side effects together.
 
 ## 11. The Generator Page: The Real Heart Of The Product
 
-The most important page is `/generate`.
+The most important page is `/generate` (inside the `(app)` authenticated group).
 
-Its top-level server route is `app/generate/page.tsx`. That file:
+Its top-level server route is `app/(app)/generate/page.tsx`. That file:
 
+- is protected by the group layout + `proxy.ts`
 - checks the current Clerk session
-- looks up the user’s plan from the database
-- passes the plan into the client workspace
-- renders the ambient terminal-style background
+- looks up the user’s plan from the database (`users.plan`)
+- passes `initialPlan` into the client workspace via `UserPlanProvider`
+- renders the ambient terminal-style background + ticker
+
+The client orchestrator `components/generate/GenerateExperience.tsx` then owns the shared authenticated generator chrome (history toggle, plan context, user sync on first action, command palette wiring) and renders `StrategyForm`. Output tabs now include Script, Breakdown (with Assumptions block), Health, Backtest, Alerts, and Compare (lineage diff). Phase 7 additions (variants strip, snapshot export button, DNA fingerprints in history, full keyboard surface) are wired here.
 
 The main client workspace is `components/generate/GenerateExperience.tsx`.
 That component:
@@ -695,99 +752,121 @@ keeps the rest of the UI simpler:
 
 ---
 
-## 15. How Explanation, Health, Alerts, And Backtest Tools Fit
+## 15. How Explanation, Health, Alerts, Backtest, Assumptions, Variants, And Reports Fit
 
-These supporting tools turn PineForge from a simple generator into a richer
-workflow product.
+These supporting tools (plus Phase 7 depth features) turn PineForge from a
+simple generator into a complete daily strategy workflow product.
 
-## 15.1 Script explanation
+## 15.1 Script explanation + Assumptions (Breakdown tab)
 
-The app includes breakdown/checklist-style explanation outputs so users can
-understand what the generated code is doing.
+The app includes breakdown/checklist-style explanation outputs (via
+`/api/explain-script`) so users can understand what the generated code is doing.
+Post-spec 60 the Breakdown tab also renders a dedicated **Assumptions** block
+(parsed at generation time and stored in `ScriptMetadata.assumptions`).
 
 This helps:
 
 - less technical traders
 - users validating logic before using the script
 - users learning Pine Script by reading generated code
+- surfacing "this strategy assumes X" so later Health Scores and the user
+  have shared context on why something may have failed
 
 ## 15.2 Health score
 
-The health score feature gives a 1–10 assessment with:
+The health score feature (`/api/health-score`) gives a 1–10 assessment with:
 
-- verdict
+- verdict (Promising / Needs Work / High Risk)
 - summary
 - strengths
 - risks
-- next steps
+- next steps (actionable refine suggestions)
 
-Why it exists:
-
-- raw generation is not enough
-- users need guidance on likely weaknesses
-- it encourages critique instead of blind trust
-
-That is a product maturity feature.
+Results can be persisted to the script's `metadata.healthScore` (enables the
+Quality Progression dashboard). Next-step "Refine" buttons prefill the Refine
+Chat. Health Scores are also available as a Forge tool.
 
 ## 15.3 Alert templates
 
 Generated strategy scripts are often only part of the workflow. Traders also
-need webhook-ready messages for automation platforms.
+need webhook-ready messages for automation platforms (`/api/alert-templates`).
 
-PineForge generates structured alert template bundles for common providers so
-the output becomes more operationally useful.
+PineForge generates structured alert template bundles for 3Commas, Alertatron,
+WunderTrading, and a Custom provider. Each includes `messageJson`, human
+description, and placeholder notes. Results feed the markdown exporter and
+Forge.
 
 ## 15.4 Backtesting summary
 
-This feature produces a structured markdown checklist for testing the strategy.
+This feature (`/api/backtesting-summary`) produces a structured markdown
+checklist for testing the strategy (recommended timeframes/markets, equity
+curve checks, common failure modes, explicit test plan). Purely structural
+guidance — no performance claims. Results are reusable in exports and Forge.
 
-Why it matters:
+## 15.5 Quick variants (Phase 7)
 
-- it nudges users toward validation
-- it improves workflow quality
-- it makes the app feel like a practical companion, not just a code spitter
+After generation, "Generate 3 variants" (or fewer for free users) produces
+lineage-linked scripts along three axes (risk-tight, signal-quality,
+indicator-swap). Powered by `/api/generate-variants`. Variant axis is recorded
+in metadata. UI shows a collapsible `VariantStrip`.
 
-Together, these features deepen the product around the core script.
+## 15.6 Comparison reports (Phase 7)
+
+Users multi-select 2–3 scripts in history (or via Forge) → POST to
+`/api/comparison-reports` → structured report with entry logic diff, risk
+profile, market suitability, and a Coverage Map (which regimes each strategy
+handles best). Lives at `/reports`; also reachable from Forge sidebar. Reports
+are first-class persisted artifacts.
+
+## 15.7 DNA fingerprints (Phase 7)
+
+Every history entry (and template) shows a deterministic 32×32 procedural SVG
+badge (`StrategyFingerprint` + `buildFingerprintSvg`) encoding market,
+indicators, direction, and version. Pure client-side, no AI, highly scannable.
+
+Together, these features (plus export, Forge orchestration, templates library,
+and keyboard power-user mode) deepen the product around the core script and make
+PineForge a serious daily driver rather than a one-shot generator.
 
 ---
 
 ## 16. How Persistence Works
 
-PineForge uses a split persistence model depending on whether the user is
-signed in.
+PineForge uses a split persistence model (local vs account-backed) but presents
+a single surface: `hooks/useScriptHistory.ts` (the switching layer).
 
-## 16.1 Local storage mode
+## 16.1 Local storage mode (signed-out)
 
-Unsigned users use local history.
+Unsigned users use localStorage-backed history (max 50 FIFO).
 
-That flow is handled by:
+Internal pieces:
 
 - `hooks/strategy/useLocalScriptHistory.ts`
 - `lib/scripts/local-history-store.ts`
 
 Characteristics:
 
-- browser-only persistence
-- capped to 50 entries
-- quick and simple
-- good for early exploration or anonymous usage
+- browser-only
+- quick, no auth required
+- good for first-time exploration
 
-## 16.2 Account-backed mode
+## 16.2 Account-backed mode (signed-in)
 
-Signed-in users use API-backed history.
+Signed-in users read/write via the Neon + Drizzle API surface.
 
-That flow is handled by:
+Internal pieces:
 
 - `hooks/strategy/useApiScriptHistory.ts`
-- `/api/scripts*`
+- `/api/scripts*` + search/star/tags/collection routes
 - `lib/scripts/api-history-store.ts`
+- DB helpers in `lib/db/` (`listScriptsForUser`, `searchScriptsForUser`, etc.)
 
 Characteristics:
 
-- persisted in Neon Postgres
-- available across devices
-- supports tags, stars, and collections
-- can import old local entries into the account
+- cross-device persistence
+- stars protect entries from the 50-entry cap
+- full tags + collections + search
+- one-time localStorage → account import toast on first sign-in
 
 ## 16.3 Why both modes exist
 
@@ -800,6 +879,23 @@ That gives PineForge:
 
 - lower friction at first use
 - better long-term retention for committed users
+
+## 16.3 The unified hook
+
+`useScriptHistory()` inspects Clerk auth and delegates to the right store.
+All consumers (`StrategyForm`, `ScriptHistory`, Forge, reports, progress, etc.)
+call the same methods: `entries`, `addEntry`, `renameEntry`, `deleteEntry`,
+`toggleStarEntry`, `setTagsEntry`, `setCollectionEntry`, `refreshEntries`, etc.
+Optimistic cache updates + `capScriptHistory` keep starred entries while trimming
+only unstarred ones. This abstraction is why the rest of the UI never branches
+on auth for history shape.
+
+## 16.4 Why both modes exist
+
+Anonymous-first + account-later is a deliberate onboarding decision. It lowers
+friction for trial while giving serious users durable, searchable, cross-device
+strategy libraries. The migration path (import on sign-in) plus the unified hook
+makes the transition feel seamless.
 
 ---
 
@@ -905,64 +1001,71 @@ useful, but it also needs boundaries to avoid abuse and incorrect matching.
 
 ## 20. Database Model
 
-The main tables are:
+The current model (after all Phase 4–7 migrations) contains these tables:
 
 - `users`
-- `scripts`
+- `scripts` (core artifact + rich `metadata` jsonb)
 - `collections`
+- `agent_conversations` (Forge threads, including research `type`)
+- `agent_memory` (per-user long-term profile)
+- `comparison_reports` (AI-generated 2–3 script analyses)
 
 ## 20.1 `users`
 
 Stores:
 
-- Clerk ID
+- Clerk ID (unique)
 - email
-- plan
-- usage counters
+- plan (`free` | `pro`)
+- generationsUsed (legacy counter)
 - creation time
 
-This table links authentication identity to app-specific user state.
+This table links authentication identity to app-specific user state (plan drives entitlement in `protectAiRoute` and `model-entitlement`).
 
 ## 20.2 `scripts`
 
 Stores:
 
-- user ownership
-- title
-- script content
-- version
-- parent linkage
-- starred flag
-- tags
-- metadata
-- collection assignment
-- model used
-- account balance
-- timestamps
+- user ownership (FK + indexes)
+- title, content (the Pine Script)
+- version + parentId (lineage for refinements and variants)
+- isStarred (boolean; starred rows survive history caps)
+- tags (jsonb string[])
+- metadata (jsonb `ScriptMetadata`): 
+  - prompt, balance, market, timeframe, direction, indicators, rr
+  - assumptions (StrategyAssumptions from spec 60)
+  - variantAxis (for quick-variant entries)
+  - healthScore (full persisted `HealthScoreResult` when user runs the analysis)
+- collectionId (nullable FK)
+- model, accountBalance
+- timestamps + indexes on (user_id, created_at desc), (user_id, is_starred), (user_id, collection_id)
 
-This table is the main business object in the app.
+`rowToSavedScript()` + `savedScriptSchema` (Zod) ensure a stable client shape including legacy localStorage entries. This is the primary business object.
 
 ## 20.3 `collections`
 
-Stores:
+Stores per-user named buckets (simple name + createdAt). Scripts reference them via FK. Delete path unassigns referencing scripts first (idempotent UPDATE then DELETE, no cross-user leakage).
 
-- owner
-- display name
-- creation time
+## 20.4 `agent_conversations` + `agent_memory` (Phase 6)
 
-Collections are intentionally simple. Their main job is categorization.
+- `agent_conversations`: per-thread `messages` as jsonb `AgentMessage[]`, optional `scriptId` seed, `type` (`general` | `research`), title auto-generated on first turn. Hard cap 200 messages / conversation; 50 conversations / user (FIFO on create).
+- `agent_memory`: one row per user (unique index), `profile` as `AgentUserProfile` jsonb (markets, timeframes, indicators, riskTolerance, strategyPatterns, averageHealthScore, insights, seenTips, totalStrategiesGenerated, lastExtractedAt). Injected into every Forge system prompt; updated by background extraction.
 
-## 20.4 Why metadata is stored with scripts
+## 20.5 `comparison_reports` (Phase 7)
 
-Scripts do not just store code. They also store useful generation context such
-as prompt and structured inputs.
+Stores AI-generated structured comparison (summary, entry logic, risk, market fit, coverage map, overlap, recommendation) for 2–3 scripts. `scriptIds` array + `report` jsonb. Script bodies are re-hydrated at render time from `scripts` (never duplicated).
 
-That is useful for:
+## 20.6 Why rich metadata lives in scripts
 
-- reloading and editing old strategies
-- exporting richer markdown
-- searchable history
-- understanding how a script was created
+The jsonb `metadata` column (plus assumptions, healthScore, variantAxis) stores generation context and derived analyses without new tables or migrations for most Phase 5–7 features. This enables:
+
+- perfect round-tripping of structured inputs on history load
+- Assumptions block in Breakdown without schema change
+- Quality Progression trends and risk aggregation from persisted Health Scores
+- variant lineage without polluting the main script shape
+- export sources that are reconstructible from a single row + optional live tool results
+
+All mappers are pure and centralised in `lib/db/`.
 
 ---
 
@@ -1794,29 +1897,36 @@ This aligns with the project’s coding rule of one module, one job.
 
 ## 30. Export System Purpose
 
-The export work is meant to turn a strategy session into a reusable knowledge
-artifact for tools like Notion or Obsidian.
+The export system turns a strategy session (or loaded history entry) into
+reusable, archivable artifacts.
 
-The markdown serializer is designed to assemble:
+Two surfaces exist:
 
-- title
-- metadata
-- original prompt
-- breakdown
-- Pine Script
-- optional health score
-- optional alert templates
-- optional backtesting summary
+- **Markdown export** (Notion / Obsidian ready) — `StrategyExportSource` +
+  `assembleStrategyExportMarkdown`. Assembles title, metadata bullets,
+  original prompt (blockquote), Breakdown (verbatim), fenced Pine Script,
+  plus optional Health Score / Alert Templates / Backtesting Summary sections
+  when those analyses have already been run in the session. Pure, deterministic,
+  no new AI calls. Client-side copy + `.md` download.
+
+- **Pro-only Snapshot export** (self-contained `.html`) — `actions/export-snapshot.ts`
+  (Server Action with plan check) + `strategy-snapshot-html.ts` + styles.
+  Produces a beautiful, offline, print-friendly single file containing:
+  syntax-highlighted script, assumptions, health card, alerts (collapsible JSON),
+  backtest sections, lineage diff (when present), QR back-link. Uses exact
+  terminal neon tokens and a tiny embedded Pine tokenizer. Fully deterministic.
 
 Why this matters:
 
-- many serious traders journal strategies
-- generated output becomes more valuable when it can be archived cleanly
-- markdown is portable and durable
+- many serious traders journal strategies in Notion/Obsidian or want a
+  portable record for review/print
+- generated + analyzed output becomes far more valuable when it can be
+  archived cleanly outside the app
+- snapshot is a premium differentiator (free users see a lock + upgrade toast)
 
-Even though this part is still wrapping up, the intent is consistent with the
-rest of the app: PineForge is trying to support the full strategy workflow, not
-just the first generation.
+The intent is consistent with the rest of the app: PineForge supports the full
+strategy workflow (generate → analyze → organize → export), not just the first
+generation.
 
 ---
 
@@ -1923,36 +2033,46 @@ If you want to learn the project efficiently, this is a good reading order:
 2. `context/architecture.md`
 3. `context/code-standards.md`
 4. `context/ui-context.md`
-5. `app/generate/page.tsx`
+5. `app/(app)/generate/page.tsx` (or `app/(app)/layout.tsx` for the shared shell)
 6. `components/generate/GenerateExperience.tsx`
 7. `components/strategy/StrategyForm.tsx`
-8. `hooks/useScriptHistory.ts`
-9. `hooks/strategy/useApiScriptHistory.ts`
-10. `hooks/strategy/useLocalScriptHistory.ts`
-11. `app/api/generate/route.ts`
-12. `app/api/refine-script/route.ts`
-13. `lib/api/validation.ts`
-14. `drizzle/schema.ts`
-15. `lib/scripts/`
-16. `lib/export/`
+8. `hooks/useScriptHistory.ts` (the unified switcher)
+9. `app/api/generate/route.ts`
+10. `app/api/refine-script/route.ts`
+11. `lib/api/validation.ts`
+12. `drizzle/schema.ts`
+13. `lib/scripts/` (lineage, tags, fingerprint, history helpers)
+14. `lib/export/` (source contract, markdown, snapshot HTML)
+15. `lib/db/` (mappers + query helpers for everything)
 
-If you want to study Forge after that, continue with:
+For the analysis tools:
 
-17. `app/forge/page.tsx`
-18. `components/forge/`
-19. `app/api/forge/route.ts`
-20. `app/api/forge/conversations/`
-21. `lib/agent/`
+16. `hooks/useHealthScore.ts` + `app/api/health-score/route.ts` (pattern repeats for alerts / backtest)
+
+For Phase 7 depth:
+
+17. `app/(app)/templates/` + `lib/templates/` (library + preload)
+18. `app/(app)/reports/` + comparison report routes + `CoverageMap`
+19. `app/(app)/progress/` + `lib/progress/` + persisted healthScore usage
+20. `lib/scripts/fingerprint.ts` + `StrategyFingerprint` (DNA badges)
+
+If you want to study Forge after the generator:
+
+21. `app/(app)/forge/page.tsx`
+22. `components/forge/ForgeExperience.tsx` + `ForgeChat.tsx`
+23. `app/api/forge/route.ts` (the streaming brain + onFinish orchestration)
+24. `lib/agent/` (system-prompt, guardrails, tools/*, tool-runners, memory-extraction, tips, persist-turn)
+25. `app/api/forge/conversations/` + `lib/db/agent-conversations.ts` + `lib/db/agent-memory.ts`
 
 That path lets you understand the app in the same order a user experiences it:
 
 - product concept
-- architecture
-- main page
-- state management
-- API boundaries
-- persistence
-- workflow helpers
+- architecture + standards
+- main authenticated shell + generator
+- state + persistence contracts
+- API boundaries and AI routes
+- workflow depth (templates / reports / progress / variants / fingerprints / export)
+- Forge conversational orchestration on top of everything else
 
 ---
 
@@ -1960,19 +2080,29 @@ That path lets you understand the app in the same order a user experiences it:
 
 What PineForge already does well:
 
-- clear product positioning
-- focused generation workflow
-- polished generator UX
-- serious persistence model
-- strong organization features
-- thoughtful security boundaries
-- good separation of concerns in the codebase
+- clear, narrow product positioning ("strategy compiler" for TradingView traders)
+- complete end-to-end generator + analysis + organization + export workflow
+- polished terminal/trading-desk UX with strong keyboard power-user support
+- robust persistence (local → account seamless, stars protect important work)
+- rich organization (tags, collections, search, DNA fingerprints)
+- deep Phase 5–7 tooling (Health, Alerts, Backtest, Assumptions, Variants,
+  Comparison Reports, Quality Tracker, Snapshot Export, Research→Generate)
+- full Forge Agent (tool orchestration, memory, guardrails, contextual tips,
+  research handoff, script attachment)
+- strong security posture (Zod everywhere, ownership checks, plan entitlement,
+  rate limits + stream locks, sanitized errors only, no raw LLM output trusted)
+- excellent separation of concerns (small hooks, pure mappers, contract-driven
+  tools, narrow routes)
 
-What is still evolving:
+What is still evolving (tracked in `context/fixes.md` and future work):
 
-- post-Phase-6 polish and iteration
-- some deeper hardening items tracked in context files
-- future expansion beyond the shipped Forge workflow surface
+- weighted per-route AI quotas and audit logging
+- Stripe billing + automatic plan enforcement (currently manual `users.plan`)
+- `/pricing` page and marketing alignment with real limits
+- server-side 50-entry caps on script writes (client already caps)
+- deeper observability for production abuse / cost monitoring
+
+All core Phases 1–7 (through spec 68) are complete and the build is clean.
 
 ---
 
@@ -1989,14 +2119,19 @@ It is built around one primary promise:
 
 Everything else in the app supports that promise:
 
-- the landing page sells it
-- the generator page executes it
-- Forge orchestrates it conversationally
-- refinement improves it
-- health/alerts/backtests deepen it
-- history/tags/collections preserve it
-- export makes it reusable outside the app
+- the landing page sells the value
+- the generator executes the core loop (describe → generate → analyze → refine)
+- `/templates` gives high-quality starting points with pre-computed analyses
+- health / alerts / backtest / assumptions / variants deepen understanding
+- comparison reports and the `/reports` + `/progress` surfaces add reflection
+- Forge orchestrates the entire surface conversationally (with memory + tips)
+- research handoff + "Generate from research" creates a research→code loop
+- history + stars + tags + collections + DNA fingerprints preserve the library
+- TradingView handoff + markdown + Pro snapshot export make output portable
+- plan gating, rate limits, ownership, and guardrails keep it safe and sustainable
 
-That is why the architecture, UI, database model, and API design all feel so
-coordinated. The app is not trying to do everything. It is trying to do one
-valuable workflow very well.
+That is why the architecture, UI tokens, database model (rich metadata jsonb +
+agent tables), API split (AI vs data routes), and hook boundaries all feel
+coordinated. The app is deliberately narrow: it does one valuable workflow for
+retail TradingView traders extremely well instead of trying to be a general
+trading chatbot or execution platform.

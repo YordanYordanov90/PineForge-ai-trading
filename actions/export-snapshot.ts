@@ -37,7 +37,7 @@ export async function exportStrategySnapshot(
 
     const html = await assembleStrategySnapshotHtml(source, options);
     return { success: true, data: { html }, error: null };
-  } catch (err) {
+  } catch {
     // Never leak stack or raw errors to client
     return {
       success: false,

@@ -16,14 +16,15 @@ const csp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   // Clerk FAPI + Cloudflare Turnstile (CAPTCHA on sign-in/sign-up)
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://${clerkFapiHost} https://challenges.cloudflare.com`,
+  // + Stripe.js for Clerk Billing checkout (payment element)
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://${clerkFapiHost} https://challenges.cloudflare.com https://js.stripe.com https://m.stripe.network`,
   `style-src 'self' 'unsafe-inline' https://${clerkFapiHost}`,
   "img-src 'self' data: blob: https: https://img.clerk.com",
   `font-src 'self' data: https://${clerkFapiHost}`,
   "worker-src 'self' blob:",
   // wss: for Clerk's real-time session sync
   "connect-src 'self' https: wss:",
-  `frame-src 'self' https://${clerkFapiHost} https://challenges.cloudflare.com https://accounts.google.com https://appleid.apple.com`,
+  `frame-src 'self' https://${clerkFapiHost} https://challenges.cloudflare.com https://accounts.google.com https://appleid.apple.com https://js.stripe.com https://hooks.stripe.com https://m.stripe.network`,
   "form-action 'self'",
   "upgrade-insecure-requests",
 ].join("; ");

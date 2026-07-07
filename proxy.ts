@@ -5,6 +5,7 @@ import {
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/pricing",
   "/sign-in(.*)",
   "/sign-up(.*)",
   // Let API handlers return 401 JSON; middleware redirect on fetch is awkward

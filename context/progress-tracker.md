@@ -70,9 +70,14 @@ after at least one refine when the prior version is still in localStorage histor
 
 **Current Security State**
 Zod validation and sanitized errors are in place on all API routes. CSP header
-in `next.config.ts`. **SEC-001 resolved:** Upstash Redis rate limiting on all AI
-routes (per-IP + per-user tier limits). Server model entitlement, stream concurrency,
-and `protectAiRoute()` are live (`context/fixes.md` Fix 2, 4, 6). Remaining hardening:
+in `next.config.ts` (allows Clerk FAPI, Cloudflare Turnstile, and — since Phase 8
+billing — Stripe: `js.stripe.com` + `m.stripe.network` in `script-src`,
+`js.stripe.com` + `hooks.stripe.com` + `m.stripe.network` in `frame-src`; the
+payment element silently hangs without these). **SEC-001 resolved:** Upstash Redis
+rate limiting on all AI routes (per-IP + per-user tier limits). Server model
+entitlement, stream concurrency, and `protectAiRoute()` are live
+(`context/fixes.md` Fix 2, 4, 6). Plan entitlement now reads Clerk Billing session
+claims (`auth().has({ plan: 'pro' })`) — see Phase 8. Remaining hardening:
 weighted quotas and audit logs (Fix 3, 7 — deferred).
 
 **Client model entitlement UX (Fix 2 UI):**
@@ -117,28 +122,75 @@ Extraction, `/forge` UI, and Guardrails.
 **Phase 7 — Depth & Polish** (`59`–`68`): 
 - **Complete**: Strategy Templates Library (`59`), Strategy Assumptions Block (`60`), Research → Generate Pipeline (`61` + 61.1 + 61.2 script attach), Strategy DNA Fingerprint (`62`), Strategy Comparison Reports (`63`), Strategy Variants Quick-Generate (`64`), Quality Progression Tracker (`65`), Strategy Snapshot Export (`66`), Contextual Tips in Forge (`67`), Keyboard Power User Mode (`68`). All Phase 7 specs shipped.
 
+**Phase 8 — Clerk Billing (test mode) — Complete:** Plan entitlement's source of
+truth moved from the DB `users.plan` column to Clerk Billing. `getUserPlanByClerkId()`
+in [`lib/db/scripts-user.ts`](../lib/db/scripts-user.ts) now resolves the current
+session's tier via `auth().has({ plan: 'pro' })` instead of a `select plan from users`
+query — every call site (`/generate`, `/forge`, `/progress`, `/templates` RSC pages,
+`checkRateLimit`, `actions/export-snapshot.ts`) is unchanged since they all already
+passed in the current request's own Clerk id. The `users.plan` column is no longer
+read for entitlement (kept as-is, not backfilled — nothing ever wrote to it).
+**Pricing UI is fully custom — two Clerk prebuilt approaches were tried and dropped**:
+(1) `<PricingTable />` (its checkout drawer portals inside the table's DOM subtree with
+no `portalRoot` control, so it rendered behind landing sections whose `RevealOnScroll`
+transforms create stacking contexts; a `BillingOverlay` full-screen wrapper and a
+`ThemedPricingTable` + `pricingTableCard*` appearance keys existed briefly and were
+deleted), then (2) the experimental `<CheckoutButton>` drawer with
+`portalRoot=document.body` (worked, but the side-drawer UX was rejected in favor of a
+centered modal). Final state:
+[`components/billing/PricingPlans.tsx`](../components/billing/PricingPlans.tsx)
+renders the Free ($0) / Pro ($29/mo, `PRO_TIER_MONTHLY_PRICE_LABEL` in constants)
+cards, shared by the landing `#pricing` section
+([`LandingPricingTeaser`](../components/landing/LandingPricingTeaser.tsx)) and the
+public `/pricing` route ([`app/pricing/page.tsx`](../app/pricing/page.tsx), added to
+`proxy.ts` public matcher). One-click checkout via
+[`components/billing/UpgradeToProButton.tsx`](../components/billing/UpgradeToProButton.tsx)
+opening [`components/billing/ProCheckoutDialog.tsx`](../components/billing/ProCheckoutDialog.tsx)
+— a **fully custom checkout in the app's own shadcn `Dialog`** (centered modal, replaces
+Clerk's prebuilt side drawer which kept losing stacking-context fights). Built on Clerk's
+experimental custom-checkout primitives from `@clerk/nextjs/experimental`:
+`CheckoutProvider` (planId from `NEXT_PUBLIC_CLERK_PRO_PLAN_ID` in `.env.local`,
+`planPeriod="month"`) + `useCheckout()` lifecycle (`start()` on mount →
+`needs_confirmation` renders order summary from `checkout.totals.totalDueNow` +
+`PaymentElementProvider`/`PaymentElement` Stripe card form themed via
+`stripeAppearance` (dark/light from `next-themes`) → `usePaymentElement().submit()`
+→ `checkout.confirm({ gateway, paymentToken })` → `completed` success panel →
+`finalize()` + `router.push('/generate')`). Button states: signed-out →
+`/sign-in?redirect_url=/pricing`; free → opens checkout dialog; pro (via client
+`useAuth().has({ plan: 'pro' })`) → inert "You're on Pro" badge.
+`lib/auth/clerk-appearance.ts` retains `drawer*`/`checkoutForm*` element keys
+(used by any remaining Clerk-rendered drawers, e.g. UserButton billing).
+CSP in `next.config.ts` allows Stripe (`js.stripe.com`, `hooks.stripe.com`,
+`m.stripe.network` in `script-src`/`frame-src`) — without this the payment element
+spins forever. `AppNavbar` gained a "Pricing" link. Subscription management
+(cancel / payment method / invoices) is handled by Clerk's existing `UserButton`
+Billing section — no extra code. No webhook, no DB migration: Clerk session claims
+are the live source of truth. Dashboard config: plan named "Pro", key `pro`
+(matches `has({ plan: 'pro' })`), id `cplan_3G8KMtZmEdfQLhB4z0sPDGEH2OX`.
+Note: the custom-checkout primitives (`CheckoutProvider`, `useCheckout`,
+`PaymentElement`) are public-beta — if Clerk changes them, only
+`ProCheckoutDialog.tsx` touches that API.
+
 ## Current Goal
 
-Phase 6 Forge Agent (`51`–`58`) is complete. Done: `52` (memory
-schema + Drizzle migration `0003` applied to Neon), `53` (tool contract
-scaffolding in `lib/agent/tools/`), `54` (conversation CRUD routes +
-DB helpers + ownership resolver), `55` (`POST /api/forge` streaming
-endpoint + system prompt + tool runners + persistence), `56` (memory
-extraction — `lib/agent/memory-extraction.ts` + the agent-memory
-upsert / debounce / script-count helpers + the `onFinish` hook in
-`/api/forge`), `57` (`/forge` page UI — `ForgeExperience` orchestrator,
-sidebar + chat + message list + tool-call cards + input + empty state;
-`useForgeConversations` hook; `agentMessagesToUIMessages` adapter for
-`useChat`; navbar Forge link + "Discuss with Forge" entry point on
-`/generate`), `58` (canonical `lib/agent/guardrails.ts` module —
-`FORGE_GUARDRAILS` block with refusal patterns, language constraints,
-tool-usage rules, and prompt-transparency rules; replaces the inline
-MVP block in `system-prompt.ts`; refine-script runner hardened with
-empty-output check to complete spec § Tool Result Validation).
+Phases 1–8 are complete: core generator, daily-driver features, auth +
+Neon/Drizzle data layer, rate limiting + AI hardening, high/medium-value
+features (`21`–`50`), Forge Agent (`51`–`58`), Depth & Polish (`59`–`68`),
+and Clerk Billing test mode (Phase 8 above — custom pricing cards, in-app
+shadcn-Dialog checkout on Stripe, session-claim entitlement).
 
-Phase 7 (`59`–`68`) complete (Templates through Keyboard Power User Mode). Later optional Phase 4 hardening
-(`context/fixes.md` Fix 3 / Fix 7 — weighted quotas, audit logs)
-can run in parallel as a background track.
+**Outstanding for billing:**
+- Manual end-to-end test of the new checkout dialog (signed-in free user →
+  "Upgrade to Pro" → Stripe test card `4242 4242 4242 4242` → success panel →
+  `/generate` with premium models unlocked). Code-side verification (build,
+  SSR output, CSP headers) is done; the paid flow itself needs a human click-through.
+- Later, before real (non-test) billing: consider a Clerk webhook
+  (`subscription.updated`) to sync plan state server-side for audit/history,
+  and revisit `users.plan` (currently vestigial).
+
+**Optional backlog (unchanged):** Phase 4 hardening — weighted per-route
+quotas (Fix 3) and usage audit logs (Fix 7) from `context/fixes.md`;
+`/privacy` and `/terms` footer routes are still stubs.
 
 ## Phase 4 — Auth & Database Foundation
 
@@ -171,14 +223,14 @@ can run in parallel as a background track.
 
 **Done (client model entitlement UI):**
 - `lib/providers/UserPlanContext.tsx` — `UserPlanProvider` + `useUserPlan()` for `/generate` subtree
-- `app/generate/page.tsx` — async RSC loads `users.plan` from Neon; passes `initialPlan`
+- `app/generate/page.tsx` — async RSC loads plan via `getUserPlanByClerkId` (now Clerk Billing-backed, see Phase 8); passes `initialPlan`
 - `ModelSelector` — lock icon, dimmed Pro-only models, toast on click; tooltips note Pro-only
 - `StrategyForm.loadSavedScript` — clamps saved premium model to `DEFAULT_MODEL` for free users
 
 **Still planned (Phase 4 / fixes backlog):**
 - Weighted per-route quotas — Fix 3 (deferred)
 - Usage audit logs — Fix 7 (deferred)
-- Stripe / billing (Phase 5+)
+- Clerk Billing (Stripe under the hood) — **done, see Phase 8**
 
 ## Phase 5 — High & Medium Value Features (Planned After Phase 4)
 
@@ -307,7 +359,7 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 
 ## Open Questions
 
-- Landing footer links `/pricing`, `/privacy`, `/terms` — routes not implemented yet (stubs)
+- Landing footer links `/pricing` (now live, Phase 8), `/privacy`, `/terms` (still stubs)
 - **Spec 65 Quality Progression Tracker resolved** (see table entry for full implementation notes). Health score persistence prerequisite + dashboard shipped together. Open question retained for history; all prior ambiguities addressed in the delivered code.
 
 ## Architecture Decisions
