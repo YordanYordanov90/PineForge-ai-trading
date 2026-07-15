@@ -84,7 +84,9 @@ handler fires.
 
 ### History drawer keyboard navigation
 
-New state in `ScriptHistory`:
+New state, originally added directly in `ScriptHistory` and later (2026-07-07
+code-quality pass) extracted to `hooks/strategy/useHistoryKeyboardNav.ts` —
+behavior below is unchanged, only the state's location moved:
 - `keyboardSelectedIndex: number | null` — tracks highlighted entry
 - Reset to `null` when drawer closes
 - `j` / `k` cycle through the visible (filtered) entries array
@@ -150,7 +152,8 @@ New:
 
 Modified:
 - `hooks/useKeyboardShortcuts.ts` — extend or delegate to `useGeneratorShortcuts`
-- `components/strategy/ScriptHistory.tsx` — keyboard navigation state
+- `components/strategy/ScriptHistory.tsx` — keyboard navigation state (now
+  delegates to `hooks/strategy/useHistoryKeyboardNav.ts`, see above)
 - `components/strategy/StrategyOutputTabs.tsx` — number key tab switching,
   updated tooltips
 - `components/generate/GeneratorCommandMenu.tsx` — new shortcut entries

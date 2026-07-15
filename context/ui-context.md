@@ -149,6 +149,12 @@ rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc
 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400
 ```
 
+Use the shared `Badge` component (`components/ui/badge.tsx`, `default` /
+`active` variants via `cva`) instead of hand-copying this markup — it already
+backs the pattern in `StrategyInputsCard.tsx` and `AlertTemplateCard.tsx`.
+Pass a custom `className` for one-off color overrides (e.g. Health Score
+severity tinting).
+
 When a badge **does** carry semantic meaning (an error state, a warning, a
 "success" verdict on a Health Score card itself), use the semantic state
 tokens from the Colors section.

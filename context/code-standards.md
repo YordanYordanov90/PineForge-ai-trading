@@ -62,6 +62,8 @@
 - `components/landing/` — All marketing page components
 - `components/ui/` — shadcn primitives only (CLI-managed, do not edit)
 - `hooks/` — Custom React hooks. One hook per concern.
+- `hooks/strategy/` — Generator/history/output hooks scoped to `components/strategy/`
+- `hooks/forge/` — Forge chat/conversation hooks scoped to `components/forge/`
 - `lib/` — Shared utilities (`utils.ts`, `brand.ts` at root; subfolders below)
 - `lib/config/` — App constants and presets
 - `lib/types/` — Shared TypeScript types

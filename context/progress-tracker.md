@@ -1252,3 +1252,62 @@ Feature specs live in `context/features/59`–`68`. Prioritised order:
 - A11Y-001: ModelSelector radiogroup semantics done; optional follow-up: `aria-disabled` + focus when locked
 - A11Y-002: resolved — `LandingExamples` Copy control is a `<button>` with `aria-label`
 - NEXT-001: Root `app/error.tsx` and `app/loading.tsx` present (tracker was stale)
+
+**Full SCANNER.md audit (2026-07-07) — all findings fixed**
+Ran the full `.agents/SCANNER.md` audit (security, performance, quality,
+component structure) across the whole app; results in `context/report.md`.
+All 18 findings fixed and re-verified against the code, plus `tsc --noEmit`,
+`eslint --quiet`, and `next build` all pass clean.
+- **Security (High)**: [`app/api/comparison-reports/route.ts`](app/api/comparison-reports/route.ts)
+  no longer returns `err.message` to the client on generation failure — logs via
+  `devWarn` and returns a fixed generic string, matching every other AI route.
+- **Security (Medium — XSS)**: [`lib/export/snapshot-renderers.ts`](lib/export/snapshot-renderers.ts)
+  `renderBacktest()` now runs `b.markdown` (LLM-generated backtest summary)
+  through `escapeHtml()` before interpolating into the exported `.html`
+  snapshot — it was the only field in the file skipping escaping, and the
+  snapshot is a self-contained file users download and open/share.
+- **Component splits**: `ForgeConversationSidebar.tsx` (458→193 lines) split
+  into `ConversationButton.tsx`, `ConversationRenameRow.tsx`,
+  `ConversationActions.tsx`, `DeleteConversationDialog.tsx`. `ScriptHistory.tsx`
+  (391→248 lines) had its j/k/Enter keyboard-nav engine extracted to
+  `hooks/strategy/useHistoryKeyboardNav.ts` and its multi-select-for-comparison
+  + `/api/comparison-reports` fetch extracted to
+  `hooks/strategy/useScriptComparisonSelection.ts`. `ExplainScriptPanel.tsx`
+  (269→118 lines) had its cached-streaming state machine extracted to
+  `hooks/strategy/useExplainScriptStream.ts`.
+- **`useScriptGeneration.ts`** (`generate`/`refine`, both >100 lines with
+  triplicated logic) now shares `lib/scripts/stream-script-response.ts` (reader
+  loop, flushes the decoder after the loop so a multi-byte UTF-8 char split
+  across the final chunk isn't dropped), `lib/scripts/generation-errors.ts`
+  (status→toast mapping), and `lib/scripts/finalize-streamed-script.ts`
+  (assumptions-block parsing).
+- **Performance**: `/forge` (`app/(app)/forge/page.tsx`) now runs
+  `listConversationsForUser` + `loadSeedScript` through one `Promise.all`
+  instead of sequential awaits. `app/(app)/progress/loading.tsx` added (route
+  had no loading boundary). The five `components/progress/*.tsx` panels
+  dropped `'use client'` — they're pure presentational, now render as Server
+  Components. `ForgeAssistantMarkdown` (react-markdown + remark-gfm) is now
+  loaded via `next/dynamic` from `ForgeMessageList.tsx` instead of eagerly
+  bundled.
+- **Route helpers extracted**: `lib/rate-limit/deduct-extra-variant-quota.ts`
+  (out of `generate-variants/route.ts`), `lib/ai/prompts/generate-context.ts`
+  (out of `generate/route.ts`), `lib/db/persist-health-score.ts` (out of
+  `health-score/route.ts`).
+- **CSP hardened beyond the finding**: moved off the `next.config.ts` header
+  entirely onto Clerk's strict nonce-based CSP (`lib/security/csp-directives.ts`,
+  wired in `proxy.ts`) — `unsafe-inline`/`unsafe-eval` are gone from
+  `script-src` in production, not just flagged as a residual risk.
+- **Misc**: `components/ui/badge.tsx` added (dedupes the pill markup
+  previously copy-pasted in `StrategyInputsCard.tsx` and
+  `AlertTemplateCard.tsx`); `GeneratorCommandMenu.tsx`'s 7 repeated view-tab
+  `CommandItem`s now derive from one `VIEW_TAB_COMMANDS` array;
+  `hooks/useForgeConversations.ts` create/rename/delete now share one
+  `withOptimisticMutation()` helper; `ForgeChat.tsx`'s inline script-name
+  fetch moved to `hooks/forge/useActiveScriptName.ts`.
+- Two follow-up findings from reviewing the fix commits themselves (not in
+  the original scan) were also fixed: `useScriptComparisonSelection.ts` had
+  an implicit-`any` `json` from the fetch response (now `unknown` + a
+  `hasReport()` type guard, errors routed through `messageFromApiErrorJson`),
+  and both streaming reader loops (`stream-script-response.ts`,
+  `useExplainScriptStream.ts`) now flush the `TextDecoder` after the loop.
+- No open items remain from this audit.
